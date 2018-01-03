@@ -56,8 +56,11 @@ def get_links(data):
     p.feed(data)
     links = []
     for link in p.output_list:
-        if(('http' in link) and link not in links):
-            links.append(link)
+        try:
+            if(('http' in link) and link not in links):
+                links.append(link)
+        except:
+            pass
     return links
 
 def get_domain(link):
