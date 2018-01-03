@@ -45,9 +45,9 @@ Usage: TorSpider.py [Seed URL]
 # This function provides us with a connection routed through the Tor proxy.
 def get_tor_session():
     session = requests.session()
-    session.proxies = {'http': 'socks5://127.0.0.1:9050',
-                       'https':'socks5://127.0.0.1:9050'}
+    session.proxies = {'http': 'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
     return session
+
 session = get_tor_session()
 
 # First, let's see if we're able to connect through Tor.
@@ -55,7 +55,8 @@ try:
     local_ip = requests.get('http://icanhazip.com').text
     tor_ip = session.get('http://icanhazip.com').text
     
-    print "Local IP: %s\nTor IP: %s" % (local_ip, tor_ip)
+    print "Local IP: %s" % (local_ip.strip())
+    print "Tor IP:   %s" % (tor_ip.strip())
     if(local_ip != tor_ip):
         print "Tor connection successful!"
     else:
