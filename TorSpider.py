@@ -21,13 +21,77 @@
     script which will create a web interface for exploring the saved data.
 '''
 
+'''---INCLUDES---'''
+
 import requests, sys, sqlite3
+from HTMLParser import HTMLParser
+
+'''---VARIABLES---'''
+
+# How many threads do we want the spider to run on this system?
+max_threads = 5     # Five threads shouldn't be too heavy a load, even for a Pi.
+recursion_depth = 3 # How many links deep should we delve into any particular URL?
+
+'''---CLASSES---'''
+
+class MyParser(HTMLParser):
+    # Parse given HTML for all a.href and img.src links.
+    def __init__(self, output_list=None):
+        HTMLParser.__init__(self)
+        if output_list is None:
+            self.output_list = []
+        else:
+            self.output_list = output_list
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.output_list.append(dict(attrs).get('href'))
+        elif tag == 'img':
+            self.output_list.append(dict(attrs).get('src'))
+
+'''---FUNCTIONS---'''
+
+def get_links(data):
+    # Given HTML input, return a list of all unique http or ftp links.
+    p = MyParser()
+    p.feed(data)
+    links = []
+    for link in p.output_list:
+        if(('http' in link) and link not in links):
+            links.append(link)
+    return links
+
+def get_domain(link):
+    # Given a link, extract the domain.
+    s = link.split('/')
+    for i in s:
+        if(i != 'http:' and i != 'https:' and i != ''):
+            return i
+
+def get_unique_domains(data):
+    # Given HTML input, return a list of all unique domains.
+    domains = []
+    for link in get_links(data):
+        domain = get_domain(link)
+        if(domain not in domains):
+            domains.append(domain)
+    return domains
+
+def get_tor_session():
+    # Create a session that's routed through Tor.
+    session = requests.session()
+    session.proxies = {'http': 'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
+    return session
+
+'''---MAIN---'''
 
 # Just to prevent some SSL errors.
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':ECDHE-ECDSA-AES128-GCM-SHA256'
 
+# Spoof a specific user agent (tor browser).
+session.headers.update({'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'})
+
 # Determine if the user has provided a Seed URL or asked for usage information.
-seed_url = ''
+seed_url = 'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page' # This is the Uncensored Hidden Wiki URL
 try:
     seed_url = sys.argv[1]
 except:
@@ -42,12 +106,7 @@ Usage: TorSpider.py [Seed URL]
 '''
     sys.exit(0)
 
-# This function provides us with a connection routed through the Tor proxy.
-def get_tor_session():
-    session = requests.session()
-    session.proxies = {'http': 'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
-    return session
-
+# Create a new Tor session.
 session = get_tor_session()
 
 # First, let's see if we're able to connect through Tor.
@@ -67,3 +126,9 @@ except:
     sys.exit(0)
 
 # At this point, we have a successful Tor connection, and can begin the process of scanning.
+
+# Let's demonstrate by grabbing unique domains from the seed URL and printing them out.
+data = session.get(seed_url).text
+domains = get_unique_domains(data)
+for domain in domains:
+    print domain

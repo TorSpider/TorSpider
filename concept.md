@@ -8,3 +8,32 @@ The second prong will be the web server, which will make the database available 
 Eventually, it would be nice to put this index up as its own hidden service. I would not manually add it to its own list, though... I'd put a little easter egg in the code that would go off when the spider found the index, perhaps a little message "the spider found itself today" or something like that.
 ###### Implementation:
 Using a limited thread queue, this kind of application can be hosted on a low-spec machine. I'll use my Raspberry Pi, and I'll set it up to automatically connect to an anonymous VPN just for safety's sake. Then, from the VPN, it'll connect to Tor, hosting the hidden service and scanning for others. The RPi could probably handle a fair number of threads gracefully. As long as there's enough space on the disk (and with 16gb, it'd have to find a LOT of content), there shouldn't be any problem letting the entire thing run from the Pi.
+
+
+Sqlite3 DB Format:
+
+CREATE TABLE IF NOT EXISTS `onions` (
+    `domain_id` INTEGER PRIMARY KEY,    # The domain's ID
+    `url` TEXT                          # The domain's URL
+);
+
+CREATE TABLE IF NOT EXISTS `vars` (
+    `domain_id` INTEGER,                # The last domain being scanned.
+    `last_page` INTEGER                 # The last page in that domain being scanned.
+);
+
+### For each onion:
+#### This is a table of urls, showing the various pages available within a domain:
+CREATE TABLE IF NOT EXISTS `domain_id` (
+    `page_id` INTEGER PRIMARY KEY,      # The ID of this particular page within the domain.
+    `url` TEXT                          # The URL for this particular page within the domain.
+);
+
+#### This is a table of links, showing connections between domains:
+
+CREATE TABLE IF NOT EXISTS `domain_id` (
+    `domain_id` INTEGER                      # The domain_id to which the parent domain_id links.
+);
+
+
+## Note: Urls opened must have http: or https: before them.
