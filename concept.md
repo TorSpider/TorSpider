@@ -13,25 +13,28 @@ Using a limited thread queue, this kind of application can be hosted on a low-sp
 Sqlite3 DB Format:
 
 CREATE TABLE IF NOT EXISTS `onions` (
-    `domain_id` INTEGER PRIMARY KEY,    # The domain's ID
+    `id` INTEGER PRIMARY KEY,           # The domain's ID
     `url` TEXT                          # The domain's URL
 );
 
-CREATE TABLE IF NOT EXISTS `vars` (
-    `domain_id` INTEGER,                # The last domain being scanned.
-    `last_page` INTEGER                 # The last page in that domain being scanned.
+CREATE TABLE IF NOT EXISTS `state` (
+    `last_id` INTEGER                   # The last domain being scanned.
 );
 
 ### For each onion:
+
+The following tables are created on the fly, with their table names determined by the domain_id of the TLD they reference.
+
 #### This is a table of urls, showing the various pages available within a domain:
-CREATE TABLE IF NOT EXISTS `domain_id` (
+CREATE TABLE IF NOT EXISTS `pages_domain_id` (
     `page_id` INTEGER PRIMARY KEY,      # The ID of this particular page within the domain.
-    `url` TEXT                          # The URL for this particular page within the domain.
+    `url` TEXT,                         # The URL for this particular page within the domain.
+    `hash` TEXT                         # The sha1 hash of the page, so we can tell if its content has changed.
 );
 
 #### This is a table of links, showing connections between domains:
 
-CREATE TABLE IF NOT EXISTS `domain_id` (
+CREATE TABLE IF NOT EXISTS `links_domain_id` (
     `domain_id` INTEGER                      # The domain_id to which the parent domain_id links.
 );
 

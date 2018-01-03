@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<b v="1">
+	<r>
+		<f i="0.0" id="/OIwYXeBReaWzVwgF71d2Q" d0="0.0" d1="0.0" d2="0.0" d="0.0" t="All">
+			<t>All</t>
+			<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQWxsfQ==</t>
+		</f>
+	</r>
+	<c>
+		<f i="536642772553.0" id="oBqcSS+eSDeqIr86mxqXYg" d0="536642775081.0" d1="0.0" d2="0.0" d="536642772552.0" t="Queue">
+			<f i="536642692893.0" id="HyKuWMDwRxCOkHoAsriBaA" d0="536642704498.0" d1="0.0" d2="536642704498.0" l="blue" d="536642692891.0" t="Cold">
+				<t>Cold</t>
+				<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ29sZH0=</t>
+			</f>
+			<f i="536642708228.0" id="Axy5ZuCORrmUJAIjNVEKjw" d0="536642716326.0" d1="0.0" d2="536642716326.0" l="yellow" d="536642708227.0" t="Medium">
+				<t>Medium</t>
+				<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgTWVkaXVtfQ==</t>
+			</f>
+			<f i="536642720781.0" id="r/8B/XmuQkqDL6StDgjuKQ" d0="536642722536.0" d1="0.0" d2="536642728461.0" l="red" d="536642720781.0" t="Hot">
+				<t>Hot</t>
+				<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgSG90fQ==</t>
+			</f>
+			<t>Queue</t>
+			<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgUXVldWV9</t>
+		</f>
+		<f i="0.0" id="FWvf9PrASpKOuP3ohN+hyw" d0="0.0" d1="0.0" d2="0.0" d="0.0" t="Doing">
+			<t>Doing</t>
+			<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRG9pbmd9</t>
+		</f>
+		<f i="0.0" id="Kwx5DUmSROuUnfb9liWPFA" d0="0.0" d1="0.0" d2="0.0" d="0.0" t="Done">
+			<t>Done</t>
+			<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRG9uZX0=</t>
+		</f>
+	</c>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Axy5ZuCORrmUJAIjNVEKjw">
+		<c i="536661785070.0" id="nZjs/c/TQ8eI2NQ+gJwAaw" d0="536661810692.0" d1="536661824788.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661785069.0" t="Craft Scrape Process">
+			<s>Craft Scrape Process</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ3JhZnQgU2NyYXBlIFByb2Nlc3N9</s>
+			<c>Recursion through a defined number of levels.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFJlY3Vyc2lvbiB0aHJvdWdoIGEgZGVmaW5lZCBudW1iZXIgb2YgbGV2ZWxzLn0=</c>
+		</c>
+		<c i="536662027199.0" id="RrEax9gtQX633BfgluXdvQ" d0="536662620077.0" d1="536662632730.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536662027199.0" t="Set up threading/processing.">
+			<s>Set up threading/processing.</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgU2V0IHVwIHRocmVhZGluZy9wcm9jZXNzaW5nLn0=</s>
+			<c>Once effective scraping is possible, set it up to scrape in threads or processes for concurrency.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIE9uY2UgZWZmZWN0aXZlIHNjcmFwaW5nIGlzIHBvc3NpYmxlLCBzZXQgaXQgdXAgdG8gc2NyYXBlIGluIHRocmVhZHMgb3IgcHJvY2Vzc2VzIGZvciBjb25jdXJyZW5jeS59</c>
+		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="r/8B/XmuQkqDL6StDgjuKQ">
+		<c i="536661708418.0" id="/bLoGWRARq+QGSkmj/EWrQ" d0="536661738260.0" d1="536661776680.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661708418.0" t="Separate Scraped Links">
+			<s>Separate Scraped Links</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgU2VwYXJhdGUgU2NyYXBlZCBMaW5rc30=</s>
+			<c>Differentiate between same-domain URLs and URLs to different domains.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIERpZmZlcmVudGlhdGUgYmV0d2VlbiBzYW1lLWRvbWFpbiBVUkxzIGFuZCBVUkxzIHRvIGRpZmZlcmVudCBkb21haW5zLn0=</c>
+		</c>
+		<c i="536661873512.0" id="SwF6WDvGS3+r9NexqhoPvA" d0="536661882484.0" d1="536661891498.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661873512.0" t="Store Scrape Data">
+			<s>Store Scrape Data</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgU3RvcmUgU2NyYXBlIERhdGF9</s>
+			<c>Write important information to database.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFdyaXRlIGltcG9ydGFudCBpbmZvcm1hdGlvbiB0byBkYXRhYmFzZS59</c>
+		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="FWvf9PrASpKOuP3ohN+hyw">
+		<c i="536661621830.0" id="J68YwV2nRI2kaXGu0X6uIw" d0="536661673603.0" d1="536661702404.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661621788.0" t="Create SQL database.">
+			<s>Create SQL database.</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ3JlYXRlIFNRTCBkYXRhYmFzZS59</s>
+			<c>Craft the database structure and functions.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIENyYWZ0IHRoZSBkYXRhYmFzZSBzdHJ1Y3R1cmUgYW5kIGZ1bmN0aW9ucy59</c>
+		</c>
+	</i>
+</b>

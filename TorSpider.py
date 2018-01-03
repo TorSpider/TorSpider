@@ -23,7 +23,7 @@
 
 '''---INCLUDES---'''
 
-import requests, sys, sqlite3
+import requests, sys, sqlite3 as sql
 from HTMLParser import HTMLParser
 
 '''---VARIABLES---'''
@@ -85,7 +85,35 @@ def get_tor_session():
     session.proxies = {'http': 'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
     return session
 
-'''---MAIN---'''
+def db_cmd(cmd):
+    # This function executes commands in the database.
+    rtn = None
+    con = sql.connect('SpiderWeb.db')
+    cur = con.cursor()
+    try:
+        buf = cmd.strip()
+        cur.execute(buf)
+        if(buf.upper().startswith("SELECT")):
+            rtn = cur.fetchall()
+    except sql.Error as e:
+        print("SQL ERROR -- %s" % (e))
+    con.commit()
+    con.close()
+    if(rtn != None):
+        try:
+            (rtn, ) = rtn[0]
+        except:
+            rtn = None
+    return rtn
+
+def crawl(url):
+    ''' This is the primary spider function. Given a URL, it'll collect information on the
+        page and crawl along all links, adding external URLs to one database and crawling
+        up to recursion_depth levels deep scanning for new URLs within this TLD.
+    '''
+    pass # Keep working!
+
+'''---PREPARATION---'''
 
 # Create a new Tor session.
 session = get_tor_session()
@@ -128,7 +156,18 @@ except:
     print "Tor connection unsuccessful."
     sys.exit(0)
 
-# At this point, we have a successful Tor connection, and can begin the process of scanning.
+'''---SQL INITIALIZATION---'''
+
+# The following two databases are constant. They store the current state of the spider and a list of all TLDs we've discovered so far.
+# Additional tables will be created for each specific onion domain in which pages and links to other TLDs will be stored.
+
+# The 'onions' database stores a list of all TLDs, including their id, domain, last online status, and the number of times they've been seen offline.
+db_cmd('CREATE TABLE IF NOT EXISTS `onions` (`id` INTEGER PRIMARY KEY,`domain` TEXT, `online` INTEGER, `offline_count` INTEGER);')
+
+# The `state` database keeps certain information about the last run, so we can pick up on reboot.
+db_cmd('CREATE TABLE IF NOT EXISTS `state` (`last_id` INTEGER);')
+
+'''---MAIN---'''
 
 # Let's demonstrate by grabbing unique domains from the seed URL and printing them out.
 data = session.get(seed_url).text
