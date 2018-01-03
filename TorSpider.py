@@ -84,6 +84,9 @@ def get_tor_session():
 
 '''---MAIN---'''
 
+# Create a new Tor session.
+session = get_tor_session()
+
 # Just to prevent some SSL errors.
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += ':ECDHE-ECDSA-AES128-GCM-SHA256'
 
@@ -105,9 +108,6 @@ Usage: TorSpider.py [Seed URL]
     of the list.
 '''
     sys.exit(0)
-
-# Create a new Tor session.
-session = get_tor_session()
 
 # First, let's see if we're able to connect through Tor.
 try:
