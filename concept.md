@@ -9,18 +9,6 @@ Eventually, it would be nice to put this index up as its own hidden service. I w
 ###### Implementation:
 Using a limited thread queue, this kind of application can be hosted on a low-spec machine. I'll use my Raspberry Pi, and I'll set it up to automatically connect to an anonymous VPN just for safety's sake. Then, from the VPN, it'll connect to Tor, hosting the hidden service and scanning for others. The RPi could probably handle a fair number of threads gracefully. As long as there's enough space on the disk (and with 16gb, it'd have to find a LOT of content), there shouldn't be any problem letting the entire thing run from the Pi.
 
-
-Sqlite3 DB Format:
-
-CREATE TABLE IF NOT EXISTS `onions` (
-    `id` INTEGER PRIMARY KEY,           # The domain's ID
-    `url` TEXT                          # The domain's URL
-);
-
-CREATE TABLE IF NOT EXISTS `state` (
-    `last_id` INTEGER                   # The last domain being scanned.
-);
-
 ### For each onion:
 
 The following tables are created on the fly, with their table names determined by the domain_id of the TLD they reference.

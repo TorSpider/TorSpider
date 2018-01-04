@@ -29,39 +29,51 @@ from HTMLParser import HTMLParser
 '''---VARIABLES---'''
 
 # How many threads do we want the spider to run on this system?
-max_threads = 5     # Five threads shouldn't be too heavy a load, even for a Pi.
-recursion_depth = 3 # How many links deep should we delve into any particular URL?
+max_threads     = 5 # Five threads shouldn't be too heavy a load, even for a Pi.
+recursion_depth = 1 # How many links deep should we delve into any particular URL? 0 = just parse the page provided, don't follow internal links.
 
 '''---CLASSES---'''
 
-class MyParser(HTMLParser):
+class parse_links(HTMLParser):
     # Parse given HTML for all a.href and img.src links.
-    def __init__(self, output_list=None):
+    def __init__(self):
         HTMLParser.__init__(self)
-        if output_list is None:
-            self.output_list = []
-        else:
-            self.output_list = output_list
+        self.output_list = []
     def handle_starttag(self, tag, attrs):
         if tag == 'a':
             self.output_list.append(dict(attrs).get('href'))
         elif tag == 'img':
             self.output_list.append(dict(attrs).get('src'))
 
+class parse_title(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.match = False
+        self.title = ''
+    def handle_starttag(self, tag, attributes):
+        self.match = True if tag == 'title' else False
+    def handle_data(self, data):
+        if self.match:
+            self.title = data
+            self.match = False
+
 '''---FUNCTIONS---'''
 
 def get_links(data):
-    # Given HTML input, return a list of all unique http or ftp links.
-    p = MyParser()
+    # Given HTML input, return a list of all unique links.
+    p = parse_links()
     p.feed(data)
     links = []
     for link in p.output_list:
-        try:
-            if(('http' in link) and link not in links):
-                links.append(link)
-        except:
-            pass
-    return links
+        if(link != None):
+            links.append(link)
+    return list(set(links))
+
+def get_title(data):
+    # Given HTML input, return the title of the page.
+    p = parse_title()
+    p.feed(data)
+    return p.title
 
 def get_domain(link):
     # Given a link, extract the domain.
@@ -70,20 +82,26 @@ def get_domain(link):
         if(i != 'http:' and i != 'https:' and i != ''):
             return i
 
-def get_unique_domains(data):
+def get_unique_domains(links):
     # Given HTML input, return a list of all unique domains.
     domains = []
-    for link in get_links(data):
-        domain = get_domain(link)
-        if(domain not in domains):
-            domains.append(domain)
-    return domains
+    for link in links:
+        domains.append(get_domain(link))
+    return list(set(domains))
 
 def get_tor_session():
     # Create a session that's routed through Tor.
     session = requests.session()
     session.proxies = {'http': 'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
     return session
+
+def get_onion_domains(domains):
+    # Get a list of onion-specific domains from a list of various domains.
+    onions = []
+    for domain in domains:
+        if('.onion' in domain):
+            onions.append(domain)
+    return onions
 
 def db_cmd(cmd):
     # This function executes commands in the database.
@@ -106,12 +124,82 @@ def db_cmd(cmd):
             rtn = None
     return rtn
 
-def crawl(url):
+def crawl(url, depth = recursion_depth):
     ''' This is the primary spider function. Given a URL, it'll collect information on the
         page and crawl along all links, adding external URLs to one database and crawling
         up to recursion_depth levels deep scanning for new URLs within this TLD.
     '''
-    pass # Keep working!
+    target = get_domain(url)        # Find the local TLD.
+    try:
+        data = session.get(url).text    # Grab the HTML from the provided URL.
+    except:
+        # Couldn't grab the data.
+        print "Error retrieving %s" % (url)
+        if(depth != recursion_depth):
+            # We're in a sub-loop, and we need to return two arrays to exit gracefully.
+            return ([], [])
+        else:
+            sys.exit(0)
+    site_links = get_links(data)    # Strip the links from the provided URL.
+    intlinks = []   # Internal links.
+    extlinks = []   # External links.
+    
+    #Sort links into internal and external.
+    for link in site_links:
+        if(link[0] == '/'):
+            new_link = 'https://' if 'https' in url else 'http://'
+            new_link += target + link
+            intlinks.append(new_link)
+        elif('://' in link and 'http' in link): # We only want http:// or https://
+            if(get_domain(link) == target):
+                intlinks.append(link)
+            else:
+                extlinks.append(link)
+    
+    # We now have the page title, TLD, and lists of internal and external links.
+    if(depth > 0):
+        # We've still got some recursion to do.
+        i_links = []
+        e_links = []
+        for link in intlinks:
+            # Crawl each internal link on the page, adding the returned int and ext links to arrays.
+            ''' NOTE: We will want to devise a way to prevent crawling the same page multiple times, to save time. Store crawled pages in the DB. '''
+            (i, e) = crawl(link, depth - 1)
+            i_links += i
+            e_links += e
+        # Next, add the crawled int and ext link arrays to this loop's int and ext link arrays, then return them.
+        intlinks = list(set(intlinks + i_links)) # Add the lists without duplicates.
+        extlinks = list(set(extlinks + e_links)) # Add the lists without duplicates.
+    if(depth != recursion_depth):
+        # This wasn't the top-level crawl, so return the results of the hunt.
+        #print "Link scanned: %s" % (url)
+        return (intlinks, extlinks)
+    
+    domains = get_unique_domains(extlinks)  # Get a list of external domains discovered.
+    page_title = get_title(data)            # Grab the page title from the HTML.
+    onions = get_onion_domains(domains)     # Get a list of onion-specific domains.
+    
+    print "Site scan complete.\n" + ('-' * 79)
+    print "Seed URL:          %s" % (url)
+    print "Title:             %s" % (page_title)
+    print "Internal links:    %i" % (len(intlinks))
+    print "External links:    %i" % (len(extlinks))
+    print "TLDs discovered:   %i" % (len(domains))
+    print "Onions discovered: %i" % (len(onions))
+    
+    f = open('intlinks.txt','wb')
+    f.write(u'\n'.join(intlinks).encode('utf-8').strip())
+    f.close()
+    f = open('extlinks.txt','wb')
+    f.write(u'\n'.join(extlinks).encode('utf-8').strip())
+    f.close()
+    f = open('domains.txt','wb')
+    f.write(u'\n'.join(domains).encode('utf-8').strip())
+    f.close()
+    f = open('onions.txt','wb')
+    f.write(u'\n'.join(onions).encode('utf-8').strip())
+    f.close()
+    
 
 '''---PREPARATION---'''
 
@@ -144,11 +232,8 @@ Usage: TorSpider.py [Seed URL]
 try:
     local_ip = requests.get('http://icanhazip.com').text
     tor_ip = session.get('http://icanhazip.com').text
-    
-    print "Local IP: %s" % (local_ip.strip())
-    print "Tor IP:   %s" % (tor_ip.strip())
     if(local_ip != tor_ip):
-        print "Tor connection successful!"
+        print "Connected to Tor. Scanning %s...\nRecursion depth set to %i." % (seed_url, recursion_depth)
     else:
         print "Tor connection unsuccessful."
         sys.exit(0)
@@ -158,19 +243,17 @@ except:
 
 '''---SQL INITIALIZATION---'''
 
+'''
 # The following two databases are constant. They store the current state of the spider and a list of all TLDs we've discovered so far.
 # Additional tables will be created for each specific onion domain in which pages and links to other TLDs will be stored.
 
 # The 'onions' database stores a list of all TLDs, including their id, domain, last online status, and the number of times they've been seen offline.
-db_cmd('CREATE TABLE IF NOT EXISTS `onions` (`id` INTEGER PRIMARY KEY,`domain` TEXT, `online` INTEGER, `offline_count` INTEGER);')
+db_cmd('CREATE TABLE IF NOT EXISTS `onions` (`id` INTEGER PRIMARY KEY,`domain` TEXT, `online` INTEGER, `offline_count` INTEGER, `info` TEXT);')
 
 # The `state` database keeps certain information about the last run, so we can pick up on reboot.
 db_cmd('CREATE TABLE IF NOT EXISTS `state` (`last_id` INTEGER);')
+'''
 
 '''---MAIN---'''
 
-# Let's demonstrate by grabbing unique domains from the seed URL and printing them out.
-data = session.get(seed_url).text
-domains = get_unique_domains(data)
-for domain in domains:
-    print domain
+crawl(seed_url)
