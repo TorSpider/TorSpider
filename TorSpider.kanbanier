@@ -32,54 +32,40 @@
 			<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRG9uZX0=</t>
 		</f>
 	</c>
-	<i r="/OIwYXeBReaWzVwgF71d2Q" c="HyKuWMDwRxCOkHoAsriBaA">
-		<c i="536738206973.0" id="0XOMNDx9T/yO0NlLgpELwQ" d0="536738214311.0" d1="536738283820.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536738206971.0" t="Prevent redundant crawling.">
-			<s>Prevent redundant crawling.</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgUHJldmVudCByZWR1bmRhbnQgY3Jhd2xpbmcufQ==</s>
-			<c>When recursing, links might be scanned more than once, costing a lot of time. Implement a fix using the database, to keep track of what internal urls have been scanned.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFdoZW4gcmVjdXJzaW5nLCBsaW5rcyBtaWdodCBiZSBzY2FubmVkIG1vcmUgdGhhbiBvbmNlLCBjb3N0aW5nIGEgbG90IG9mIHRpbWUuIEltcGxlbWVudCBhIGZpeCB1c2luZyB0aGUgZGF0YWJhc2UsIHRvIGtlZXAgdHJhY2sgb2Ygd2hhdCBpbnRlcm5hbCB1cmxzIGhhdmUgYmVlbiBzY2FubmVkLn0=</c>
-		</c>
-	</i>
-	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Axy5ZuCORrmUJAIjNVEKjw">
-		<c i="536662027199.0" id="RrEax9gtQX633BfgluXdvQ" d0="536662620077.0" d1="536662632730.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536662027199.0" t="Set up threading/processing.">
-			<s>Set up threading/processing.</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgU2V0IHVwIHRocmVhZGluZy9wcm9jZXNzaW5nLn0=</s>
-			<c>Once effective scraping is possible, set it up to scrape in threads or processes for concurrency.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIE9uY2UgZWZmZWN0aXZlIHNjcmFwaW5nIGlzIHBvc3NpYmxlLCBzZXQgaXQgdXAgdG8gc2NyYXBlIGluIHRocmVhZHMgb3IgcHJvY2Vzc2VzIGZvciBjb25jdXJyZW5jeS59</c>
-		</c>
-	</i>
 	<i r="/OIwYXeBReaWzVwgF71d2Q" c="r/8B/XmuQkqDL6StDgjuKQ">
-		<c i="536661621830.0" id="J68YwV2nRI2kaXGu0X6uIw" d0="536661673603.0" d1="536661702404.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661621788.0" t="Create SQL database.">
-			<s>Create SQL database.</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ3JlYXRlIFNRTCBkYXRhYmFzZS59</s>
-			<c>Craft the database structure and functions.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIENyYWZ0IHRoZSBkYXRhYmFzZSBzdHJ1Y3R1cmUgYW5kIGZ1bmN0aW9ucy59</c>
-		</c>
-		<c i="536661873512.0" id="SwF6WDvGS3+r9NexqhoPvA" d0="536661882484.0" d1="536661891498.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661873512.0" t="Store Scrape Data">
-			<s>Store Scrape Data</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgU3RvcmUgU2NyYXBlIERhdGF9</s>
-			<c>Write important information to database.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFdyaXRlIGltcG9ydGFudCBpbmZvcm1hdGlvbiB0byBkYXRhYmFzZS59</c>
-		</c>
 		<c i="536814176818.0" id="Vv3T1iZYS+e2mpHDVxCQFg" d0="536814184541.0" d1="536814195219.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536814176816.0" t="Convert to Python 3.6">
 			<s>Convert to Python 3.6</s>
 			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ29udmVydCB0byBQeXRob24gMy42fQ==</s>
 			<c>Translate the code from Python2 to Python3.</c>
 			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFRyYW5zbGF0ZSB0aGUgY29kZSBmcm9tIFB5dGhvbjIgdG8gUHl0aG9uMy59</c>
 		</c>
-	</i>
-	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Kwx5DUmSROuUnfb9liWPFA">
-		<c i="536661708418.0" id="/bLoGWRARq+QGSkmj/EWrQ" d0="536661738260.0" d1="536661776680.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661708418.0" t="Separate Scraped Links">
-			<s>Separate Scraped Links</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgU2VwYXJhdGUgU2NyYXBlZCBMaW5rc30=</s>
-			<c>Differentiate between same-domain URLs and URLs to different domains.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIERpZmZlcmVudGlhdGUgYmV0d2VlbiBzYW1lLWRvbWFpbiBVUkxzIGFuZCBVUkxzIHRvIGRpZmZlcmVudCBkb21haW5zLn0=</c>
-		</c>
-		<c i="536661785070.0" id="nZjs/c/TQ8eI2NQ+gJwAaw" d0="536661810692.0" d1="536661824788.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661785069.0" t="Craft Scrape Process">
+		<c i="536661785070.0" id="nZjs/c/TQ8eI2NQ+gJwAaw" d0="536661810692.0" d1="537008754930.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661785069.0" t="Craft Scrape Process">
 			<s>Craft Scrape Process</s>
 			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ3JhZnQgU2NyYXBlIFByb2Nlc3N9</s>
-			<c>Recursion through a defined number of levels.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFJlY3Vyc2lvbiB0aHJvdWdoIGEgZGVmaW5lZCBudW1iZXIgb2YgbGV2ZWxzLn0=</c>
+			<c>Define the crawl() function.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIERlZmluZSB0aGUgY3Jhd2woKSBmdW5jdGlvbi59</c>
+		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="FWvf9PrASpKOuP3ohN+hyw">
+		<c i="537008771213.0" id="ibzR00glSYO7K4NTIx6iSA" d0="537008782833.0" d1="537008794778.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537008771213.0" t="Conversion to Python 3.6">
+			<s>Conversion to Python 3.6</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ29udmVyc2lvbiB0byBQeXRob24gMy42fQ==</s>
+			<c>Move the old code from Python 2 to Python 3.6.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIE1vdmUgdGhlIG9sZCBjb2RlIGZyb20gUHl0aG9uIDIgdG8gUHl0aG9uIDMuNi59</c>
+		</c>
+		<c i="537008837667.0" id="IGVvZX4PSLSWy70xoUQxuA" d0="537008850741.0" d1="537008870226.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537008837666.0" t="Determine crawl implementation.">
+			<s>Determine crawl implementation.</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRGV0ZXJtaW5lIGNyYXdsIGltcGxlbWVudGF0aW9uLn0=</s>
+			<c>How do we want to implement the crawl action?</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIEhvdyBkbyB3ZSB3YW50IHRvIGltcGxlbWVudCB0aGUgY3Jhd2wgYWN0aW9uP30=</c>
+		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Kwx5DUmSROuUnfb9liWPFA">
+		<c i="536661621830.0" id="J68YwV2nRI2kaXGu0X6uIw" d0="536661673603.0" d1="537008739560.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661621788.0" t="Create SQL database.">
+			<s>Create SQL database.</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ3JlYXRlIFNRTCBkYXRhYmFzZS59</s>
+			<c>Craft the database structure.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIENyYWZ0IHRoZSBkYXRhYmFzZSBzdHJ1Y3R1cmUufQ==</c>
 		</c>
 	</i>
 </b>
