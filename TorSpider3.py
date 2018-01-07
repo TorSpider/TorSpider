@@ -15,14 +15,19 @@
 
 import os
 import sys
+import time
 import requests
 import sqlite3 as sql
 from datetime import datetime
 from html.parser import HTMLParser
+from multiprocessing import Process, cpu_count
 
 
 '''---GLOBAL VARIABLES---'''
 
+
+# Should we log to the console?
+log_to_console = True
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -68,7 +73,67 @@ def crawl():
     ''' This function is the meat of the program, doing all the heavy lifting
         of crawling the website and scraping up all the juicy data therein.
     '''
-    pass
+    alive = True
+    while(alive is True):
+        try:
+            # Query the database for a random link that hasn't been scanned in
+            # 7 days or whose domain was marked offline more than a day ago.
+            query = db_cmd("SELECT `domain`, `url` FROM `pages` \
+                          WHERE `date` < DATETIME('now', '-7 day') \
+                          OR `domain` IN (\
+                                SELECT `id` FROM `onions` \
+                                WHERE `online` IS '0' \
+                                AND `date` < DATETIME('now', '-1 day')\
+                          ) ORDER BY RANDOM() LIMIT 1;")
+            try:
+                (domain_id, link) = query[0]
+            except Exception as e:
+                # No links to process.
+                time.sleep(1)
+                continue
+
+            # Now grab that link's root domain.
+            query = db_cmd("SELECT `domain` FROM `onions` \
+                           WHERE `id` IS '{}';".format(domain_id))
+            domain = query[0][0]
+
+            # Now combine the domain and page into a url.
+            url = "{}{}".format(domain, link)
+
+            db_cmd("UPDATE `pages` SET `date` = '{}' \
+                   WHERE `url` IS '{}' AND `domain` \
+                   IS '{}';".format(get_timestamp(), link, domain_id))
+            db_cmd("UPDATE `onions` SET `date` = '{}' \
+                   WHERE `id` IS '{}';".format(get_timestamp(), domain_id))
+
+            # Second, retrieve that link's data.
+            req = session.get(url)
+
+            # Did we successfully retrieve the data?
+            if(req.status_code == 404):
+                # If there's a 404 error, drop that page from the database.
+                db_cmd("DELETE FROM `pages` WHERE `url` IS '{}';".format(url))
+                log("404 - {}".format(url))
+                continue
+            elif(req.status_code != 200):
+                # Some other status.
+                # I'll add more status_code options as they arise.
+                log("Unknown response: {} - {}".format(req.status_code, url))
+                continue
+
+            # We've got the site's data.
+            data = req.text
+            log("Successful fetch: {}".format(len(data)))
+
+        except IndexError as e:
+            # Something went wrong with SQL.
+            log("IndexError: {}".format(e))
+
+        except requests.ConnectionError:
+            # We had trouble connecting to the url.
+            log("Connection error: {}".format(url))
+            db_cmd("UPDATE `onions` SET `online` = '0' \
+                   WHERE `id` IS '{}'".format(domain_id))
 
 
 def db_cmd(command):
@@ -85,12 +150,6 @@ def db_cmd(command):
         log("SQL Error: {}".format(e))
     connection.commit()
     connection.close()
-    if(output is not None):
-        try:
-            (output, ) = output[0]
-        except Exception as e:
-            log("SQL Error: {}".format(e))
-            output = None
     return output
 
 
@@ -153,7 +212,11 @@ def get_unique_domains(links):
 
 
 def log(line):
-    print('{} - {}'.format(get_timestamp(), line))
+    if(log_to_console):
+        print('{} - {}'.format(get_timestamp(), line))
+    f = open('spider.log', 'a')
+    f.write(line)
+    f.close()
 
 
 def prune_exact(items, scan_list):
@@ -244,7 +307,7 @@ if __name__ == '__main__':
         # The Uncensored Hidden Wiki
         # http://zqktlwi4fecvo6ri.onion/wiki/Main_Page
         db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
-                    'zqktlwi4fecvo6ri.onion' \
+                    'http://zqktlwi4fecvo6ri.onion' \
                 );")
         db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
                     '1', \
@@ -252,12 +315,62 @@ if __name__ == '__main__':
                );")
 
         # OnionDir
-        # https://auutwvpt2zktxwng.onion/
+        # http://auutwvpt2zktxwng.onion/index.php
         db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
-                    'auutwvpt2zktxwng.onion' \
+                    'http://auutwvpt2zktxwng.onion' \
                 );")
         db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
                     '2', \
+                    '/index.php' \
+               );")
+
+        # Wiki links
+        # http://wikilink77h7lrbi.onion/
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'http://wikilink77h7lrbi.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '3', \
+                    '/' \
+               );")
+
+        # Deep Web Links
+        # http://wiki5kauuihowqi5.onion/
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'http://wiki5kauuihowqi5.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '4', \
+                    '/' \
+               );")
+
+        # OnionDir Deep Web Directory
+        # http://dirnxxdraygbifgc.onion/
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'http://dirnxxdraygbifgc.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '5', \
+                    '/' \
+               );")
+
+        # The Onion Crate
+        # http://7cbqhjnlkivmigxf.onion/
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'http://7cbqhjnlkivmigxf.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '6', \
+                    '/' \
+               );")
+
+        # Fresh Onions
+        # http://zlal32teyptf4tvi.onion/
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'http://zlal32teyptf4tvi.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '7', \
                     '/' \
                );")
 
@@ -266,5 +379,15 @@ if __name__ == '__main__':
         # The database already exists.
         log("Existing database initialized.")
 
-    # Crawling Demonstration
-    crawl()
+    # Now we're ready to start crawling.
+    log("Releasing the spiders...")
+    procs = []
+    for _ in range(cpu_count() * 2):  # We'll release 2 spiders per processor.
+        proc = Process(target=crawl)
+        procs.append(proc)
+        proc.start()
+        # Delay each spider so that it doesn't step on the others' feet.
+        time.sleep(1)
+
+    for proc in procs:
+        proc.join()
