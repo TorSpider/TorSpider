@@ -132,8 +132,12 @@ def crawl():
         except requests.ConnectionError:
             # We had trouble connecting to the url.
             log("Connection error: {}".format(url))
+            # Set the domain to offline.
             db_cmd("UPDATE `onions` SET `online` = '0' \
                    WHERE `id` IS '{}'".format(domain_id))
+            # Make sure we don't keep scanning the pages.
+            db_cmd("UPDATE `pages` SET `date` = '{}' \
+                   WHERE `domain` = '{}';".format(get_timestamp, domain_id))
 
 
 def db_cmd(command):
