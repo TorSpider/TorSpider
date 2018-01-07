@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.6
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 ''' TorSpider – A script to explore the darkweb.
@@ -13,6 +13,7 @@
     script which will create a web interface for exploring the saved data.
 '''
 
+import os
 import sys
 import requests
 import sqlite3 as sql
@@ -22,9 +23,6 @@ from html.parser import HTMLParser
 
 '''---GLOBAL VARIABLES---'''
 
-
-# If the user doesn't specify a seed URL in the args, use this one.
-seed_url = 'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -66,7 +64,7 @@ class parse_title(HTMLParser):
 '''---FUNCTION DEFINITIONS---'''
 
 
-def crawl(url):
+def crawl():
     ''' This function is the meat of the program, doing all the heavy lifting
         of crawling the website and scraping up all the juicy data therein.
     '''
@@ -179,13 +177,7 @@ def unique(items):
 
 
 if __name__ == '__main__':
-    # First things first. Let's set the seed URL.
-    try:
-        seed_url = sys.argv[1]
-    except Exception as e:
-        pass
     log('TorSpider initializing...')
-    log('Seed URL: {}'.format(seed_url))
 
     # Create a Tor session and check if it's working.
     log("Establishing Tor connection...")
@@ -202,42 +194,77 @@ if __name__ == '__main__':
         log("Tor connection failed: {}".format(e))
         sys.exit(0)
 
-    # Initialize the SQL database.
-    log("Initializing database...")
-    ''' Onions: Information about each individual onion domain.
-            - id:       The numerical ID of that domain.
-            - domain:   The domain itself (i.e. 'google.com').
-            - online:   Whether the domain was online as of the last scan.
-            - date:     The date of the last scan.
-            - info:     Any additional information known about the domain.
-    '''
-    db_cmd('CREATE TABLE IF NOT EXISTS `onions` ( \
-                    `id` INTEGER PRIMARY KEY, \
-                    `domain` TEXT, \
-                    `online` INTEGER, \
-                    `date` DATETIME, \
-                    `info` TEXT);')
-    ''' Pages: Information about each link discovered.
-            - id:       The numerical ID of that page.
-            - domain:   The numerical ID of the page's parent domain.
-            - url:      The URL for the page.
-            - hash:     The page's sha1 hash, for detecting changes.
-            - date:     The date of the last scan.
-    '''
-    db_cmd('CREATE TABLE IF NOT EXISTS `pages_domain_id` ( \
-                    `id` INTEGER PRIMARY KEY, \
-                    `domain` INTEGER, \
-                    `url` TEXT, \
-                    `hash` TEXT, \
-                    `date` DATETIME);')
-    ''' Links: Information about which domains are connected to each other.
-            - domain:   The numerical ID of the origin domain.
-            - link:     The numerical ID of the target domain.
-    '''
-    db_cmd('CREATE TABLE IF NOT EXISTS `links` ( \
-                    `domain` INTEGER, \
-                    `link` INTEGER);')
-    log("Database initialized.")
+    if(not os.path.exists('SpiderWeb.db')):
+        # The database doesn't yet exist. Let's establish a new database.
+        log("Initializing new database...")
+
+        # First, we'll set up the database structure.
+
+        ''' Onions: Information about each individual onion domain.
+                - id:       The numerical ID of that domain.
+                - domain:   The domain itself (i.e. 'google.com').
+                - online:   Whether the domain was online as of the last scan.
+                - date:     The date of the last scan.
+                - info:     Any additional information known about the domain.
+        '''
+        db_cmd("CREATE TABLE IF NOT EXISTS `onions` ( \
+                        `id` INTEGER PRIMARY KEY, \
+                        `domain` TEXT, \
+                        `online` INTEGER DEFAULT '1', \
+                        `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
+                        `info` TEXT DEFAULT 'none');")
+
+        ''' Pages: Information about each link discovered.
+                - id:       The numerical ID of that page.
+                - title:    The page's title.
+                - domain:   The numerical ID of the page's parent domain.
+                - url:      The URL for the page.
+                - hash:     The page's sha1 hash, for detecting changes.
+                - date:     The date of the last scan.
+        '''
+        db_cmd("CREATE TABLE IF NOT EXISTS `pages` ( \
+                        `id` INTEGER PRIMARY KEY, \
+                        `title` TEXT DEFAULT 'none', \
+                        `domain` INTEGER, \
+                        `url` TEXT, \
+                        `hash` TEXT DEFAULT 'none', \
+                        `date` DATETIME DEFAULT '1986-02-02 00:00:01');")
+
+        ''' Links: Information about which domains are connected to each other.
+                - domain:   The numerical ID of the origin domain.
+                - link:     The numerical ID of the target domain.
+        '''
+        db_cmd('CREATE TABLE IF NOT EXISTS `links` ( \
+                        `domain` INTEGER, \
+                        `link` INTEGER);')
+
+        # Next, we'll populate the database with some default values. These
+        # pages are darknet indexes, so they should be a good starting point.
+
+        # The Uncensored Hidden Wiki
+        # http://zqktlwi4fecvo6ri.onion/wiki/Main_Page
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'zqktlwi4fecvo6ri.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '1', \
+                    '/wiki/Main_Page' \
+               );")
+
+        # OnionDir
+        # https://auutwvpt2zktxwng.onion/
+        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+                    'auutwvpt2zktxwng.onion' \
+                );")
+        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+                    '2', \
+                    '/' \
+               );")
+
+        log("Database initialized.")
+    else:
+        # The database already exists.
+        log("Existing database initialized.")
 
     # Crawling Demonstration
-    crawl(seed_url)
+    crawl()
