@@ -19,6 +19,7 @@ import time
 import random
 import requests
 import sqlite3 as sql
+from hashlib import sha1
 from datetime import datetime
 from html.parser import HTMLParser
 from multiprocessing import Process, cpu_count, current_process
@@ -75,13 +76,11 @@ def crawl():
         of crawling the website and scraping up all the juicy data therein.
     '''
     log("{}: I'm awake! Good morning!".format(current_process().name))
-    alive = True
-    while(alive is True):
+    while(True):
         if(os.path.exists('sleep')):
             # The kill-switch is creating a file called 'sleep'.
-            alive = False
             log("{}: I'm sleepy. Good night!".format(current_process().name))
-            continue
+            return
         try:
             # Query the database for a random link that hasn't been scanned in
             # 7 days or whose domain was marked offline more than a day ago.
@@ -99,38 +98,109 @@ def crawl():
                 time.sleep(1)
                 continue
 
-            # Now grab that link's root domain.
+            # Grab that link's root domain.
             query = db_cmd("SELECT `domain` FROM `onions` \
                            WHERE `id` IS '{}';".format(domain_id))
             domain = query[0][0]
 
-            # Now combine the domain and page into a url.
+            # Combine the domain and page into a url.
             url = "{}{}".format(domain, link)
 
+            # Update the scan date for this page and domain.
             db_cmd("UPDATE `pages` SET `date` = '{}' \
                    WHERE `url` IS '{}' AND `domain` \
                    IS '{}';".format(get_timestamp(), link, domain_id))
             db_cmd("UPDATE `onions` SET `date` = '{}' \
                    WHERE `id` IS '{}';".format(get_timestamp(), domain_id))
 
-            # Second, retrieve that link's data.
+            # Retrieve the page.
             req = session.get(url)
 
-            # Did we successfully retrieve the data?
+            # Did we get the page successfully?
             if(req.status_code == 404):
-                # If there's a 404 error, drop that page from the database.
+                # This page doesn't exist. Delete it from the database.
                 db_cmd("DELETE FROM `pages` WHERE `url` IS '{}';".format(url))
                 log("404 - {}".format(url))
                 continue
             elif(req.status_code != 200):
                 # Some other status.
                 # I'll add more status_code options as they arise.
-                log("Unknown response: {} - {}".format(req.status_code, url))
+                log("{} - {}".format(req.status_code, url))
                 continue
 
-            # We've got the site's data.
-            data = req.text
-            log("Successful fetch: {}".format(len(data)))
+            # We've got the site's data. Let's see if it's changed...
+            try:
+                # Get the page's sha1 hash.
+                page_hash = get_hash(req.content)
+
+                # Retrieve the page's last hash.
+                query = db_cmd("SELECT `hash` FROM `pages` WHERE \
+                               `domain` IS '{}' \
+                               AND `url` IS '{}';".format(domain_id, link))
+                last_hash = query[0][0]
+
+                # If the hash hasn't changed, don't bother processing it.
+                if(last_hash == page_hash):
+                    continue
+
+            except Exception as e:
+                log("Couldn't retrieve previous hash: {}".format(url))
+                continue
+
+            # The page's HTML changed since our last scan; let's process it.
+            page_text = req.text
+
+            # Get the title of the page.
+            page_title = get_title(page_text)
+
+            # Get the page's links.
+            page_links = get_links(page_text, url)
+
+            ''' To add a page to the database:
+
+                Add the domain to the `onions` table.
+                INSERT OR IGNORE INTO `onions` (`domain`)
+                    VALUES ('link_domain');
+
+                Add the page to the `pages` table.
+                INSERT OR IGNORE INTO `pages` (`domain`, `url`)
+                    VALUES (
+                        (SELECT `id` FROM `onions`
+                            WHERE `domain` = 'link_domain'),
+                        'link_page'
+                    );
+
+                Link the two domains in the `links` table.
+                INSERT OR IGNORE INTO `links` (`domain`, `link`)
+                    VALUES (
+                        'domain_id',
+                        (SELECT `id` FROM `onions`
+                            WHERE `domain` = 'link_domain')
+                    );
+            '''
+
+            # Add the links to the database.
+            for l in page_links:
+                link_domain = get_domain(l)         # Get the link domain.
+                link_page = l[len(link_domain):]    # Get the link page.
+                try:
+                    # Insert the new domain into the onions table.
+                    db_cmd("INSERT OR IGNORE INTO `onions` (`domain`) \
+                           VALUES ('{}');".format(link_domain))
+                    # Insert the new link into the pages table.
+                    db_cmd("INSERT OR IGNORE INTO `pages` (`domain`, `url`) \
+                           VALUES ((SELECT `id` FROM `onions` WHERE \
+                           `domain` = '{}'), '{}');".format(link_domain,
+                                                            link_page))
+                    # Insert the new connection between domains.
+                    db_cmd("INSERT OR IGNORE INTO `links` (`domain`, `link`) \
+                           VALUES ('{}', (SELECT `id` FROM `onions` WHERE \
+                           `domain` = '{}'));".format(domain_id, link_domain))
+                except Exception as e:
+                    # There was an error saving the link to the database.
+                    log('Failed to save to database: {} -> {}'.format(url, l))
+                    continue
+            # Parsing is complete for this page!
 
         except IndexError as e:
             # Something went wrong with SQL.
@@ -138,7 +208,7 @@ def crawl():
 
         except requests.ConnectionError:
             # We had trouble connecting to the url.
-            log("Connection error: {}".format(url))
+            log("Site offline: {}".format(url))
             # Set the domain to offline.
             db_cmd("UPDATE `onions` SET `online` = '0' \
                    WHERE `id` IS '{}'".format(domain_id))
@@ -178,15 +248,54 @@ def extract_fuzzy(items, scan_list):
 
 def get_domain(link):
     # Given a link, extract the domain.
-    split = link.split('/')
-    return prune_exact(split, ['http:', 'https:', ''])[0]
+    return '/'.join(link.split('/')[:3])
 
 
-def get_links(data):
+def get_hash(data):
+    # Get the sha1 hash of the provided data. Data must be binary-encoded.
+    return sha1(data).hexdigest()
+
+
+def get_links(data, url):
     # Given HTML input, return a list of all unique links.
     parse = parse_links()
     parse.feed(data)
-    return unique([link for link in parse.output_list if link is not None])
+    links = []
+    domain = get_domain(url)
+    for link in parse.output_list:
+        if(link is None or link is ''):
+            # Skip nonexistent links.
+            continue
+        if('#' in link):
+            # Omit links to tags on the page.
+            link = link[:link.find('#')]
+            if(link == ''):
+                continue
+        if('http' in link):
+            if('.onion' in link):
+                # If it's already a complete onion link, just add it.
+                links.append(link)
+                continue
+            else:
+                # If it's a non-onion link, ignore it.
+                continue
+        if('.onion' in link):
+            if(link.find('http') == -1):
+                # If it's an onion link missing the 'http', add it.
+                link = 'http://' + link
+        else:
+            # If it's a local link, make sure it's formatted properly, then
+            # append the domain to it to make it a complete link.
+            if(link[0] is not '/'):
+                link = '/' + link
+            link = domain + link
+        # Remove any references to the current directory. ('./')
+        link = link.replace('./', '')
+        if(link != url):
+            # Only add the link to the list if it's not the current url.
+            links.append(link)
+    # Make sure we don't return any duplicates!
+    return unique(links)
 
 
 def get_onion_domains(domains):
@@ -268,8 +377,8 @@ if __name__ == '__main__':
         log("Tor connection failed: {}".format(e))
         sys.exit(0)
 
+    # If the database doesn't exist, create a new one.
     if(not os.path.exists('SpiderWeb.db')):
-        # The database doesn't yet exist. Let's establish a new database.
         log("Initializing new database...")
 
         # First, we'll set up the database structure.
@@ -286,7 +395,8 @@ if __name__ == '__main__':
                         `domain` TEXT, \
                         `online` INTEGER DEFAULT '1', \
                         `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
-                        `info` TEXT DEFAULT 'none');")
+                        `info` TEXT DEFAULT 'none', \
+                        CONSTRAINT unique_domain UNIQUE(`domain`));")
 
         ''' Pages: Information about each link discovered.
                 - id:       The numerical ID of that page.
@@ -302,7 +412,8 @@ if __name__ == '__main__':
                         `domain` INTEGER, \
                         `url` TEXT, \
                         `hash` TEXT DEFAULT 'none', \
-                        `date` DATETIME DEFAULT '1986-02-02 00:00:01');")
+                        `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
+                        CONSTRAINT unique_page UNIQUE(`domain`, `url`));")
 
         ''' Links: Information about which domains are connected to each other.
                 - domain:   The numerical ID of the origin domain.
@@ -310,7 +421,8 @@ if __name__ == '__main__':
         '''
         db_cmd('CREATE TABLE IF NOT EXISTS `links` ( \
                         `domain` INTEGER, \
-                        `link` INTEGER);')
+                        `link` INTEGER, \
+                        CONSTRAINT unique_link UNIQUE(`domain`, `link`));')
 
         # Next, we'll populate the database with some default values. These
         # pages are darknet indexes, so they should be a good starting point.

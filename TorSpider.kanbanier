@@ -32,34 +32,36 @@
 			<t f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRG9uZX0=</t>
 		</f>
 	</c>
-	<i r="/OIwYXeBReaWzVwgF71d2Q" c="r/8B/XmuQkqDL6StDgjuKQ">
-		<c i="537008837667.0" id="IGVvZX4PSLSWy70xoUQxuA" d0="537008850741.0" d1="537008870226.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537008837666.0" t="Determine crawl implementation.">
-			<s>Determine crawl implementation.</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRGV0ZXJtaW5lIGNyYXdsIGltcGxlbWVudGF0aW9uLn0=</s>
-			<c>How do we want to implement the crawl action?</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIEhvdyBkbyB3ZSB3YW50IHRvIGltcGxlbWVudCB0aGUgY3Jhd2wgYWN0aW9uP30=</c>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="HyKuWMDwRxCOkHoAsriBaA">
+		<c i="537109992578.0" id="i0LmVDOcTfiC/S9cDZc0Bw" d0="537110007204.0" d1="537110030479.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537109992578.0" t="Remote Database">
+			<s>Remote Database</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFJlbW90ZSBEYXRhYmFzZX0=</s>
+			<c>In order to allow this script to run in parallel on different nodes, we need to use an external database rather than a local one.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIEluIG9yZGVyIHRvIGFsbG93IHRoaXMgc2NyaXB0IHRvIHJ1biBpbiBwYXJhbGxlbCBvbiBkaWZmZXJlbnQgbm9kZXMsIHdlIG5lZWQgdG8gdXNlIGFuIGV4dGVybmFsIGRhdGFiYXNlIHJhdGhlciB0aGFuIGEgbG9jYWwgb25lLn0=</c>
 		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Axy5ZuCORrmUJAIjNVEKjw">
+		<c i="537110034821.0" id="AEqlo0lZS3Sb+1fWvz9KMA" d0="537110038705.0" d1="537110062682.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537110034821.0" t="Daemonization">
+			<s>Daemonization</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRGFlbW9uaXphdGlvbn0=</s>
+			<c>Consider allowing the script to run as a daemon rather than requiring it to stay in the console window.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIENvbnNpZGVyIGFsbG93aW5nIHRoZSBzY3JpcHQgdG8gcnVuIGFzIGEgZGFlbW9uIHJhdGhlciB0aGFuIHJlcXVpcmluZyBpdCB0byBzdGF5IGluIHRoZSBjb25zb2xlIHdpbmRvdy59</c>
+		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="r/8B/XmuQkqDL6StDgjuKQ">
+		<c i="537143187598.0" id="uIHw+cHyTeGcm6MAxFt4lQ" d0="537143199596.0" d1="537143211287.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537143187589.0" t="Deal with malformed URLs.">
+			<s>Deal with malformed URLs.</s>
+			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgRGVhbCB3aXRoIG1hbGZvcm1lZCBVUkxzLn0=</s>
+			<c>There were some issues in the last run. See the spider.log for details.</c>
+			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFRoZXJlIHdlcmUgc29tZSBpc3N1ZXMgaW4gdGhlIGxhc3QgcnVuLiBTZWUgdGhlIHNwaWRlci5sb2cgZm9yIGRldGFpbHMufQ==</c>
+		</c>
+	</i>
+	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Kwx5DUmSROuUnfb9liWPFA">
 		<c i="536661785070.0" id="nZjs/c/TQ8eI2NQ+gJwAaw" d0="536661810692.0" d1="537008754930.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="536661785069.0" t="Craft Scrape Process">
 			<s>Craft Scrape Process</s>
 			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmbmlsXGZjaGFyc2V0MCBIZWx2ZXRpY2FOZXVlO30Ke1xjb2xvcnRibDtccmVkMjU1XGdyZWVuMjU1XGJsdWUyNTU7fQp7XCpcZXhwYW5kZWRjb2xvcnRibDs7fQpccGFyZFx0eDU2MFx0eDExMjBcdHgxNjgwXHR4MjI0MFx0eDI4MDBcdHgzMzYwXHR4MzkyMFx0eDQ0ODBcdHg1MDQwXHR4NTYwMFx0eDYxNjBcdHg2NzIwXHBhcmRpcm5hdHVyYWxccGFydGlnaHRlbmZhY3RvcjAKClxmMFxmczI4IFxjZjAgQ3JhZnQgU2NyYXBlIFByb2Nlc3N9</s>
 			<c>Define the crawl() function.</c>
 			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIERlZmluZSB0aGUgY3Jhd2woKSBmdW5jdGlvbi59</c>
-		</c>
-	</i>
-	<i r="/OIwYXeBReaWzVwgF71d2Q" c="FWvf9PrASpKOuP3ohN+hyw">
-		<c i="537015419055.0" id="RBkRbjNvTTeEmzPJFecnTg" d0="537015430543.0" d1="537015440598.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537015419054.0" t="Threads or Processes?">
-			<s>Threads or Processes?</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFRocmVhZHMgb3IgUHJvY2Vzc2VzP30=</s>
-			<c>Determine whether to use threads or processes to speed up execution.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIERldGVybWluZSB3aGV0aGVyIHRvIHVzZSB0aHJlYWRzIG9yIHByb2Nlc3NlcyB0byBzcGVlZCB1cCBleGVjdXRpb24ufQ==</c>
-		</c>
-	</i>
-	<i r="/OIwYXeBReaWzVwgF71d2Q" c="Kwx5DUmSROuUnfb9liWPFA">
-		<c i="537015280392.0" id="Ki3KKp2zTsS/ljGA+3pQXg" d0="537015294937.0" d1="537015314553.0" d3="0.0" d5="0.0" d2="0.0" d4="0.0" d="537015280389.0" t="Implement default seeds.">
-			<s>Implement default seeds.</s>
-			<s f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIEltcGxlbWVudCBkZWZhdWx0IHNlZWRzLn0=</s>
-			<c>Rather than using user-provided seed URLs, include default values in the database.</c>
-			<c f="0">e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcY29jb2FydGYxNTYxXGNvY29hc3VicnRmMjAwCntcZm9udHRibFxmMFxmc3dpc3NcZmNoYXJzZXQwIEhlbHZldGljYTt9CntcY29sb3J0Ymw7XHJlZDI1NVxncmVlbjI1NVxibHVlMjU1O30Ke1wqXGV4cGFuZGVkY29sb3J0Ymw7O30KXHBhcmRcdHg1NjBcdHgxMTIwXHR4MTY4MFx0eDIyNDBcdHgyODAwXHR4MzM2MFx0eDM5MjBcdHg0NDgwXHR4NTA0MFx0eDU2MDBcdHg2MTYwXHR4NjcyMFxwYXJkaXJuYXR1cmFsXHBhcnRpZ2h0ZW5mYWN0b3IwCgpcZjBcZnMyOCBcY2YwIFJhdGhlciB0aGFuIHVzaW5nIHVzZXItcHJvdmlkZWQgc2VlZCBVUkxzLCBpbmNsdWRlIGRlZmF1bHQgdmFsdWVzIGluIHRoZSBkYXRhYmFzZS59</c>
 		</c>
 	</i>
 </b>
