@@ -16,11 +16,12 @@
 import os
 import sys
 import time
+import random
 import requests
 import sqlite3 as sql
 from datetime import datetime
 from html.parser import HTMLParser
-from multiprocessing import Process, cpu_count
+from multiprocessing import Process, cpu_count, current_process
 
 
 '''---GLOBAL VARIABLES---'''
@@ -73,8 +74,14 @@ def crawl():
     ''' This function is the meat of the program, doing all the heavy lifting
         of crawling the website and scraping up all the juicy data therein.
     '''
+    log("{}: I'm awake! Good morning!".format(current_process().name))
     alive = True
     while(alive is True):
+        if(os.path.exists('sleep')):
+            # The kill-switch is creating a file called 'sleep'.
+            alive = False
+            log("{}: I'm sleepy. Good night!".format(current_process().name))
+            continue
         try:
             # Query the database for a random link that hasn't been scanned in
             # 7 days or whose domain was marked offline more than a day ago.
@@ -219,7 +226,7 @@ def log(line):
     if(log_to_console):
         print('{} - {}'.format(get_timestamp(), line))
     f = open('spider.log', 'a')
-    f.write(line)
+    f.write("{}\n".format(line))
     f.close()
 
 
@@ -384,10 +391,17 @@ if __name__ == '__main__':
         log("Existing database initialized.")
 
     # Now we're ready to start crawling.
-    log("Releasing the spiders...")
+    log("Awaken the spiders!!!")
+    # Sixteen names for processors with up to 8 cores.
+    names = ['Webster', 'Spinette', 'Crowley', 'Leggy',
+             'Harry', 'Terry', 'Aunt Tula', 'Cheryl',
+             'Bubbles', 'Jumpy', 'Gunther', 'Vinny',
+             'Squatch', 'Wolf', 'Trudy', 'Nancy']
     procs = []
     for _ in range(cpu_count() * 2):  # We'll release 2 spiders per processor.
+        random.shuffle(names)
         proc = Process(target=crawl)
+        proc.name = names.pop()
         procs.append(proc)
         proc.start()
         # Delay each spider so that it doesn't step on the others' feet.
@@ -395,3 +409,10 @@ if __name__ == '__main__':
 
     for proc in procs:
         proc.join()
+
+    # The spiders are all 'asleep' now.
+    try:
+        os.unlink('sleep')
+    except Exception as e:
+        pass
+    log("The spiders are all sleeping now. ZzZzz...")
