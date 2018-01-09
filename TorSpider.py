@@ -263,18 +263,25 @@ def get_links(data, url):
     links = []
     domain = urlsplit(url)[1]
     for link in parse.output_list:
-        # LEARN AND USE urllib.parse TO FIX THIS STUFF.
+        if(link is None):
+            # Skip empty links.
+            continue
         # Remove any references to the current directory. ('./')
         link = link.replace('./', '')
+        # Split the link into its component parts.
         (scheme, netloc, path, query, fragment) = urlsplit(link)
+        # Fill in empty schemes.
         scheme = 'http' if scheme is '' else scheme
+        # Fill in empty paths.
+        path = '/' if path is '' else path
         if(netloc is '' and '.onion' in path.split('/')[0]):
             # The urlparser mistook the domain as part of the path.
             netloc = path.split('/')[0]
             try:
                 path = '/'.join(path.split('/')[1:])
             except Exception as e:
-                path = ''
+                path = '/'
+        # Fill in empty domains.
         netloc = domain if netloc is '' else netloc
         fragment = ''
         if('onion' not in netloc):
