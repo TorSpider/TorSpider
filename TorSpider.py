@@ -154,35 +154,10 @@ def crawl():
             # Get the page's links.
             page_links = get_links(page_text, url)
 
-            ''' To add a page to the database:
-
-                Add the domain to the `onions` table.
-                INSERT OR IGNORE INTO `onions` (`domain`)
-                    VALUES ('link_domain');
-
-                Add the page to the `pages` table.
-                INSERT OR IGNORE INTO `pages` (`domain`, `url`)
-                    VALUES (
-                        (SELECT `id` FROM `onions`
-                            WHERE `domain` = 'link_domain'),
-                        'link_page'
-                    );
-
-                Link the two domains in the `links` table.
-                INSERT OR IGNORE INTO `links` (`domain`, `link`)
-                    VALUES (
-                        'domain_id',
-                        (SELECT `id` FROM `onions`
-                            WHERE `domain` = 'link_domain')
-                    );
-            '''
-
             # Add the links to the database.
-            for l in page_links:
+            for link_url in page_links:
                 # Get the link domain.
-                link_domain = urlsplit(l)[1]
-                # Get the link page.
-                link_page = l[l.find(link_domain) + len(link_domain):]
+                link_domain = urlsplit(link_url)[1]
                 try:
                     # Insert the new domain into the onions table.
                     db_cmd("INSERT OR IGNORE INTO `onions` (`domain`) \
@@ -190,7 +165,7 @@ def crawl():
                     # Insert the new link into the pages table.
                     db_cmd("INSERT OR IGNORE INTO `pages` (`domain`, `url`) \
                            VALUES ((SELECT `id` FROM `onions` WHERE \
-                           `domain` = ?), ?);", (link_domain, link_page))
+                           `domain` = ?), ?);", (link_domain, link_url))
                     # Insert the new connection between domains.
                     db_cmd("INSERT OR IGNORE INTO `links` (`domain`, `link`) \
                            VALUES (?, (SELECT `id` FROM `onions` WHERE \
