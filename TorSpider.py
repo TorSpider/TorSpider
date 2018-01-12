@@ -101,15 +101,15 @@ def crawl():
 
             # Grab that link's root domain.
             query = db_cmd("SELECT `domain` FROM `onions` \
-                           WHERE `id` IS ?;", (domain_id, ))
+                           WHERE `id` IS ?;", [domain_id])
             domain = query[0][0]
 
             # Update the scan date for this page and domain.
             db_cmd("UPDATE `pages` SET `date` = ? \
                    WHERE `url` IS ? AND `domain` \
-                   IS ?;", (get_timestamp(), url, domain_id))
+                   IS ?;", [get_timestamp(), url, domain_id])
             db_cmd("UPDATE `onions` SET `date` = ? \
-                   WHERE `id` IS ?;", (get_timestamp(), domain_id))
+                   WHERE `id` IS ?;", [get_timestamp(), domain_id])
 
             # Retrieve the page.
             req = session.get(url)
@@ -117,7 +117,7 @@ def crawl():
             # Did we get the page successfully?
             if(req.status_code == 404):
                 # This page doesn't exist. Delete it from the database.
-                db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", (url, ))
+                db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", [url])
                 log("404 - {}".format(url))
                 continue
             elif(req.status_code != 200):
@@ -134,7 +134,7 @@ def crawl():
                 # Retrieve the page's last hash.
                 query = db_cmd("SELECT `hash` FROM `pages` WHERE \
                                `domain` IS ? AND `url` IS ?;",
-                               (domain_id, url))
+                               [domain_id, url])
                 last_hash = query[0][0]
 
                 # If the hash hasn't changed, don't bother processing it.
@@ -161,15 +161,15 @@ def crawl():
                 try:
                     # Insert the new domain into the onions table.
                     db_cmd("INSERT OR IGNORE INTO `onions` (`domain`) \
-                           VALUES (?);", (link_domain, ))
+                           VALUES (?);", [link_domain])
                     # Insert the new link into the pages table.
                     db_cmd("INSERT OR IGNORE INTO `pages` (`domain`, `url`) \
                            VALUES ((SELECT `id` FROM `onions` WHERE \
-                           `domain` = ?), ?);", (link_domain, link_url))
+                           `domain` = ?), ?);", [link_domain, link_url])
                     # Insert the new connection between domains.
                     db_cmd("INSERT OR IGNORE INTO `links` (`domain`, `link`) \
                            VALUES (?, (SELECT `id` FROM `onions` WHERE \
-                           `domain` = ?));", (domain_id, link_domain))
+                           `domain` = ?));", [domain_id, link_domain])
                 except Exception as e:
                     # There was an error saving the link to the database.
                     log('Failed to save to database: {} -> {}'.format(url, l))
@@ -183,17 +183,17 @@ def crawl():
         except requests.exceptions.InvalidURL:
             # The url provided was invalid.
             log("Invalid url: {}".format(url))
-            db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", (url, ))
+            db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", [url])
 
         except requests.exceptions.ConnectionError:
             # We had trouble connecting to the url.
             log("Site offline: {}".format(url))
             # Set the domain to offline.
             db_cmd("UPDATE `onions` SET `online` = '0' \
-                   WHERE `id` IS ?", (domain_id, ))
+                   WHERE `id` IS ?", [domain_id])
             # Make sure we don't keep scanning the pages.
             db_cmd("UPDATE `pages` SET `date` = ? \
-                   WHERE `domain` = ?;", (get_timestamp, domain_id))
+                   WHERE `domain` = ?;", [get_timestamp(), domain_id])
 
 
 def db_cmd(command, args=()):
