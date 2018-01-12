@@ -221,7 +221,7 @@ def crawl():
                    WHERE `domain` = ?;", (get_timestamp, domain_id))
 
 
-def db_cmd(command, args=(,)):
+def db_cmd(command, args=()):
     # This function executes commands in the database.
     output = None
     connection = sql.connect('SpiderWeb.db')
