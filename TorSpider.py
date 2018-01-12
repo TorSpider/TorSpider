@@ -99,11 +99,6 @@ def crawl():
                 time.sleep(1)
                 continue
 
-            # Grab that link's root domain.
-            query = db_cmd("SELECT `domain` FROM `onions` \
-                           WHERE `id` IS ?;", [domain_id])
-            domain = query[0][0]
-
             # Update the scan date for this page and domain.
             db_cmd("UPDATE `pages` SET `date` = ? \
                    WHERE `url` IS ? AND `domain` \
@@ -150,6 +145,8 @@ def crawl():
 
             # Get the title of the page.
             page_title = get_title(page_text)
+            db_cmd('UPDATE `pages` SET `title` = ? WHERE `url` IS ?;',
+                   [page_title, url])
 
             # Get the page's links.
             page_links = get_links(page_text, url)
