@@ -180,12 +180,12 @@ def crawl():
             # Something went wrong with SQL.
             log("IndexError: {}".format(e))
 
-        except requests.InvalidURL:
+        except requests.exceptions.InvalidURL:
             # The url provided was invalid.
             log("Invalid url: {}".format(url))
             db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", (url, ))
 
-        except requests.ConnectionError:
+        except requests.exceptions.ConnectionError:
             # We had trouble connecting to the url.
             log("Site offline: {}".format(url))
             # Set the domain to offline.
