@@ -115,14 +115,17 @@ def crawl():
 
             # Did we get the page successfully?
             if(req.status_code == 404):
-                # This page doesn't exist. Delete it from the database.
-                db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", [url])
+                # This page doesn't exist. Avoid scanning it again.
+                db_cmd('UPDATE `pages` SET `fault` = ? \
+                       WHERE `url` IS ?;', ['404', url])
                 log("404 - {}".format(url))
                 continue
             elif(req.status_code != 200):
                 # Some other status.
                 # I'll add more status_code options as they arise.
                 log("{} - {}".format(req.status_code, url))
+                db_cmd('UPDATE `pages` SET `fault` = ? \
+                       WHERE `url` IS ?;', [str(req.status_code), url])
                 continue
 
             # We've got the site's data. Let's see if it's changed...
@@ -195,7 +198,8 @@ def crawl():
         except requests.exceptions.InvalidURL:
             # The url provided was invalid.
             log("Invalid url: {}".format(url))
-            db_cmd("DELETE FROM `pages` WHERE `url` IS ?;", [url])
+            db_cmd('UPDATE `pages` SET `fault` = ? \
+                   WHERE `url` IS ?;', ['invalid url', url])
 
         except requests.exceptions.ConnectionError:
             # We had trouble connecting to the url.
