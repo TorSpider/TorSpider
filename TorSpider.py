@@ -140,6 +140,11 @@ def crawl():
                 if(last_hash == page_hash):
                     continue
 
+                # Update the page's hash in the database.
+                db_cmd('UPDATE `pages` SET `hash` = ? \
+                       WHERE `domain` IS ? AND `url` IS ?;',
+                       [page_hash, domain_id, url])
+
             except Exception as e:
                 log("Couldn't retrieve previous hash: {}".format(url))
                 continue
