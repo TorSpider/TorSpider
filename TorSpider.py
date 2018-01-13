@@ -109,6 +109,10 @@ def crawl():
             # Retrieve the page.
             req = session.get(url)
 
+            # Update the last_online date.
+            db_cmd('UPDATE `onions` SET `last_online` = ? \
+                   WHERE `id` IS ?;', [get_timestamp(), domain_id])
+
             # Did we get the page successfully?
             if(req.status_code == 404):
                 # This page doesn't exist. Delete it from the database.
@@ -343,27 +347,29 @@ if __name__ == '__main__':
         # First, we'll set up the database structure.
 
         ''' Onions: Information about each individual onion domain.
-                - id:       The numerical ID of that domain.
-                - domain:   The domain itself (i.e. 'google.com').
-                - online:   Whether the domain was online as of the last scan.
-                - date:     The date of the last scan.
-                - info:     Any additional information known about the domain.
+            - id:           The numerical ID of that domain.
+            - domain:       The domain itself (i.e. 'google.com').
+            - online:       Whether the domain was online as of the last scan.
+            - last_online:  The last date the page was seen online.
+            - date:         The date of the last scan.
+            - info:         Any additional information known about the domain.
         '''
         db_cmd("CREATE TABLE IF NOT EXISTS `onions` ( \
                         `id` INTEGER PRIMARY KEY, \
                         `domain` TEXT, \
                         `online` INTEGER DEFAULT '1', \
+                        `last_online` DATETIME DEFAULT 'never', \
                         `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
                         `info` TEXT DEFAULT 'none', \
                         CONSTRAINT unique_domain UNIQUE(`domain`));")
 
         ''' Pages: Information about each link discovered.
-                - id:       The numerical ID of that page.
-                - title:    The page's title.
-                - domain:   The numerical ID of the page's parent domain.
-                - url:      The URL for the page.
-                - hash:     The page's sha1 hash, for detecting changes.
-                - date:     The date of the last scan.
+            - id:       The numerical ID of that page.
+            - title:    The page's title.
+            - domain:   The numerical ID of the page's parent domain.
+            - url:      The URL for the page.
+            - hash:     The page's sha1 hash, for detecting changes.
+            - date:     The date of the last scan.
         '''
         db_cmd("CREATE TABLE IF NOT EXISTS `pages` ( \
                         `id` INTEGER PRIMARY KEY, \
@@ -375,8 +381,8 @@ if __name__ == '__main__':
                         CONSTRAINT unique_page UNIQUE(`domain`, `url`));")
 
         ''' Links: Information about which domains are connected to each other.
-                - domain:   The numerical ID of the origin domain.
-                - link:     The numerical ID of the target domain.
+            - domain:   The numerical ID of the origin domain.
+            - link:     The numerical ID of the target domain.
         '''
         db_cmd('CREATE TABLE IF NOT EXISTS `links` ( \
                         `domain` INTEGER, \
