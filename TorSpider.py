@@ -86,12 +86,12 @@ def crawl():
             # Query the database for a random link that hasn't been scanned in
             # 7 days or whose domain was marked offline more than a day ago.
             query = db_cmd("SELECT `domain`, `url` FROM `pages` \
-                          WHERE `date` < DATETIME('now', '-7 day') \
+                          WHERE `fault` IS 'none' AND (`date` < DATETIME('now', '-7 day') \
                           OR `domain` IN (\
                                 SELECT `id` FROM `onions` \
                                 WHERE `online` IS '0' \
                                 AND `date` < DATETIME('now', '-1 day')\
-                          ) ORDER BY RANDOM() LIMIT 1;")
+                          )) ORDER BY RANDOM() LIMIT 1;")
             try:
                 (domain_id, url) = query[0]
             except Exception as e:
@@ -153,9 +153,15 @@ def crawl():
             page_text = req.text
 
             # Get the title of the page.
-            page_title = get_title(page_text)
-            db_cmd('UPDATE `pages` SET `title` = ? WHERE `url` IS ?;',
-                   [page_title, url])
+            try:
+                page_title = get_title(page_text)
+                db_cmd('UPDATE `pages` SET `title` = ? WHERE `url` IS ?;',
+                       [page_title, url])
+            except:
+                log('Error processing title for page: {}'.format(url))
+                db_cmd('UPDATE `pages` SET `fault` = ? \
+                       WHERE `url` IS ?;', ['bad title', url])
+                continue
 
             # Get the page's links.
             page_links = get_links(page_text, url)
@@ -200,6 +206,27 @@ def crawl():
             # Make sure we don't keep scanning the pages.
             db_cmd("UPDATE `pages` SET `date` = ? \
                    WHERE `domain` = ?;", [get_timestamp(), domain_id])
+
+        except requests.exceptions.TooManyRedirects as e:
+            # Redirected too many times.
+            log('{} redirected too many times: {}'.format(
+                    url, e))
+            db_cmd('UPDATE `pages` SET `fault` = ? \
+                   WHERE `url` IS ?;', ['redirect', url])
+
+        except requests.exceptions.ChunkedEncodingError as e:
+            # Server gave bad chunk.
+            log('Bad chunk: {}'.format(url))
+            db_cmd('UPDATE `pages` SET `fault` = ? \
+                   WHERE `url` IS ?;', ['chunk error', url])
+
+        except MemoryError as e:
+            log('Ran out of memory with url: {}'.format(url))
+            db_cmd('UPDATE `pages` SET `fault` = ? \
+                   WHERE `url` IS ?;', ['memory error', url])
+
+        except NotImplementedError as e:
+            log('{} encountered NotImplementedError: {}'.format(url, e))
 
 
 def db_cmd(command, args=()):
@@ -375,6 +402,7 @@ if __name__ == '__main__':
             - url:      The URL for the page.
             - hash:     The page's sha1 hash, for detecting changes.
             - date:     The date of the last scan.
+            - fault:    If there's a fault preventing scanning, log it.
         '''
         db_cmd("CREATE TABLE IF NOT EXISTS `pages` ( \
                         `id` INTEGER PRIMARY KEY, \
@@ -383,6 +411,7 @@ if __name__ == '__main__':
                         `url` TEXT, \
                         `hash` TEXT DEFAULT 'none', \
                         `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
+                        `fault` TEXT DEFAULT 'none', \
                         CONSTRAINT unique_page UNIQUE(`domain`, `url`));")
 
         ''' Links: Information about which domains are connected to each other.
