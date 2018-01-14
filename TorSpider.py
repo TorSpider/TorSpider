@@ -236,20 +236,24 @@ def crawl():
 def db_cmd(command, args=()):
     # This function executes commands in the database.
     output = None
-    connection = sql.connect('SpiderWeb.db')
-    cursor = connection.cursor()
-    try:
-        command = command.strip()
-        cursor.execute(command, args)
-        if(command.upper().startswith("SELECT")):
-            output = cursor.fetchall()
-        connection.commit()
-        connection.close()
-        return output
-    except sql.Error as e:
-        log("SQL Error: {}".format(e))
-        connection.close()
-        return None
+    while(True):
+        connection = sql.connect('SpiderWeb.db')
+        cursor = connection.cursor()
+        try:
+            command = command.strip()
+            cursor.execute(command, args)
+            if(command.upper().startswith("SELECT")):
+                output = cursor.fetchall()
+            connection.commit()
+            connection.close()
+            return output
+        except sql.Error as e:
+            connection.close()
+            if(e is not 'database is locked'):
+                log("SQL Error: {}".format(e))
+                return None
+            else:
+                log('Database locked. Waiting to retry...')
 
 
 def extract_exact(items, scan_list):
