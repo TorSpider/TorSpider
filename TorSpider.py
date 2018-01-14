@@ -94,6 +94,7 @@ def crawl():
                           )) ORDER BY RANDOM() LIMIT 1;")
             try:
                 (domain_id, url) = query[0]
+                url = fix_url(url)
             except Exception as e:
                 # No links to process.
                 time.sleep(1)
@@ -172,7 +173,8 @@ def crawl():
             # Add the links to the database.
             for link_url in page_links:
                 # Get the link domain.
-                link_domain = urlsplit(link_url)[1]
+                link_url = fix_url(link_url)
+                link_domain = get_domain(link_url)
                 try:
                     # Insert the new domain into the onions table.
                     db_cmd("INSERT OR IGNORE INTO `onions` (`domain`) \
@@ -266,6 +268,26 @@ def extract_fuzzy(items, scan_list):
     # Return all items from items list that match items in scan_list.
     return [item for item in items
             if any(scan in item for scan in scan_list)]
+
+
+def fix_url(url):
+    # Fix obfuscated urls.
+    (scheme, netloc, path, query, fragment) = urlsplit(url)
+    netloc = get_domain(url)
+    url = urlunsplit((scheme, netloc, path, query, fragment))
+    return url
+
+
+def get_domain(url):
+    # Get the domain of the given url.
+    domain = urlsplit(url)[1]
+    domain_parts = domain.split('.')
+    # Onion domains don't have strange symbols or numbers in them, so be
+    # sure to remove any of those just in case someone's obfuscating domains
+    # for some reason.
+    domain_parts[-2] = ''.join(ch for ch in domain_parts[-2] if ch.isalnum())
+    domain = '.'.join(domain_parts)
+    return domain
 
 
 def get_hash(data):
