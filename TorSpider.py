@@ -390,7 +390,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     # If the database doesn't exist, create a new one.
-    if(not os.path.exists('SpiderWeb.db')):
+    if(not os.path.exists('data/SpiderWeb.db')):
         log("Initializing new database...")
 
         # First, we'll set up the database structure.
