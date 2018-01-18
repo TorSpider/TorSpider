@@ -85,13 +85,13 @@ def crawl():
         try:
             # Query the database for a random link that hasn't been scanned in
             # 7 days or whose domain was marked offline more than a day ago.
-            query = db_cmd("SELECT `domain`, `url` FROM `pages` \
-                          WHERE `fault` IS 'none' \
-                          AND (`date` < DATETIME('now', '-7 day') \
-                          OR `domain` IN (\
-                                SELECT `id` FROM `onions` \
-                                WHERE `online` IS '0' \
-                                AND `date` < DATETIME('now', '-1 day')\
+            query = db_cmd("SELECT domain, url FROM pages \
+                          WHERE fault IS 'none' \
+                          AND (date < DATETIME('now', '-7 day') \
+                          OR domain IN (\
+                                SELECT id FROM onions \
+                                WHERE online IS '0' \
+                                AND date < DATETIME('now', '-1 day')\
                           )) ORDER BY RANDOM() LIMIT 1;")
             try:
                 (domain_id, url) = query[0]
@@ -102,32 +102,32 @@ def crawl():
                 continue
 
             # Update the scan date for this page and domain.
-            db_cmd("UPDATE `pages` SET `date` = ? \
-                   WHERE `url` IS ? AND `domain` \
+            db_cmd("UPDATE pages SET date = ? \
+                   WHERE url IS ? AND domain \
                    IS ?;", [get_timestamp(), url, domain_id])
-            db_cmd("UPDATE `onions` SET `date` = ? \
-                   WHERE `id` IS ?;", [get_timestamp(), domain_id])
+            db_cmd("UPDATE onions SET date = ? \
+                   WHERE id IS ?;", [get_timestamp(), domain_id])
 
             # Retrieve the page.
             req = session.get(url)
 
             # Update the last_online date.
-            db_cmd('UPDATE `onions` SET `last_online` = ? \
-                   WHERE `id` IS ?;', [get_timestamp(), domain_id])
+            db_cmd('UPDATE onions SET last_online = ? \
+                   WHERE id IS ?;', [get_timestamp(), domain_id])
 
             # Did we get the page successfully?
             if(req.status_code == 404):
                 # This page doesn't exist. Avoid scanning it again.
-                db_cmd('UPDATE `pages` SET `fault` = ? \
-                       WHERE `url` IS ?;', ['404', url])
+                db_cmd('UPDATE pages SET fault = ? \
+                       WHERE url IS ?;', ['404', url])
                 log("404 - {}".format(url))
                 continue
             elif(req.status_code != 200):
                 # Some other status.
                 # I'll add more status_code options as they arise.
                 log("{} - {}".format(req.status_code, url))
-                db_cmd('UPDATE `pages` SET `fault` = ? \
-                       WHERE `url` IS ?;', [str(req.status_code), url])
+                db_cmd('UPDATE pages SET fault = ? \
+                       WHERE url IS ?;', [str(req.status_code), url])
                 continue
 
             # We've got the site's data. Let's see if it's changed...
@@ -136,8 +136,8 @@ def crawl():
                 page_hash = get_hash(req.content)
 
                 # Retrieve the page's last hash.
-                query = db_cmd("SELECT `hash` FROM `pages` WHERE \
-                               `domain` IS ? AND `url` IS ?;",
+                query = db_cmd("SELECT hash FROM pages WHERE \
+                               domain IS ? AND url IS ?;",
                                [domain_id, url])
                 last_hash = query[0][0]
 
@@ -146,8 +146,8 @@ def crawl():
                     continue
 
                 # Update the page's hash in the database.
-                db_cmd('UPDATE `pages` SET `hash` = ? \
-                       WHERE `domain` IS ? AND `url` IS ?;',
+                db_cmd('UPDATE pages SET hash = ? \
+                       WHERE domain IS ? AND url IS ?;',
                        [page_hash, domain_id, url])
 
             except Exception as e:
@@ -162,10 +162,10 @@ def crawl():
                 page_title = get_title(page_text)
             except Exception as e:
                 log('Error processing title for page: {}'.format(url))
-                db_cmd('UPDATE `pages` SET `fault` = ? \
-                       WHERE `url` IS ?;', ['bad title', url])
+                db_cmd('UPDATE pages SET fault = ? \
+                       WHERE url IS ?;', ['bad title', url])
                 continue
-            db_cmd('UPDATE `pages` SET `title` = ? WHERE `url` IS ?;',
+            db_cmd('UPDATE pages SET title = ? WHERE url IS ?;',
                    [page_title, url])
 
             # Get the page's links.
@@ -178,16 +178,16 @@ def crawl():
                 link_domain = get_domain(link_url)
                 try:
                     # Insert the new domain into the onions table.
-                    db_cmd("INSERT OR IGNORE INTO `onions` (`domain`) \
+                    db_cmd("INSERT OR IGNORE INTO onions (domain) \
                            VALUES (?);", [link_domain])
                     # Insert the new link into the pages table.
-                    db_cmd("INSERT OR IGNORE INTO `pages` (`domain`, `url`) \
-                           VALUES ((SELECT `id` FROM `onions` WHERE \
-                           `domain` = ?), ?);", [link_domain, link_url])
+                    db_cmd("INSERT OR IGNORE INTO pages (domain, url) \
+                           VALUES ((SELECT id FROM onions WHERE \
+                           domain = ?), ?);", [link_domain, link_url])
                     # Insert the new connection between domains.
-                    db_cmd("INSERT OR IGNORE INTO `links` (`domain`, `link`) \
-                           VALUES (?, (SELECT `id` FROM `onions` WHERE \
-                           `domain` = ?));", [domain_id, link_domain])
+                    db_cmd("INSERT OR IGNORE INTO links (domain, link) \
+                           VALUES (?, (SELECT id FROM onions WHERE \
+                           domain = ?));", [domain_id, link_domain])
                 except Exception as e:
                     # There was an error saving the link to the database.
                     log('Failed to save to database: {} -> {}'.format(url, l))
@@ -201,36 +201,36 @@ def crawl():
         except requests.exceptions.InvalidURL:
             # The url provided was invalid.
             log("Invalid url: {}".format(url))
-            db_cmd('UPDATE `pages` SET `fault` = ? \
-                   WHERE `url` IS ?;', ['invalid url', url])
+            db_cmd('UPDATE pages SET fault = ? \
+                   WHERE url IS ?;', ['invalid url', url])
 
         except requests.exceptions.ConnectionError:
             # We had trouble connecting to the url.
             log("Site offline: {}".format(url))
             # Set the domain to offline.
-            db_cmd("UPDATE `onions` SET `online` = '0' \
-                   WHERE `id` IS ?", [domain_id])
+            db_cmd("UPDATE onions SET online = '0' \
+                   WHERE id IS ?", [domain_id])
             # Make sure we don't keep scanning the pages.
-            db_cmd("UPDATE `pages` SET `date` = ? \
-                   WHERE `domain` = ?;", [get_timestamp(), domain_id])
+            db_cmd("UPDATE pages SET date = ? \
+                   WHERE domain = ?;", [get_timestamp(), domain_id])
 
         except requests.exceptions.TooManyRedirects as e:
             # Redirected too many times.
             log('{} redirected too many times: {}'.format(
                     url, e))
-            db_cmd('UPDATE `pages` SET `fault` = ? \
-                   WHERE `url` IS ?;', ['redirect', url])
+            db_cmd('UPDATE pages SET fault = ? \
+                   WHERE url IS ?;', ['redirect', url])
 
         except requests.exceptions.ChunkedEncodingError as e:
             # Server gave bad chunk.
             log('Bad chunk: {}'.format(url))
-            db_cmd('UPDATE `pages` SET `fault` = ? \
-                   WHERE `url` IS ?;', ['chunk error', url])
+            db_cmd('UPDATE pages SET fault = ? \
+                   WHERE url IS ?;', ['chunk error', url])
 
         except MemoryError as e:
             log('Ran out of memory with url: {}'.format(url))
-            db_cmd('UPDATE `pages` SET `fault` = ? \
-                   WHERE `url` IS ?;', ['memory error', url])
+            db_cmd('UPDATE pages SET fault = ? \
+                   WHERE url IS ?;', ['memory error', url])
 
         except NotImplementedError as e:
             log('{} encountered NotImplementedError: {}'.format(url, e))
@@ -240,7 +240,7 @@ def db_cmd(command, args=()):
     # This function executes commands in the database.
     output = None
     while(True):
-        connection = sql.connect('SpiderWeb.db')
+        connection = sql.connect('data/SpiderWeb.db')
         cursor = connection.cursor()
         try:
             command = command.strip()
@@ -347,7 +347,9 @@ def get_tor_session():
 
 def log(line):
     if(log_to_console):
+        # Print to the screen if log_to_console is enabled.
         print('{} - {}'.format(get_timestamp(), line))
+    # Append the message to the logfile.
     f = open('spider.log', 'a')
     f.write("{}\n".format(line))
     f.close()
@@ -363,6 +365,14 @@ def unique(items):
 
 if __name__ == '__main__':
     log('TorSpider initializing...')
+
+    # If the data directory doesn't exist, create it.
+    if(not os.path.exists('data')):
+        try:
+            os.mkdir('data')
+        except Exception as e:
+            log('Failed to create data directory: {}'.format(e))
+            sys.exit(0)
 
     # Create a Tor session and check if it's working.
     log("Establishing Tor connection...")
@@ -393,112 +403,112 @@ if __name__ == '__main__':
             - date:         The date of the last scan.
             - info:         Any additional information known about the domain.
         '''
-        db_cmd("CREATE TABLE IF NOT EXISTS `onions` ( \
-                        `id` INTEGER PRIMARY KEY, \
-                        `domain` TEXT, \
-                        `online` INTEGER DEFAULT '1', \
-                        `last_online` DATETIME DEFAULT 'never', \
-                        `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
-                        `info` TEXT DEFAULT 'none', \
-                        CONSTRAINT unique_domain UNIQUE(`domain`));")
+        db_cmd("CREATE TABLE IF NOT EXISTS onions ( \
+                        id INTEGER PRIMARY KEY, \
+                        domain TEXT, \
+                        online INTEGER DEFAULT '1', \
+                        last_online DATETIME DEFAULT 'never', \
+                        date DATETIME DEFAULT '1986-02-02 00:00:01', \
+                        info TEXT DEFAULT 'none', \
+                        CONSTRAINT unique_domain UNIQUE(domain));")
 
         ''' Pages: Information about each link discovered.
-            - id:       The numerical ID of that page.
-            - title:    The page's title.
-            - domain:   The numerical ID of the page's parent domain.
-            - url:      The URL for the page.
-            - hash:     The page's sha1 hash, for detecting changes.
-            - date:     The date of the last scan.
-            - fault:    If there's a fault preventing scanning, log it.
+            - id:           The numerical ID of that page.
+            - title:        The page's title.
+            - domain:       The numerical ID of the page's parent domain.
+            - url:          The URL for the page.
+            - hash:         The page's sha1 hash, for detecting changes.
+            - date:         The date of the last scan.
+            - fault:        If there's a fault preventing scanning, log it.
         '''
-        db_cmd("CREATE TABLE IF NOT EXISTS `pages` ( \
-                        `id` INTEGER PRIMARY KEY, \
-                        `title` TEXT DEFAULT 'none', \
-                        `domain` INTEGER, \
-                        `url` TEXT, \
-                        `hash` TEXT DEFAULT 'none', \
-                        `date` DATETIME DEFAULT '1986-02-02 00:00:01', \
-                        `fault` TEXT DEFAULT 'none', \
-                        CONSTRAINT unique_page UNIQUE(`domain`, `url`));")
+        db_cmd("CREATE TABLE IF NOT EXISTS pages ( \
+                        id INTEGER PRIMARY KEY, \
+                        title TEXT DEFAULT 'none', \
+                        domain INTEGER, \
+                        url TEXT, \
+                        hash TEXT DEFAULT 'none', \
+                        date DATETIME DEFAULT '1986-02-02 00:00:01', \
+                        fault TEXT DEFAULT 'none', \
+                        CONSTRAINT unique_page UNIQUE(domain, url));")
 
         ''' Links: Information about which domains are connected to each other.
-            - domain:   The numerical ID of the origin domain.
-            - link:     The numerical ID of the target domain.
+            - domain:       The numerical ID of the origin domain.
+            - link:         The numerical ID of the target domain.
         '''
-        db_cmd('CREATE TABLE IF NOT EXISTS `links` ( \
-                        `domain` INTEGER, \
-                        `link` INTEGER, \
-                        CONSTRAINT unique_link UNIQUE(`domain`, `link`));')
+        db_cmd('CREATE TABLE IF NOT EXISTS links ( \
+                        domain INTEGER, \
+                        link INTEGER, \
+                        CONSTRAINT unique_link UNIQUE(domain, link));')
 
         # Next, we'll populate the database with some default values. These
         # pages are darknet indexes, so they should be a good starting point.
 
         # The Uncensored Hidden Wiki
         # http://zqktlwi4fecvo6ri.onion/wiki/Main_Page
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     'zqktlwi4fecvo6ri.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '1', \
                     'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page' \
                );")
 
         # OnionDir
         # http://auutwvpt2zktxwng.onion/index.php
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     'auutwvpt2zktxwng.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '2', \
                     'http://auutwvpt2zktxwng.onion/index.php' \
                );")
 
         # Wiki links
         # http://wikilink77h7lrbi.onion/
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     'wikilink77h7lrbi.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '3', \
                     'http://wikilink77h7lrbi.onion/' \
                );")
 
         # Deep Web Links
         # http://wiki5kauuihowqi5.onion/
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     'wiki5kauuihowqi5.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '4', \
                     'http://wiki5kauuihowqi5.onion/' \
                );")
 
         # OnionDir Deep Web Directory
         # http://dirnxxdraygbifgc.onion/
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     'dirnxxdraygbifgc.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '5', \
                     'http://dirnxxdraygbifgc.onion/' \
                );")
 
         # The Onion Crate
         # http://7cbqhjnlkivmigxf.onion/
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     '7cbqhjnlkivmigxf.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '6', \
                     'http://7cbqhjnlkivmigxf.onion/' \
                );")
 
         # Fresh Onions
         # http://zlal32teyptf4tvi.onion/
-        db_cmd("INSERT INTO `onions` (`domain`) VALUES ( \
+        db_cmd("INSERT INTO onions (domain) VALUES ( \
                     'zlal32teyptf4tvi.onion' \
                 );")
-        db_cmd("INSERT INTO `pages` (`domain`, `url`) VALUES ( \
+        db_cmd("INSERT INTO pages (domain, url) VALUES ( \
                     '7', \
                     'http://zlal32teyptf4tvi.onion/' \
                );")
