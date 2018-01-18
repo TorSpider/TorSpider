@@ -86,7 +86,8 @@ def crawl():
             # Query the database for a random link that hasn't been scanned in
             # 7 days or whose domain was marked offline more than a day ago.
             query = db_cmd("SELECT `domain`, `url` FROM `pages` \
-                          WHERE `fault` IS 'none' AND (`date` < DATETIME('now', '-7 day') \
+                          WHERE `fault` IS 'none' \
+                          AND (`date` < DATETIME('now', '-7 day') \
                           OR `domain` IN (\
                                 SELECT `id` FROM `onions` \
                                 WHERE `online` IS '0' \
@@ -159,13 +160,13 @@ def crawl():
             # Get the title of the page.
             try:
                 page_title = get_title(page_text)
-                db_cmd('UPDATE `pages` SET `title` = ? WHERE `url` IS ?;',
-                       [page_title, url])
-            except:
+            except Exception as e:
                 log('Error processing title for page: {}'.format(url))
                 db_cmd('UPDATE `pages` SET `fault` = ? \
                        WHERE `url` IS ?;', ['bad title', url])
                 continue
+            db_cmd('UPDATE `pages` SET `title` = ? WHERE `url` IS ?;',
+                   [page_title, url])
 
             # Get the page's links.
             page_links = get_links(page_text, url)
@@ -258,18 +259,6 @@ def db_cmd(command, args=()):
                 log('Database locked. Waiting to retry...')
 
 
-def extract_exact(items, scan_list):
-    # Return all items from items list that match items in scan_list.
-    return [item for item in items
-            if any(scan == item for scan in scan_list)]
-
-
-def extract_fuzzy(items, scan_list):
-    # Return all items from items list that match items in scan_list.
-    return [item for item in items
-            if any(scan in item for scan in scan_list)]
-
-
 def fix_url(url):
     # Fix obfuscated urls.
     (scheme, netloc, path, query, fragment) = urlsplit(url)
@@ -323,7 +312,7 @@ def get_links(data, url):
         # Fill in empty domains.
         netloc = domain if netloc is '' else netloc
         fragment = ''
-        if('onion' not in netloc):
+        if('.onion' not in netloc):
             # We are only interested in links to other .onion domains.
             continue
         if('http' in scheme):
@@ -362,18 +351,6 @@ def log(line):
     f = open('spider.log', 'a')
     f.write("{}\n".format(line))
     f.close()
-
-
-def prune_exact(items, scan_list):
-    # Return all items from items list that match no items in scan_list.
-    return [item for item in items
-            if not any(scan == item for scan in scan_list)]
-
-
-def prune_fuzzy(items, scan_list):
-    # Return all items from items list that match no items in scan_list.
-    return [item for item in items
-            if not any(scan in item for scan in scan_list)]
 
 
 def unique(items):
@@ -533,7 +510,7 @@ if __name__ == '__main__':
 
     # Now we're ready to start crawling.
     log("Awaken the spiders!!!")
-    # Sixteen names for processors with up to 8 cores.
+    # 32 names for processors with up to 16 cores.
     names = ['Webster', 'Spinette', 'Crowley', 'Leggy',
              'Harry', 'Terry', 'Aunt Tula', 'Cheryl',
              'Bubbles', 'Jumpy', 'Gunther', 'Vinny',
