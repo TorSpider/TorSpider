@@ -141,7 +141,7 @@ def crawl():
             content_type = None
             try:
                 content_type = head.headers['Content-Type'].split('/')[0]
-                if(content_type is not 'text'):
+                if(content_type != 'text'):
                     # We've got a non-text content type. Log it, but don't
                     # bother retrieving the whole thing. We can't scan it
                     # for links.
@@ -162,7 +162,7 @@ def crawl():
                 # We couldn't get the content type before. Let's try again.
                 try:
                     content_type = req.headers['Content-Type'].split('/')[0]
-                    if(content_type is not 'text'):
+                    if(content_type != 'text'):
                         # We've got a non-text content type. Log it, but don't
                         # bother retrieving the whole thing. We can't scan it
                         # for links.
