@@ -301,7 +301,7 @@ def db_cmd(command, args=()):
             return output
         except sql.Error as e:
             connection.close()
-            if(e is not 'database is locked'):
+            if(e != 'database is locked'):
                 log("SQL Error: {}".format(e))
                 return None
             else:
