@@ -108,27 +108,76 @@ def crawl():
             db_cmd("UPDATE onions SET date = ? \
                    WHERE id IS ?;", [get_timestamp(), domain_id])
 
-            # Retrieve the page.
-            req = session.get(url)
+            # Check to see if it's an http link.
+            if(not is_http(url)):
+                # It's not.
+                db_cmd('UPDATE pages SET fault = ? \
+                       WHERE url is ?;', ['non-http', url])
+                continue
 
-            # Update the last_online date.
-            db_cmd('UPDATE onions SET last_online = ? \
-                   WHERE id IS ?;', [get_timestamp(), domain_id])
+            # Retrieve the page's headers.
+            head = session.head(url)
 
             # Did we get the page successfully?
-            if(req.status_code == 404):
+            if(head.status_code == 404):
                 # This page doesn't exist. Avoid scanning it again.
                 db_cmd('UPDATE pages SET fault = ? \
                        WHERE url IS ?;', ['404', url])
                 log("404 - {}".format(url))
                 continue
-            elif(req.status_code != 200):
+            elif(head.status_code != 200):
                 # Some other status.
                 # I'll add more status_code options as they arise.
-                log("{} - {}".format(req.status_code, url))
+                log("{} - {}".format(head.status_code, url))
                 db_cmd('UPDATE pages SET fault = ? \
-                       WHERE url IS ?;', [str(req.status_code), url])
+                       WHERE url IS ?;', [str(head.status_code), url])
                 continue
+
+            # Update the last_online date.
+            db_cmd('UPDATE onions SET last_online = ? \
+                   WHERE id IS ?;', [get_timestamp(), domain_id])
+
+            # Check the content type.
+            content_type = None
+            try:
+                content_type = head.headers['Content-Type'].split('/')[0]
+                if(content_type is not 'text'):
+                    # We've got a non-text content type. Log it, but don't
+                    # bother retrieving the whole thing. We can't scan it
+                    # for links.
+                    log('{} has content type {}.'.format(
+                            url, content_type))
+                    db_cmd('UPDATE pages SET fault = ? \
+                           WHERE url IS ?;', ['Content: {}'.format(
+                                   content_type), url])
+                    continue
+            except Exception as e:
+                # We were unable to get the content type from the headers of
+                # this url. It's possible that it might be a redirect.
+                pass
+
+            # Now that we know the link is text, retrieve the page.
+            req = session.get(url)
+            if(content_type is None):
+                # We couldn't get the content type before. Let's try again.
+                try:
+                    content_type = req.headers['Content-Type'].split('/')[0]
+                    if(content_type is not 'text'):
+                        # We've got a non-text content type. Log it, but don't
+                        # bother retrieving the whole thing. We can't scan it
+                        # for links.
+                        log('{} has content type {}.'.format(
+                                url, content_type))
+                        db_cmd('UPDATE pages SET fault = ? \
+                               WHERE url IS ?;', ['Content: {}'.format(
+                                       content_type), url])
+                        continue
+                except Exception as e:
+                    # We were unable to get the content type from the headers
+                    # of this url.
+                    db_cmd('UPDATE pages SER fault = ? \
+                           WHERE url IS ?;', ['Content: unknown', url])
+                    continue
 
             # We've got the site's data. Let's see if it's changed...
             try:
@@ -259,23 +308,32 @@ def db_cmd(command, args=()):
                 log('Database locked. Waiting to retry...')
 
 
-def fix_url(url):
-    # Fix obfuscated urls.
-    (scheme, netloc, path, query, fragment) = urlsplit(url)
-    netloc = get_domain(url)
-    url = urlunsplit((scheme, netloc, path, query, fragment))
-    return url
-
-
-def get_domain(url):
-    # Get the domain of the given url.
-    domain = urlsplit(url)[1]
+def defrag_domain(domain):
+    # Defragment the given domain.
     domain_parts = domain.split('.')
     # Onion domains don't have strange symbols or numbers in them, so be
     # sure to remove any of those just in case someone's obfuscating domains
     # for some reason.
     domain_parts[-2] = ''.join(ch for ch in domain_parts[-2] if ch.isalnum())
     domain = '.'.join(domain_parts)
+    return domain
+
+
+def fix_url(url):
+    # Fix obfuscated urls.
+    (scheme, netloc, path, query, fragment) = urlsplit(url)
+    netloc = defrag_domain(netloc)
+    url = urlunsplit((scheme, netloc, path, query, fragment))
+    return url
+
+
+def get_domain(url):
+    # Get the defragmented domain of the given url.
+    domain = defrag_domain(urlsplit(url)[1])
+    # Let's omit subdomains. Rather than having separate records for urls like
+    # sub1.onionpage.onion and sub2.onionpage.onion, just keep them all under
+    # onionpage.onion.
+    domain = '.'.join(domain.split('.')[-2:])
     return domain
 
 
@@ -312,12 +370,10 @@ def get_links(data, url):
         # Fill in empty domains.
         netloc = domain if netloc is '' else netloc
         fragment = ''
-        if('.onion' not in netloc):
+        if('.onion' not in netloc or '.onion.' in netloc):
             # We are only interested in links to other .onion domains.
             continue
-        if('http' in scheme):
-            # We only want http or https links, not irc or others.
-            links.append(urlunsplit((scheme, netloc, path, query, fragment)))
+        links.append(urlunsplit((scheme, netloc, path, query, fragment)))
     # Make sure we don't return any duplicates!
     return unique(links)
 
@@ -343,6 +399,12 @@ def get_tor_session():
             'https': 'socks5h://127.0.0.1:9050'
         }
     return session
+
+
+def is_http(url):
+    # Determine whether the link is an http/https scheme or not.
+    (scheme, netloc, path, query, fragment) = urlsplit(url)
+    return True if 'http' in scheme else False
 
 
 def log(line):
