@@ -175,7 +175,7 @@ def crawl():
                 except Exception as e:
                     # We were unable to get the content type from the headers
                     # of this url.
-                    db_cmd('UPDATE pages SER fault = ? \
+                    db_cmd('UPDATE pages SET fault = ? \
                            WHERE url IS ?;', ['Content: unknown', url])
                     continue
 
