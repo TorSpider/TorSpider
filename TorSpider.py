@@ -94,7 +94,7 @@ class Spider():
                               )) ORDER BY RANDOM() LIMIT 1;")
                 try:
                     (domain_id, url) = query[0]
-                    url = fix_url(url)
+                    url = self.fix_url(url)
                 except Exception as e:
                     # No links to process. This should be rare...
                     time.sleep(10)
@@ -153,7 +153,8 @@ class Spider():
                     elif(head.status_code == 504):
                         # Gateway timeout.
                         self.set_fault(url, '504')
-                        log("They're home, but not answering. ({})".format(url))
+                        log("They're home, but not answering. ({})".format(
+                                url))
                     elif(head.status_code != 200):
                         # Some other status.
                         # I'll add more status_code options as they arise.
@@ -213,48 +214,79 @@ class Spider():
 
                     # Get the title of the page.
                     try:
-                        page_title = get_title(page_text)
+                        page_title = self.get_title(page_text)
                     except Exception as e:
                         log('What is the name of this place? ({})'.format(url))
-                        db_put('UPDATE pages SET fault = ? \
+                        self.db_put('UPDATE pages SET fault = ? \
                                WHERE url IS ?;', ['bad title', url])
                         continue
-                    db_put('UPDATE pages SET title = ? WHERE url IS ?;',
-                           [page_title, url])
+                    self.db_put('UPDATE pages SET title = ? \
+                                WHERE url IS ?;', [page_title, url])
 
-                    '''---[ SCAN COMPLETE ]---'''
+                    # Get the page's links.
+                    page_links = self.get_links(page_text, url)
+
+                    # Add the links to the database.
+                    for link_url in page_links:
+                        # Get the link domain.
+                        link_url = self.fix_url(link_url)
+                        link_domain = self.get_domain(link_url)
+                        try:
+                            # Insert the new domain into the onions table.
+                            self.db_put("INSERT OR IGNORE INTO onions \
+                                        (domain) VALUES (?);", [link_domain])
+                            # Insert the new link into the pages table.
+                            self.db_put("INSERT OR IGNORE INTO pages \
+                                        (domain, url) VALUES ( \
+                                        (SELECT id FROM onions WHERE \
+                                        domain = ?), ?);",
+                                        [link_domain, link_url])
+                            # Insert the new connection between domains.
+                            self.db_put("INSERT OR IGNORE INTO links \
+                                        (domain, link) \
+                                        VALUES (?, (SELECT id FROM onions \
+                                        WHERE domain = ?));",
+                                        [domain_id, link_domain])
+                        except Exception as e:
+                            # There was an error saving the link to the
+                            # database.
+                            log("Why can't the Scribe hear me? ({})".format(
+                                    e))
+                            continue
+                    # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
                     log("That's one messed-up strand. ({})".format(url))
                     self.db_put('UPDATE pages SET fault = ? \
-                           WHERE url IS ?;', ['invalid', url])
+                                WHERE url IS ?;', ['invalid', url])
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.
                     log("Ew, another corpse. ({})".format(url))
                     # Set the domain to offline.
                     self.db_put("UPDATE onions SET online = '0' \
-                           WHERE id IS ?", [domain_id])
+                                WHERE id IS ?", [domain_id])
                     # Make sure we don't keep scanning the pages.
                     self.db_put("UPDATE pages SET date = ? \
-                           WHERE domain = ?;", [get_timestamp(), domain_id])
+                                WHERE domain = ?;",
+                                [get_timestamp(), domain_id])
 
                 except requests.exceptions.TooManyRedirects as e:
                     # Redirected too many times.
                     log("I'm walking in circles. ({})".format(url))
                     self.db_put('UPDATE pages SET fault = ? \
-                           WHERE url IS ?;', ['redirect', url])
+                                WHERE url IS ?;', ['redirect', url])
 
                 except requests.exceptions.ChunkedEncodingError as e:
                     # Server gave bad chunk.
                     log('Ugh. Chunky. ({})'.format(url))
                     self.db_put('UPDATE pages SET fault = ? \
-                           WHERE url IS ?;', ['chunk error', url])
+                                WHERE url IS ?;', ['chunk error', url])
 
                 except MemoryError as e:
                     log('Oh my god... This is just too much.'.format(url))
                     self.db_put('UPDATE pages SET fault = ? \
-                           WHERE url IS ?;', ['memory error', url])
+                                WHERE url IS ?;', ['memory error', url])
 
                 except NotImplementedError as e:
                     log('How do I even... ({} - {})'.format(url, e))
@@ -273,7 +305,8 @@ class Spider():
             except Exception as e:
                 if(e != 'database is locked'):
                     connection.close()
-                    log("What am I thinking? – {}".format(combine(query, args)))
+                    log("What am I thinking? – {}".format(
+                            combine(query, args)))
                     return None
                 else:
                     log("Was I too quiet? Next time I'll try shouting.")
@@ -283,9 +316,72 @@ class Spider():
         # Let's tell our scribe to handle this bit.
         self.queue.put((query, args))
 
+    def defrag_domain(self, domain):
+        # Defragment the given domain.
+        domain_parts = domain.split('.')
+        # Onion domains don't have strange symbols or numbers in them, so be
+        # sure to remove any of those just in case someone's obfuscating
+        # domains for whatever reason.
+        domain_parts[-2] = ''.join(
+                ch for ch in domain_parts[-2] if ch.isalnum())
+        domain = '.'.join(domain_parts)
+        return domain
+
+    def fix_url(self, url):
+        # Fix obfuscated urls.
+        (scheme, netloc, path, query, fragment) = urlsplit(url)
+        netloc = self.defrag_domain(netloc)
+        url = urlunsplit((scheme, netloc, path, query, fragment))
+        return url
+
+    def get_domain(self, url):
+        # Get the defragmented domain of the given url.
+        domain = self.defrag_domain(urlsplit(url)[1])
+        # Let's omit subdomains. Rather than having separate records for urls
+        # like sub1.onionpage.onion and sub2.onionpage.onion, just keep them
+        # all under onionpage.onion.
+        domain = '.'.join(domain.split('.')[-2:])
+        return domain
+
     def get_hash(self, data):
         # Get the sha1 hash of the provided data. Data must be binary-encoded.
         return sha1(data).hexdigest()
+
+    def get_links(self, data, url):
+        # Given HTML input, return a list of all unique links.
+        parse = ParseLinks()
+        parse.feed(data)
+        links = []
+        domain = urlsplit(url)[1]
+        for link in parse.output_list:
+            if(link is None):
+                # Skip empty links.
+                continue
+            # Remove any references to the current directory. ('./')
+            link = link.replace('./', '')
+            # Split the link into its component parts.
+            (scheme, netloc, path, query, fragment) = urlsplit(link)
+            # Fill in empty schemes.
+            scheme = 'http' if scheme is '' else scheme
+            # Fill in empty paths.
+            path = '/' if path is '' else path
+            if(netloc is '' and '.onion' in path.split('/')[0]):
+                # The urlparser mistook the domain as part of the path.
+                netloc = path.split('/')[0]
+                try:
+                    path = '/'.join(path.split('/')[1:])
+                except Exception as e:
+                    path = '/'
+            # Fill in empty domains.
+            netloc = domain if netloc is '' else netloc
+            fragment = ''
+            if('.onion' not in netloc or '.onion.' in netloc):
+                # We are only interested in links to other .onion domains,
+                # and we don't want to include links to onion redirectors.
+                continue
+            links.append(urlunsplit((scheme, netloc, path, query, fragment)))
+        # Make sure we don't return any duplicates!
+        return unique(links)
 
     def get_title(self, data):
         # Given HTML input, return the title of the page.
@@ -361,7 +457,7 @@ class Scribe():
 
     def check_db(self):
         if(not os.path.exists('data/SpiderWeb.db')):
-            log("Oh dear, it seems my notebook is empty..."))
+            log("Oh dear, it seems my notebook is empty...")
 
             # First, we'll set up the database structure.
             connection = sql.connect('data/SpiderWeb.db')
