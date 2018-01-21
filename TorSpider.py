@@ -668,6 +668,11 @@ if __name__ == '__main__':
     Voltaire_Process = mp.Process(target=Voltaire.begin)
     Voltaire_Process.name = 'Voltaire'
     Voltaire_Process.start()
+
+    # Wait for the database to be created.
+    while(not os.path.exists('data/SpiderWeb.db')):
+        time.sleep(1)
+
     Spiders = []
     Spider_Procs = []
 
