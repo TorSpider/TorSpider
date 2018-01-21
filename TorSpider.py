@@ -171,7 +171,8 @@ class Spider():
                     if(content_type != 'text' and content_type is not None):
                         # We only want to scan text for links.
                         self.set_fault(url, 'type: {}'.format(content_type))
-                        log("I'm not scanning this {}. ({})".format(url))
+                        log("I'm not scanning this {}. ({})".format(
+                                content_type, url))
                         continue
 
                     request = self.session.get(url)
