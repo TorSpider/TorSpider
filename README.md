@@ -22,6 +22,8 @@ TorSpider requires the **requests** and **pysocks** libraries in order to scrape
 
 WebCrawler requires the **CherryPy** library to run the web server.
 
+TorSpider requires **Tor** to be installed and running with the SOCKS proxy port set to 9095.
+
 ### Installation:
 
 Once you've installed the prerequisites, simply place the TorSpider.py and WebCrawler.py files into the directory of your choosing. No other files are needed.
