@@ -143,7 +143,7 @@ class Spider():
 
                 try:
                     # Retrieve the page's headers.
-                    head = self.session.head(url)
+                    head = self.session.head(url, timeout=60)
 
                     # Did we get the page successfully?
                     if(head.status_code == 301
@@ -223,7 +223,7 @@ class Spider():
                         self.set_fault(url, 'type: {}'.format(content_type))
                         continue
 
-                    request = self.session.get(url)
+                    request = self.session.get(url, timeout=60)
                     if(content_type is None):
                         # We're going to process the request in the same way,
                         # because we couldn't get a content type from the head.
@@ -305,6 +305,11 @@ class Spider():
                         # for a little while and see if it fixes itself.
                         time.sleep(10)
                         continue
+
+                except requests.exceptions.Timeout:
+                    # It took too long to load this page. Let's not drop the
+                    # page from the database, but let's also not update it.
+                    continue
 
                 except requests.exceptions.TooManyRedirects as e:
                     # Redirected too many times. Let's not keep trying.
