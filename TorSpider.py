@@ -73,7 +73,7 @@ class Spider():
         self.queue = queue
         self.session = get_tor_session()
 
-    def add_url(self, url, domain_id):
+    def add_url(self, link_url, domain_id):
         link_url = self.fix_url(link_url)
         link_domain = self.get_domain(link_url)
         if('.onion' not in link_domain
