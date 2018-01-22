@@ -325,6 +325,7 @@ class Spider():
 
                 except NotImplementedError as e:
                     log("I don't know what this means: {} - {}".format(e, url))
+        self.db_put('sleeping')  # Let the Scribe know we're going to sleep.
         log("Going to sleep!")
 
     def db_get(self, query, args=[]):
@@ -453,10 +454,13 @@ class Scribe():
         log("I'm awake! Checking my database.")
         self.check_db()
         log("Okay, I'm ready.")
+        num_spiders = mp.cpu_count() - 1
+        num_spiders = num_spiders if num_spiders > 0 else 1
+        spiders_sleeping = 0
         time_to_sleep = False
-        while(not time_to_sleep or not self.queue.empty()):
-            # As long as the scribe is awake or there are messages to process,
-            # he'll keep processing the messages provided.
+        while(not time_to_sleep):
+            # As long as the scribe is awake, he'll keep processing the
+            # messages provided.
 
             connection = sql.connect('data/SpiderWeb.db')
             cursor = connection.cursor()
@@ -465,6 +469,12 @@ class Scribe():
                 # Process all the messages in the queue.
                 (message, args) = self.queue.get()  # Get the next message.
                 executed = False
+
+                if(message == 'sleeping'):
+                    # Take note when a spider goes to sleep.
+                    spiders_sleeping += 1
+                    executed = True
+
                 while(not executed):
                     # Let's keep trying until we successfully execute.
                     try:
@@ -485,11 +495,9 @@ class Scribe():
             connection.commit()
             connection.close()
 
-            if(os.path.exists('sleep')):
-                # Ah, time for a nap.
+            if(os.path.exists('sleep') and spiders_sleeping == num_spiders):
+                # All the spiders have gone to sleep, so should we.
                 time_to_sleep = True
-                # Give everyone time to finish what they're doing.
-                time.sleep(5)
         log('Going to sleep!')
 
     def check_db(self):
