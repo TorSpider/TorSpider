@@ -74,7 +74,7 @@ class Spider():
         self.session = get_tor_session()
 
     def crawl(self):
-        log("Good morning! I'm ready for adventure!")
+        log("Ready to explore!")
         time_to_sleep = False
         while(not time_to_sleep):
             if(os.path.exists('sleep')):
@@ -122,68 +122,64 @@ class Spider():
                     if(head.status_code == 401):
                         # Unauthorized.
                         self.set_fault(url, '401')
-                        log("I need authorization. ({})".format(url))
                         continue
                     elif(head.status_code == 403):
                         # Forbidden.
                         self.set_fault(url, '403')
-                        log("I'm not allowed in there. ({})".format(url))
                         continue
                     elif(head.status_code == 404):
                         # This page doesn't exist. Avoid scanning it again.
                         self.set_fault(url, '404')
-                        log("It seems a strand is missing. ({})".format(url))
                         continue
                     elif(head.status_code == 500):
                         # The server had an error. This might not be our fault,
                         # but it might be best not to scan that page again.
                         self.set_fault(url, '500')
-                        log("There's something wrong here... ({})".format(url))
                         continue
                     elif(head.status_code == 502):
                         # Bad gateway.
-                        self.set_fault(url, '500')
-                        log("This door leads nowhere. ({})".format(url))
+                        self.set_fault(url, '502')
                         continue
                     elif(head.status_code == 503):
                         # Service temporarily unavailable. We won't update the
                         # page's status, because it might be available later.
-                        log("Weird. I can't reach that link. ({})".format(url))
                         continue
                     elif(head.status_code == 504):
-                        # Gateway timeout.
+                        # Gateway timeout. Again, don't change the page's
+                        # status, because they might be available later.
                         self.set_fault(url, '504')
-                        log("They're home, but not answering. ({})".format(
-                                url))
                     elif(head.status_code != 200):
-                        # Some other status.
-                        # I'll add more status_code options as they arise.
+                        # Unknown status. I'll add more status_code options
+                        # as they arise.
                         self.set_fault(url, str(head.status_code))
-                        log("What am I looking at? ({} - {})".format(
+                        log("Unknown status code {}: {}".format(
                                 head.status_code, url))
                         continue
 
                     # Update the last_online date.
                     self.db_put('UPDATE onions SET last_online = ? \
-                           WHERE id IS ?;', [get_timestamp(), domain_id])
+                                WHERE id IS ?;', [get_timestamp(), domain_id])
 
                     content_type = self.get_type(head.headers)
+                    # We only want to scan text for links. But if we don't
+                    # know what the content type is, that might result
+                    # from a redirection, so we'll scan it just in case.
                     if(content_type != 'text' and content_type is not None):
-                        # We only want to scan text for links.
+                        # Otherwise, if we know what it is, and it's not text,
+                        # don't scan it.
                         self.set_fault(url, 'type: {}'.format(content_type))
-                        log("I'm not scanning this {}. ({})".format(
-                                content_type, url))
                         continue
 
                     request = self.session.get(url)
-                    content_type = self.get_type(request.headers)
-                    if(content_type != 'text'):
-                        # We only want to scan text for links.
-                        if(content_type is None):
-                            content_type = 'unknown'
-                        self.set_fault(url, 'type: {}'.format(content_type))
-                        log("I'm not scanning this {}. ({})".format(url))
-                        continue
+                    if(content_type is None):
+                        # We're going to process the request in the same way,
+                        # because we couldn't get a content type from the head.
+                        content_type = self.get_type(request.headers)
+                        if(content_type != 'text'
+                           and content_type is not None):
+                            self.set_fault(url, 'type: {}'.format(
+                                    content_type))
+                            continue
 
                     # We've got the site's data. Let's see if it's changed...
                     try:
@@ -192,7 +188,7 @@ class Spider():
 
                         # Retrieve the page's last hash.
                         query = self.db_get("SELECT hash FROM pages WHERE \
-                                       domain IS ? AND url IS ?;",
+                                            domain IS ? AND url IS ?;",
                                             [domain_id, url])
                         last_hash = query[0][0]
 
@@ -202,11 +198,11 @@ class Spider():
 
                         # Update the page's hash in the database.
                         self.db_put('UPDATE pages SET hash = ? \
-                               WHERE domain IS ? AND url IS ?;',
+                                    WHERE domain IS ? AND url IS ?;',
                                     [page_hash, domain_id, url])
 
                     except Exception as e:
-                        log("Does this place look different? ({})".format(url))
+                        log("Couldn't retrieve previous hash: {}".format(url))
                         continue
 
                     # The page's HTML changed since our last scan; let's
@@ -217,9 +213,9 @@ class Spider():
                     try:
                         page_title = self.get_title(page_text)
                     except Exception as e:
-                        log('What is the name of this place? ({})'.format(url))
+                        log('Bad title: {}'.format(url))
                         self.db_put('UPDATE pages SET fault = ? \
-                               WHERE url IS ?;', ['bad title', url])
+                                    WHERE url IS ?;', ['bad title', url])
                         continue
                     self.db_put('UPDATE pages SET title = ? \
                                 WHERE url IS ?;', [page_title, url])
@@ -251,47 +247,56 @@ class Spider():
                         except Exception as e:
                             # There was an error saving the link to the
                             # database.
-                            log("Why can't the Scribe hear me? ({})".format(
+                            log("Couldn't add link to database: {}".format(
                                     e))
                             continue
                     # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
-                    log("That's one messed-up strand. ({})".format(url))
+                    log("Invalid URL: {}".format(url))
                     self.db_put('UPDATE pages SET fault = ? \
                                 WHERE url IS ?;', ['invalid', url])
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.
-                    log("Ew, another corpse. ({})".format(url))
-                    # Set the domain to offline.
-                    self.db_put("UPDATE onions SET online = '0' \
-                                WHERE id IS ?", [domain_id])
-                    # Make sure we don't keep scanning the pages.
-                    self.db_put("UPDATE pages SET date = ? \
-                                WHERE domain = ?;",
-                                [get_timestamp(), domain_id])
+                    # First let's make sure we're still online.
+                    try:
+                        tor_ip = self.session.get('http://api.ipify.org/').text
+                        # If we've reached this point, Tor is working.
+                        # Set the domain to offline.
+                        self.db_put("UPDATE onions SET online = '0' \
+                                    WHERE id IS ?", [domain_id])
+                        # Make sure we don't keep scanning the pages.
+                        self.db_put("UPDATE pages SET date = ? \
+                                    WHERE domain = ?;",
+                                    [get_timestamp(), domain_id])
+                    except Exception as e:
+                        # We aren't connected to Tor for some reason.
+                        log("I can't get online: {}".format(e))
+                        # It might be a temporary outage, so let's wait
+                        # for a little while and see if it fixes itself.
+                        time.sleep(10)
+                        continue
 
                 except requests.exceptions.TooManyRedirects as e:
-                    # Redirected too many times.
-                    log("I'm walking in circles. ({})".format(url))
+                    # Redirected too many times. Let's not keep trying.
                     self.db_put('UPDATE pages SET fault = ? \
                                 WHERE url IS ?;', ['redirect', url])
 
                 except requests.exceptions.ChunkedEncodingError as e:
-                    # Server gave bad chunk.
-                    log('Ugh. Chunky. ({})'.format(url))
-                    self.db_put('UPDATE pages SET fault = ? \
-                                WHERE url IS ?;', ['chunk error', url])
+                    # Server gave bad chunk. This might not be a permanent
+                    # problem, so let's just roll with it.
+                    continue
 
                 except MemoryError as e:
-                    log('Oh my god... This is just too much.'.format(url))
+                    # Whatever it is, it's way too big.
+                    log('Ran out of memory: {}'.format(url))
                     self.db_put('UPDATE pages SET fault = ? \
                                 WHERE url IS ?;', ['memory error', url])
 
                 except NotImplementedError as e:
-                    log('How do I even... ({} - {})'.format(url, e))
-        log("Whew! What a day. I'm going to sleep.")
+                    log("I don't know what this means: {} - {}".format(e, url))
+        log("Going to sleep!")
 
     def db_get(self, query, args=[]):
         # Request information from the database.
@@ -306,11 +311,12 @@ class Spider():
             except Exception as e:
                 if(e != 'database is locked'):
                     connection.close()
-                    log("What am I thinking? – {}".format(
+                    log("SQL Error: {}".format(
                             combine(query, args)))
                     return None
                 else:
-                    log("Was I too quiet? Next time I'll try shouting.")
+                    # Let's see if the database frees up.
+                    time.sleep(0.1)
 
     def db_put(self, query, args=[]):
         # Add or change the information in the database.
@@ -415,7 +421,7 @@ class Scribe():
         self.queue = queue
 
     def begin(self):
-        log('Time for work? Let me just check my notes...')
+        log("I'm awake! Checking my database.")
         self.check_db()
         log("Okay, I'm ready.")
         time_to_sleep = False
@@ -438,13 +444,12 @@ class Scribe():
                         executed = True
                     except Exception as e:
                         if(e != 'database is locked'):
-                            log("This doesn't make sense. – {}".format(
+                            log("SQL Error: {}".format(
                                     combine(message, args)))
                             # We don't need to keep retrying a broken SQL
                             # statement, so let's break the loop.
                             executed = True
                         else:
-                            log("Damn, I broke my quill. One sec...")
                             time.sleep(0.1)  # See if the database frees up.
 
             # Now commit those changes to the database.
@@ -454,11 +459,13 @@ class Scribe():
             if(os.path.exists('sleep')):
                 # Ah, time for a nap.
                 time_to_sleep = True
-        log('My hands are cramping. Time for a nap.')
+                # Give everyone time to finish what they're doing.
+                time.sleep(5)
+        log('Going to sleep!')
 
     def check_db(self):
         if(not os.path.exists('data/SpiderWeb.db')):
-            log("Oh dear, it seems my notebook is empty...")
+            log("Initializing new database...")
 
             # First, we'll set up the database structure.
             connection = sql.connect('data/SpiderWeb.db')
@@ -516,80 +523,66 @@ class Scribe():
             # The Uncensored Hidden Wiki
             # http://zqktlwi4fecvo6ri.onion/wiki/Main_Page
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        'zqktlwi4fecvo6ri.onion' \
-                    );")
+                           'zqktlwi4fecvo6ri.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '1', \
-                        'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page' \
-                   );")
+                           '1', \
+                           'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page');")
 
             # OnionDir
             # http://auutwvpt2zktxwng.onion/index.php
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        'auutwvpt2zktxwng.onion' \
-                    );")
+                           'auutwvpt2zktxwng.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '2', \
-                        'http://auutwvpt2zktxwng.onion/index.php' \
-                   );")
+                           '2', \
+                           'http://auutwvpt2zktxwng.onion/index.php');")
 
             # Wiki links
             # http://wikilink77h7lrbi.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        'wikilink77h7lrbi.onion' \
-                    );")
+                           'wikilink77h7lrbi.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '3', \
-                        'http://wikilink77h7lrbi.onion/' \
-                   );")
+                           '3', \
+                           'http://wikilink77h7lrbi.onion/');")
 
             # Deep Web Links
             # http://wiki5kauuihowqi5.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        'wiki5kauuihowqi5.onion' \
-                    );")
+                           'wiki5kauuihowqi5.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '4', \
-                        'http://wiki5kauuihowqi5.onion/' \
-                   );")
+                           '4', \
+                           'http://wiki5kauuihowqi5.onion/');")
 
             # OnionDir Deep Web Directory
             # http://dirnxxdraygbifgc.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        'dirnxxdraygbifgc.onion' \
-                    );")
+                           'dirnxxdraygbifgc.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '5', \
-                        'http://dirnxxdraygbifgc.onion/' \
-                   );")
+                           '5', \
+                           'http://dirnxxdraygbifgc.onion/');")
 
             # The Onion Crate
             # http://7cbqhjnlkivmigxf.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        '7cbqhjnlkivmigxf.onion' \
-                    );")
+                           '7cbqhjnlkivmigxf.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '6', \
-                        'http://7cbqhjnlkivmigxf.onion/' \
-                   );")
+                           '6', \
+                           'http://7cbqhjnlkivmigxf.onion/');")
 
             # Fresh Onions
             # http://zlal32teyptf4tvi.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
-                        'zlal32teyptf4tvi.onion' \
-                    );")
+                           'zlal32teyptf4tvi.onion');")
             cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
-                        '7', \
-                        'http://zlal32teyptf4tvi.onion/' \
-                   );")
+                           '7', \
+                           'http://zlal32teyptf4tvi.onion/');")
 
             connection.commit()
             connection.close()
 
-            log("Alright, I've prepared my notebook for our adventures.")
+            log("Database initialized.")
         else:
             # The database already exists.
-            log("Ahh, yes. I remember where we left off.")
+            log("Database loaded.")
 
 
 '''---[ FUNCTION DEFINITIONS ]---'''
@@ -638,6 +631,7 @@ def unique(items):
 '''---[ SCRIPT ]---'''
 
 if __name__ == '__main__':
+    log('-' * 79)
     log('TorSpider v2 Initializing...')
 
     # If the data directory doesn't exist, create it.
@@ -646,6 +640,7 @@ if __name__ == '__main__':
             os.mkdir('data')
         except Exception as e:
             log('Failed to create data directory: {}'.format(e))
+            log('-' * 79)
             sys.exit(0)
 
     # Create a Tor session and check if it's working.
@@ -656,11 +651,13 @@ if __name__ == '__main__':
         tor_ip = session.get('http://api.ipify.org/').text
         if(local_ip == tor_ip):
             log("Tor connection failed: IPs match.")
+            log('-' * 79)
             sys.exit(0)
         else:
             log("Tor connection established.")
     except Exception as e:
         log("Tor connection failed: {}".format(e))
+        log('-' * 79)
         sys.exit(0)
 
     log('Waking the Scribe...')
@@ -677,12 +674,13 @@ if __name__ == '__main__':
     Spiders = []
     Spider_Procs = []
 
-    log('Rousing the Spiders...')
+    log('Waking the Spiders...')
+    # There are enough names here for a 32-core processor.
     names = ['Webster', 'Spinette', 'Crowley', 'Leggy',
-             'Harry', 'Terry', 'Aunt Tula', 'Cheryl',
-             'Bubbles', 'Jumpy', 'Gunther', 'Vinny',
-             'Squatch', 'Wolf', 'Trudy', 'Nancy',
-             'Lester', 'Ginny', 'Bitsy', 'Itsy',
+             'Harry', 'Terry', 'Aunt Tula', 'Jumpy',
+             'Wolf', 'Bubbles', 'Bitsy', 'Itsy',
+             'Squatch', 'Cheryl', 'Trudy', 'Nancy',
+             'Lester', 'Ginny', 'Gunther', 'Vinny',
              'Ronald', 'Gardenia', 'Frank', 'Casper',
              'Chester', 'Maude', 'Denny', 'Hank',
              'Bruce', 'Uma', 'Lizzy', 'Dizzy']
@@ -696,6 +694,8 @@ if __name__ == '__main__':
         Spider_Procs.append(spider_proc)
         Spiders.append(spider)
         spider_proc.start()
+        # We make them sleep a second so they don't all go skittering after
+        # the same URL at the same time.
         time.sleep(1)
 
     for spider_proc in Spider_Procs:
@@ -706,4 +706,5 @@ if __name__ == '__main__':
         os.unlink('sleep')
     except Exception as e:
         pass
-    log('The Spiders and Scribe have all gone to sleep. ZzZzz...')
+    log('The Spiders and Scribe gone to sleep. ZzZzz...')
+    log('-' * 79)
