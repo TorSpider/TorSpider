@@ -685,9 +685,6 @@ def unique(items):
 '''---[ SCRIPT ]---'''
 
 if __name__ == '__main__':
-    log('-' * 40)
-    log('TorSpider v2 Initializing...')
-
     # If the data directory doesn't exist, create it.
     if(not os.path.exists('data')):
         try:
@@ -696,6 +693,9 @@ if __name__ == '__main__':
             log('Failed to create data directory: {}'.format(e))
             log('-' * 40)
             sys.exit(0)
+
+    log('-' * 40)
+    log('TorSpider v2 Initializing...')
 
     # Create a Tor session and check if it's working.
     log("Establishing Tor connection...")
