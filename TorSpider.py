@@ -119,7 +119,32 @@ class Spider():
                     head = self.session.head(url)
 
                     # Did we get the page successfully?
-                    if(head.status_code == 401):
+                    if(head.status_code == 301):
+                        # Moved permanently.
+                        # If we can get the URL to the moved file, add it to
+                        # the list of things to scan.
+                        log("Moved permanently (301): {}".format(url))
+                    elif(head.status_code == 302):
+                        # The page was found...
+                        # If we can get the URL to the moved file, add it to
+                        # the list of things to scan.
+                        log("Page found (302): {}".format(url))
+                    elif(head.status_code == 303):
+                        # See other.
+                        # If we can get the URL to the moved file, add it to
+                        # the list of things to scan.
+                        log("See other (303): {}".format(url))
+                    elif(head.status_code == 307):
+                        # Temporary redirect.
+                        # If we can get the URL to the moved file, add it to
+                        # the list of things to scan.
+                        log("Temporary redirect (307): {}".format(url))
+                    elif(head.status_code == 400):
+                        # Bad request.
+                        log("Bad request (400): {}".format(url))
+                        self.set_fault(url, '400')
+                        continue
+                    elif(head.status_code == 401):
                         # Unauthorized.
                         self.set_fault(url, '401')
                         continue
@@ -130,6 +155,10 @@ class Spider():
                     elif(head.status_code == 404):
                         # This page doesn't exist. Avoid scanning it again.
                         self.set_fault(url, '404')
+                        continue
+                    elif(head.status_code == 405):
+                        # Method not allowed.
+                        self.set_fault(url, '405')
                         continue
                     elif(head.status_code == 500):
                         # The server had an error. This might not be our fault,
@@ -631,7 +660,7 @@ def unique(items):
 '''---[ SCRIPT ]---'''
 
 if __name__ == '__main__':
-    log('-' * 79)
+    log('-' * 20)
     log('TorSpider v2 Initializing...')
 
     # If the data directory doesn't exist, create it.
@@ -640,7 +669,7 @@ if __name__ == '__main__':
             os.mkdir('data')
         except Exception as e:
             log('Failed to create data directory: {}'.format(e))
-            log('-' * 79)
+            log('-' * 20)
             sys.exit(0)
 
     # Create a Tor session and check if it's working.
@@ -651,13 +680,13 @@ if __name__ == '__main__':
         tor_ip = session.get('http://api.ipify.org/').text
         if(local_ip == tor_ip):
             log("Tor connection failed: IPs match.")
-            log('-' * 79)
+            log('-' * 20)
             sys.exit(0)
         else:
             log("Tor connection established.")
     except Exception as e:
         log("Tor connection failed: {}".format(e))
-        log('-' * 79)
+        log('-' * 20)
         sys.exit(0)
 
     log('Waking the Scribe...')
@@ -707,4 +736,4 @@ if __name__ == '__main__':
     except Exception as e:
         pass
     log('The Spiders and Scribe gone to sleep. ZzZzz...')
-    log('-' * 79)
+    log('-' * 20)
