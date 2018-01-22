@@ -73,6 +73,35 @@ class Spider():
         self.queue = queue
         self.session = get_tor_session()
 
+    def add_url(self, url, domain_id):
+        link_url = self.fix_url(link_url)
+        link_domain = self.get_domain(link_url)
+        if('.onion' not in link_domain
+           or '.onion.' in link_domain):
+            # We don't want to add a link to a non-onion domain.
+            return
+        try:
+            # Insert the new domain into the onions table.
+            self.db_put("INSERT OR IGNORE INTO onions \
+                        (domain) VALUES (?);", [link_domain])
+            # Insert the new link into the pages table.
+            self.db_put("INSERT OR IGNORE INTO pages \
+                        (domain, url) VALUES ( \
+                        (SELECT id FROM onions WHERE \
+                        domain = ?), ?);",
+                        [link_domain, link_url])
+            # Insert the new connection between domains.
+            self.db_put("INSERT OR IGNORE INTO links \
+                        (domain, link) \
+                        VALUES (?, (SELECT id FROM onions \
+                        WHERE domain = ?));",
+                        [domain_id, link_domain])
+        except Exception as e:
+            # There was an error saving the link to the
+            # database.
+            log("Couldn't add link to database: {}".format(
+                    e))
+
     def crawl(self):
         log("Ready to explore!")
         time_to_sleep = False
@@ -80,7 +109,6 @@ class Spider():
             if(os.path.exists('sleep')):
                 time_to_sleep = True
             else:
-
                 # Query the database for a random link that hasn't been
                 # scanned in 7 days or whose domain was marked offline more
                 # than a day ago.
@@ -110,8 +138,7 @@ class Spider():
                 # Check to see if it's an http link.
                 if(not self.is_http(url)):
                     # It's not.
-                    self.db_put('UPDATE pages SET fault = ? \
-                           WHERE url is ?;', ['non-http', url])
+                    self.set_fault(url, 'non-http')
                     continue
 
                 try:
@@ -119,26 +146,23 @@ class Spider():
                     head = self.session.head(url)
 
                     # Did we get the page successfully?
-                    if(head.status_code == 301):
-                        # Moved permanently.
-                        # If we can get the URL to the moved file, add it to
-                        # the list of things to scan.
-                        log("Moved permanently (301): {}".format(url))
-                    elif(head.status_code == 302):
-                        # The page was found...
-                        # If we can get the URL to the moved file, add it to
-                        # the list of things to scan.
-                        log("Page found (302): {}".format(url))
-                    elif(head.status_code == 303):
-                        # See other.
-                        # If we can get the URL to the moved file, add it to
-                        # the list of things to scan.
-                        log("See other (303): {}".format(url))
-                    elif(head.status_code == 307):
-                        # Temporary redirect.
-                        # If we can get the URL to the moved file, add it to
-                        # the list of things to scan.
-                        log("Temporary redirect (307): {}".format(url))
+                    if(head.status_code == 301
+                       or head.status_code == 302
+                       or head.status_code == 303
+                       or head.status_code == 307):
+                        # The url results in a redirection. So let's mark this
+                        # url as invalid and add the new url to the database.
+                        self.set_fault(url, str(head.status_code))
+                        try:
+                            location = head.headers['location']
+                            new_url = self.merge_urls(location, url)
+                            # Add the new url to the database.
+                            self.add_url(new_url, domain_id)
+                            continue
+                        except Exception as e:
+                            log("{}, but couldn't add target url: {}".format(
+                                    str(head.status_code), url))
+                            continue
                     elif(head.status_code == 400):
                         # Bad request.
                         log("Bad request (400): {}".format(url))
@@ -243,8 +267,7 @@ class Spider():
                         page_title = self.get_title(page_text)
                     except Exception as e:
                         log('Bad title: {}'.format(url))
-                        self.db_put('UPDATE pages SET fault = ? \
-                                    WHERE url IS ?;', ['bad title', url])
+                        self.set_fault(url, 'bad title')
                         continue
                     self.db_put('UPDATE pages SET title = ? \
                                 WHERE url IS ?;', [page_title, url])
@@ -255,36 +278,12 @@ class Spider():
                     # Add the links to the database.
                     for link_url in page_links:
                         # Get the link domain.
-                        link_url = self.fix_url(link_url)
-                        link_domain = self.get_domain(link_url)
-                        try:
-                            # Insert the new domain into the onions table.
-                            self.db_put("INSERT OR IGNORE INTO onions \
-                                        (domain) VALUES (?);", [link_domain])
-                            # Insert the new link into the pages table.
-                            self.db_put("INSERT OR IGNORE INTO pages \
-                                        (domain, url) VALUES ( \
-                                        (SELECT id FROM onions WHERE \
-                                        domain = ?), ?);",
-                                        [link_domain, link_url])
-                            # Insert the new connection between domains.
-                            self.db_put("INSERT OR IGNORE INTO links \
-                                        (domain, link) \
-                                        VALUES (?, (SELECT id FROM onions \
-                                        WHERE domain = ?));",
-                                        [domain_id, link_domain])
-                        except Exception as e:
-                            # There was an error saving the link to the
-                            # database.
-                            log("Couldn't add link to database: {}".format(
-                                    e))
-                            continue
+                        self.add_url(link_url, domain_id)
                     # Parsing is complete for this page!
-                except requests.exceptions.InvalidURL:
+                except requests.exceptions.Invalidurl:
                     # The url provided was invalid.
-                    log("Invalid URL: {}".format(url))
-                    self.db_put('UPDATE pages SET fault = ? \
-                                WHERE url IS ?;', ['invalid', url])
+                    log("Invalid url: {}".format(url))
+                    self.set_fault(url, 'invalid')
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.
@@ -309,19 +308,23 @@ class Spider():
 
                 except requests.exceptions.TooManyRedirects as e:
                     # Redirected too many times. Let's not keep trying.
-                    self.db_put('UPDATE pages SET fault = ? \
-                                WHERE url IS ?;', ['redirect', url])
+                    self.set_fault(url, 'redirect')
 
                 except requests.exceptions.ChunkedEncodingError as e:
                     # Server gave bad chunk. This might not be a permanent
                     # problem, so let's just roll with it.
                     continue
 
+                except requests.exceptions.SSLError as e:
+                    # There was a problem with the site's SSL certificate.
+                    log("SSL Error at {}: {}".format(url, e))
+                    self.set_fault(url, 'Bad SSL')
+                    continue
+
                 except MemoryError as e:
                     # Whatever it is, it's way too big.
                     log('Ran out of memory: {}'.format(url))
-                    self.db_put('UPDATE pages SET fault = ? \
-                                WHERE url IS ?;', ['memory error', url])
+                    self.set_fault(url, 'memory error')
 
                 except NotImplementedError as e:
                     log("I don't know what this means: {} - {}".format(e, url))
@@ -440,6 +443,14 @@ class Spider():
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         return True if 'http' in scheme else False
 
+    def merge_urls(self, url1, url2):
+        # Merge the new url (url1) into the original url (url2).
+        (ns, nn, np, nq, nf) = urlsplit(url1)
+        (us, un, up, uq, uf) = urlsplit(url2)
+        us = us if ns == '' else ns
+        un = un if nn == '' else nn
+        return urlunsplit((us, un, np, nq, nf))
+
     def set_fault(self, url, fault):
         # Update the url's fault.
         self.db_put('UPDATE pages SET fault = ? \
@@ -521,7 +532,7 @@ class Scribe():
                             domain TEXT, \
                             online INTEGER DEFAULT '1', \
                             last_online DATETIME DEFAULT 'never', \
-                            date DATETIME DEFAULT '1986-02-02 00:00:01', \
+                            date DATETIME DEFAULT '1900-01-01 00:00:01', \
                             info TEXT DEFAULT 'none', \
                             CONSTRAINT unique_domain UNIQUE(domain));")
 
@@ -529,7 +540,7 @@ class Scribe():
                 - id:           The numerical ID of that page.
                 - title:        The page's title.
                 - domain:       The numerical ID of the page's parent domain.
-                - url:          The URL for the page.
+                - url:          The url for the page.
                 - hash:         The page's sha1 hash, for detecting changes.
                 - date:         The date of the last scan.
                 - fault:        If there's a fault preventing scanning, log it.
@@ -540,7 +551,7 @@ class Scribe():
                             domain INTEGER, \
                             url TEXT, \
                             hash TEXT DEFAULT 'none', \
-                            date DATETIME DEFAULT '1986-02-02 00:00:01', \
+                            date DATETIME DEFAULT '1900-01-01 00:00:01', \
                             fault TEXT DEFAULT 'none', \
                             CONSTRAINT unique_page UNIQUE(domain, url));")
 
@@ -648,15 +659,16 @@ def get_tor_session():
 
 
 def log(line):
+    message = '{}| {}: {}'.format(
+            get_timestamp(),
+            mp.current_process().name,
+            line)
     if(log_to_console):
         # Print to the screen if log_to_console is enabled.
-        print('{}| {}: {}'.format(
-                get_timestamp(),
-                mp.current_process().name,
-                line))
+        print(message)
     # Append the message to the logfile.
     f = open('spider.log', 'a')
-    f.write("{}\n".format(line))
+    f.write(message)
     f.close()
 
 
@@ -668,7 +680,7 @@ def unique(items):
 '''---[ SCRIPT ]---'''
 
 if __name__ == '__main__':
-    log('-' * 20)
+    log('-' * 40)
     log('TorSpider v2 Initializing...')
 
     # If the data directory doesn't exist, create it.
@@ -732,7 +744,7 @@ if __name__ == '__main__':
         Spiders.append(spider)
         spider_proc.start()
         # We make them sleep a second so they don't all go skittering after
-        # the same URL at the same time.
+        # the same url at the same time.
         time.sleep(1)
 
     for spider_proc in Spider_Procs:

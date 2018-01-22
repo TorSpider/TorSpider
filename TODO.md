@@ -12,10 +12,11 @@
 
 ## Low Priority
 * Begin work on WebCrawler site front-end. (Requires database redesign to be complete.)
+* Take note of important header information, such as server type.
 
 ## In Process
-* Handle remaining common status code exceptions.
 
 ## Complete
 * Convert v1 to v2 prior to making changes to database and functionality.
 * Drop unnecessary log lines.
+* Handle remaining common status code exceptions.
