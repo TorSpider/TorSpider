@@ -673,7 +673,7 @@ def log(line):
         print(message)
     # Append the message to the logfile.
     f = open('spider.log', 'a')
-    f.write(message)
+    f.write('{}\n'.format(message))
     f.close()
 
 
@@ -694,7 +694,7 @@ if __name__ == '__main__':
             os.mkdir('data')
         except Exception as e:
             log('Failed to create data directory: {}'.format(e))
-            log('-' * 20)
+            log('-' * 40)
             sys.exit(0)
 
     # Create a Tor session and check if it's working.
@@ -705,13 +705,13 @@ if __name__ == '__main__':
         tor_ip = session.get('http://api.ipify.org/').text
         if(local_ip == tor_ip):
             log("Tor connection failed: IPs match.")
-            log('-' * 20)
+            log('-' * 40)
             sys.exit(0)
         else:
             log("Tor connection established.")
     except Exception as e:
         log("Tor connection failed: {}".format(e))
-        log('-' * 20)
+        log('-' * 40)
         sys.exit(0)
 
     log('Waking the Scribe...')
@@ -761,4 +761,4 @@ if __name__ == '__main__':
     except Exception as e:
         pass
     log('The Spiders and Scribe gone to sleep. ZzZzz...')
-    log('-' * 20)
+    log('-' * 40)
