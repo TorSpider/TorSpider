@@ -75,6 +75,7 @@ class Spider():
 
     def add_url(self, link_url, domain_id):
         link_url = self.fix_url(link_url)
+        link_page = self.get_page(link_url)
         link_domain = self.get_domain(link_url)
         if('.onion' not in link_domain
            or '.onion.' in link_domain):
@@ -84,12 +85,18 @@ class Spider():
             # Insert the new domain into the onions table.
             self.db_put("INSERT OR IGNORE INTO onions \
                         (domain) VALUES (?);", [link_domain])
-            # Insert the new link into the pages table.
-            self.db_put("INSERT OR IGNORE INTO pages \
+            # Insert the new link into the urls table.
+            self.db_put("INSERT OR IGNORE INTO urls \
                         (domain, url) VALUES ( \
                         (SELECT id FROM onions WHERE \
                         domain = ?), ?);",
                         [link_domain, link_url])
+            # Insert the new page into the pages table.
+            self.db_put("INSERT OR IGNORE INTO pages \
+                        (domain, url) VALUES ( \
+                        (SELECT id FROM onions WHERE \
+                        domain = ?), ?);",
+                        [link_domain, link_page])
             # Insert the new connection between domains.
             self.db_put("INSERT OR IGNORE INTO links \
                         (domain, link) \
@@ -112,7 +119,7 @@ class Spider():
                 # Query the database for a random link that hasn't been
                 # scanned in 7 days or whose domain was marked offline more
                 # than a day ago.
-                query = self.db_get("SELECT domain, url FROM pages \
+                query = self.db_get("SELECT domain, url FROM urls \
                               WHERE fault IS 'none' \
                               AND (date < DATETIME('now', '-7 day') \
                               OR domain IN (\
@@ -129,7 +136,7 @@ class Spider():
                     continue
 
                 # Update the scan date for this page and domain.
-                self.db_put("UPDATE pages SET date = ? \
+                self.db_put("UPDATE urls SET date = ? \
                        WHERE url IS ? AND domain \
                        IS ?;", [get_timestamp(), url, domain_id])
                 self.db_put("UPDATE onions SET date = ? \
@@ -240,7 +247,7 @@ class Spider():
                         page_hash = self.get_hash(request.content)
 
                         # Retrieve the page's last hash.
-                        query = self.db_get("SELECT hash FROM pages WHERE \
+                        query = self.db_get("SELECT hash FROM urls WHERE \
                                             domain IS ? AND url IS ?;",
                                             [domain_id, url])
                         last_hash = query[0][0]
@@ -250,7 +257,7 @@ class Spider():
                             continue
 
                         # Update the page's hash in the database.
-                        self.db_put('UPDATE pages SET hash = ? \
+                        self.db_put('UPDATE urls SET hash = ? \
                                     WHERE domain IS ? AND url IS ?;',
                                     [page_hash, domain_id, url])
 
@@ -269,8 +276,35 @@ class Spider():
                         log('Bad title: {}'.format(url))
                         self.set_fault(url, 'bad title')
                         continue
-                    self.db_put('UPDATE pages SET title = ? \
+                    # Set the title of the url.
+                    self.db_put('UPDATE urls SET title = ? \
                                 WHERE url IS ?;', [page_title, url])
+
+                    # Update the title of the page.
+                    new_title = str(page_title)
+                    # First, get the old title.
+                    curr_title = self.db_get('SELECT title FROM pages \
+                                             WHERE page IS ? \
+                                             AND domain IS ?;',
+                                             [self.get_page(url), domain_id])
+                    if(curr_title == 'Unknown'):
+                        curr_title = 'none'
+
+                    # Now, if the title is 'none' then just save page_title.
+                    # But if it's something else, we'll need to make a hybrid
+                    # title based on the current title and the title of the
+                    # newly-scraped page.
+                    if(curr_title != 'none'):
+                        new_title = self.merge_titles(curr_title, page_title)
+                    new_title = ' '.join(new_title.split())
+                    # If the title is now empty, just set it to Unknown.
+                    new_title = 'Unknown' if new_title == '' else new_title
+                    # Now, save the new title to the database, but only if the
+                    # title has changed.
+                    if(new_title != curr_title):
+                        self.db_put('UPDATE pages SET title = ? \
+                                    WHERE url IS ? AND domain IS ?;',
+                                    [self.getpage(url), domain_id])
 
                     # Get the page's links.
                     page_links = self.get_links(page_text, url)
@@ -295,7 +329,7 @@ class Spider():
                         self.db_put("UPDATE onions SET online = '0' \
                                     WHERE id IS ?", [domain_id])
                         # Make sure we don't keep scanning the pages.
-                        self.db_put("UPDATE pages SET date = ? \
+                        self.db_put("UPDATE urls SET date = ? \
                                     WHERE domain = ?;",
                                     [get_timestamp(), domain_id])
                     except Exception as e:
@@ -381,7 +415,7 @@ class Spider():
 
     def get_domain(self, url):
         # Get the defragmented domain of the given url.
-        domain = self.defrag_domain(urlsplit(url)[1])
+        domain = self.defrag_domain(urlsplit(url).netloc)
         # Let's omit subdomains. Rather than having separate records for urls
         # like sub1.onionpage.onion and sub2.onionpage.onion, just keep them
         # all under onionpage.onion.
@@ -428,6 +462,10 @@ class Spider():
         # Make sure we don't return any duplicates!
         return unique(links)
 
+    def get_page(self, url):
+        # Get the page from a link.
+        return urlsplit(url).path
+
     def get_title(self, data):
         # Given HTML input, return the title of the page.
         parse = ParseTitle()
@@ -448,6 +486,12 @@ class Spider():
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         return True if 'http' in scheme else False
 
+    def merge_titles(self, title1, title2):
+        title1_parts = title1.split()
+        title2_parts = title2.split()
+        new_title_parts = extract_exact(title1_parts, title2_parts)
+        return ' '.join(new_title_parts)
+
     def merge_urls(self, url1, url2):
         # Merge the new url (url1) into the original url (url2).
         (ns, nn, np, nq, nf) = urlsplit(url1)
@@ -458,7 +502,7 @@ class Spider():
 
     def set_fault(self, url, fault):
         # Update the url's fault.
-        self.db_put('UPDATE pages SET fault = ? \
+        self.db_put('UPDATE urls SET fault = ? \
                WHERE url IS ?;', [fault, url])
 
 
@@ -541,16 +585,16 @@ class Scribe():
                             info TEXT DEFAULT 'none', \
                             CONSTRAINT unique_domain UNIQUE(domain));")
 
-            ''' Pages: Information about each link discovered.
-                - id:           The numerical ID of that page.
-                - title:        The page's title.
-                - domain:       The numerical ID of the page's parent domain.
-                - url:          The url for the page.
+            ''' Urls: Information about each link discovered.
+                - id:           The numerical ID of that url.
+                - title:        The url's title.
+                - domain:       The numerical ID of the url's parent domain.
+                - url:          The url itself.
                 - hash:         The page's sha1 hash, for detecting changes.
                 - date:         The date of the last scan.
                 - fault:        If there's a fault preventing scanning, log it.
             '''
-            cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
+            cursor.execute("CREATE TABLE IF NOT EXISTS urls ( \
                             id INTEGER PRIMARY KEY, \
                             title TEXT DEFAULT 'none', \
                             domain INTEGER, \
@@ -558,7 +602,24 @@ class Scribe():
                             hash TEXT DEFAULT 'none', \
                             date DATETIME DEFAULT '1900-01-01 00:00:01', \
                             fault TEXT DEFAULT 'none', \
-                            CONSTRAINT unique_page UNIQUE(domain, url));")
+                            CONSTRAINT unique_url UNIQUE(domain, url));")
+
+            ''' Pages: Information about the various pages in each domain.
+                - id:           The numerical ID of the page.
+                - url:          The url of the page.
+                - title:        The title of the page.
+                - domain:       The numerical ID of the page's parent domain.
+                - info:         Some information about the page.
+                - form_fields:  Form fields used to interact with this page.
+            '''
+            cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
+                           id INTEGER PRIMARY KEY, \
+                           url TEXT, \
+                           title TEXT DEFAULT 'none', \
+                           domain INTEGER, \
+                           info TEXT, \
+                           form_fields TEXT, \
+                           CONSTRAINT unique_page UNIQUE(domain, url));")
 
             ''' Links: Information about which domains connect to each other.
                 - domain:       The numerical ID of the origin domain.
@@ -577,57 +638,78 @@ class Scribe():
             # http://zqktlwi4fecvo6ri.onion/wiki/Main_Page
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'zqktlwi4fecvo6ri.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '1', \
                            'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '1', \
+                           '/wiki/Main_Page');")
 
             # OnionDir
             # http://auutwvpt2zktxwng.onion/index.php
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'auutwvpt2zktxwng.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '2', \
                            'http://auutwvpt2zktxwng.onion/index.php');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '2', \
+                           '/index.php');")
 
             # Wiki links
             # http://wikilink77h7lrbi.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'wikilink77h7lrbi.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '3', \
                            'http://wikilink77h7lrbi.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '3', \
+                           '/');")
 
             # Deep Web Links
             # http://wiki5kauuihowqi5.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'wiki5kauuihowqi5.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '4', \
                            'http://wiki5kauuihowqi5.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '4', \
+                           '/');")
 
             # OnionDir Deep Web Directory
             # http://dirnxxdraygbifgc.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'dirnxxdraygbifgc.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '5', \
                            'http://dirnxxdraygbifgc.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '5', \
+                           '/');")
 
             # The Onion Crate
             # http://7cbqhjnlkivmigxf.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            '7cbqhjnlkivmigxf.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '6', \
                            'http://7cbqhjnlkivmigxf.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '6', \
+                           '/');")
 
             # Fresh Onions
             # http://zlal32teyptf4tvi.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'zlal32teyptf4tvi.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '7', \
                            'http://zlal32teyptf4tvi.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '7', \
+                           '/');")
 
             connection.commit()
             connection.close()
@@ -645,6 +727,12 @@ def combine(message, args=[]):
     while(len(args) > 0):
         message = message.replace('?', args.pop(0), 1)
     return message
+
+
+def extract_exact(list1, list2):
+    # Return the common items from both lists.
+    return [item for item in list1
+            if any(scan == item for scan in list2)]
 
 
 def get_timestamp():
