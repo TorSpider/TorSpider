@@ -672,7 +672,7 @@ def log(line):
         # Print to the screen if log_to_console is enabled.
         print(message)
     # Append the message to the logfile.
-    f = open('spider.log', 'a')
+    f = open('data/spider.log', 'a')
     f.write('{}\n'.format(message))
     f.close()
 
