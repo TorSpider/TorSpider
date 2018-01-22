@@ -280,7 +280,7 @@ class Spider():
                         # Get the link domain.
                         self.add_url(link_url, domain_id)
                     # Parsing is complete for this page!
-                except requests.exceptions.Invalidurl:
+                except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
                     log("Invalid url: {}".format(url))
                     self.set_fault(url, 'invalid')
