@@ -1,10 +1,7 @@
 # To Do
 
 ## High Priority
-* Convert pages table to urls table.
-* Create new pages table: (id, url, title, info, form_fields)
-* Create new queries table: (page_id, query)
-* When encountering a url with a query, add the url sans query to the urls and to the pages table, add the query to the queries table, and add the query fields to the form_fields part of the pages table as CSV.
+* Try to determine the title of the domain based on the titles of its pages.
 
 ## Medium Priority
 * Set up remote database access.
@@ -20,3 +17,10 @@
 * Convert v1 to v2 prior to making changes to database and functionality.
 * Drop unnecessary log lines.
 * Handle remaining common status code exceptions.
+* Convert pages table to urls table.
+* Create new pages table: (id, url, title, info)
+* Create new forms table to record data about the forms on various pages.
+* Set the title of a page based on the request's title and the previous titles.
+* Populate the form_fields column in the pages table.
+* Write database conversion script to update from last version to new version.
+* db-con: Erase faults in urls and pages that need to be re-scanned (like 300-series faults), and set their scan date to 1900-01-01 00:00.
