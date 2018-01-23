@@ -482,7 +482,8 @@ class Spider():
                 # Skip empty links.
                 continue
             # Remove any references to the current directory. ('./')
-            link = link.replace('./', '')
+            while('./' in link):
+                link = link.replace('./', '')
             # Split the link into its component parts.
             (scheme, netloc, path, query, fragment) = urlsplit(link)
             # Fill in empty schemes.
