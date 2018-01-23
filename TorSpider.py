@@ -217,7 +217,6 @@ class Spider():
                             continue
                     elif(head.status_code == 400):
                         # Bad request.
-                        log("Bad request (400): {}".format(url))
                         self.set_fault(url, '400')
                         continue
                     elif(head.status_code == 401):
