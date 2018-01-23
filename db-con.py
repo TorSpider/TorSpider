@@ -198,8 +198,15 @@ for item in urls:
         db.commit()
     records += 1
 
-print('{} records processed.'.format(records))
-print('Saving final changes and closing database.')
+print('Removing faults from 300-series pages and urls.')
+cur.execute('UPDATE urls SET fault = "none", \
+            date = "1900-01-01 00:00" \
+            WHERE fault IN (301, 302, 303, 307);')
+cur.execute('UPDATE pages SET fault = "none" \
+            WHERE fault IN (301, 302, 303, 307);')
 db.commit()
+
+print('{} records processed.'.format(records))
+print('Changes saved. Closing database.')
 db.close()
 print('Done!')

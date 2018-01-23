@@ -12,7 +12,6 @@
 * Take note of important header information, such as server type.
 
 ## In Process
-* db-con: Erase faults in urls and pages that need to be re-scanned (like 300-series faults), and set their scan date to 1900-01-01 00:00.
 
 ## Complete
 * Convert v1 to v2 prior to making changes to database and functionality.
@@ -24,3 +23,4 @@
 * Set the title of a page based on the request's title and the previous titles.
 * Populate the form_fields column in the pages table.
 * Write database conversion script to update from last version to new version.
+* db-con: Erase faults in urls and pages that need to be re-scanned (like 300-series faults), and set their scan date to 1900-01-01 00:00.
