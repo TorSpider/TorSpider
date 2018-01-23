@@ -89,4 +89,4 @@ ENV/
 .ropeproject
 
 # TorSpider-specific files
-SpiderWeb.db
+data/
