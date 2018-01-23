@@ -377,6 +377,7 @@ class Spider():
                         self.db_put("UPDATE urls SET date = ? \
                                     WHERE domain = ?;",
                                     [get_timestamp(), domain_id])
+                        self.set_fault(url, 'offline')
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
                         log("I can't get online: {}".format(e))
@@ -563,7 +564,14 @@ class Spider():
     def set_fault(self, url, fault):
         # Update the url's fault.
         self.db_put('UPDATE urls SET fault = ? \
-               WHERE url IS ?;', [fault, url])
+                    WHERE url IS ?;', [fault, url])
+        # Then, update the page's fault.
+        page = self.get_page(url)
+        domain = self.get_domain(url)
+        self.db_put('UPDATE pages SET fault = ? \
+                    WHERE url = ? AND domain = \
+                    (SELECT id FROM onions WHERE domain = ?);',
+                    [fault, page, domain])
 
 
 class Scribe():
@@ -670,6 +678,7 @@ class Scribe():
                 - title:        The title of the page.
                 - domain:       The numerical ID of the page's parent domain.
                 - info:         Some information about the page.
+                - fault:        If there's a fault preventing scanning, log it.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
                            id INTEGER PRIMARY KEY, \
@@ -677,6 +686,7 @@ class Scribe():
                            title TEXT DEFAULT 'none', \
                            domain INTEGER, \
                            info TEXT, \
+                           fault TEXT DEFAULT 'none', \
                            CONSTRAINT unique_page UNIQUE(domain, url));")
 
             ''' Forms: Information about the various form fields for each page.

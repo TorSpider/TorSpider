@@ -12,6 +12,7 @@
 * Take note of important header information, such as server type.
 
 ## In Process
+* db-con: Erase faults in urls and pages that need to be re-scanned (like 300-series faults), and set their scan date to 1900-01-01 00:00.
 
 ## Complete
 * Convert v1 to v2 prior to making changes to database and functionality.

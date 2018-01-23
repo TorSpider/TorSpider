@@ -5,11 +5,11 @@
     updated release. The expectation is that your database is only one release behind, so if you've skipped a release, this tool won't work. Also, please
     be sure that no applications are reading from or writing to the database
     when you run this tool.
-
-    BACK UP YOUR DATABASE BEFORE USING THIS TOOL.
 '''
+
 import sys
 import sqlite3 as sql
+from shutil import copyfile
 from urllib.parse import urlsplit, urlunsplit
 
 
@@ -65,6 +65,11 @@ def unique(items):
 '''---[ BEGIN CONVERSION ]---'''
 
 
+print('Creating database backup.')
+copyfile ('data/SpiderWeb.db', 'data/SpiderWeb.db.ORIG')
+print('Database backed up as data/SpiderWeb.db.ORIG.')
+
+
 print('Opening database.')
 db = sql.connect('data/SpiderWeb.db')
 cur = db.cursor()
@@ -81,6 +86,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS pages ( \
             title TEXT DEFAULT 'none', \
             domain INTEGER, \
             info TEXT, \
+            fault TEXT DEFAULT 'none', \
             CONSTRAINT unique_page UNIQUE(domain, url));")
 db.commit()
 
@@ -105,14 +111,14 @@ for item in res:
 
 
 print('Collecting urls from database.')
-cur.execute('SELECT url, title FROM urls;')
+cur.execute('SELECT url, title, fault FROM urls;')
 urls = cur.fetchall()
 
 
 print('Processing urls and populating pages.')
 records = 0
 for item in urls:
-    (url, page_title) = item
+    (url, page_title, url_fault) = item
     page_title = 'none' if page_title == 'Unknown' else page_title
     domain = get_domain(url)
     domain_id = domains[domain]
@@ -125,9 +131,13 @@ for item in urls:
     if(res == []):
         page_title = 'Unknown' if page_title == '' else page_title
         cur.execute('INSERT OR IGNORE INTO pages \
-                    (domain, url, title) VALUES ( \
-                    ?, ?, ?);', (domain_id, page, page_title))
+                    (domain, url, title, fault) VALUES ( \
+                    ?, ?, ?, ?);', (domain_id, page, page_title, url_fault))
     else:
+        if(url_fault != 'none'):
+            cur.execute('UPDATE pages SET fault = ? \
+                        WHERE url = ? AND domain = ?;',
+                        [url_fault, page, domain_id])
         try:
             old_title = res[0][0]
             new_title = page_title if page_title != 'none' else old_title
