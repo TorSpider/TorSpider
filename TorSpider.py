@@ -76,6 +76,7 @@ class Spider():
     def add_url(self, link_url, domain_id):
         link_url = self.fix_url(link_url)
         link_page = self.get_page(link_url)
+        link_query = self.get_query(link_url)
         link_domain = self.get_domain(link_url)
         if('.onion' not in link_domain
            or '.onion.' in link_domain):
@@ -103,6 +104,50 @@ class Spider():
                         VALUES (?, (SELECT id FROM onions \
                         WHERE domain = ?));",
                         [domain_id, link_domain])
+            # Process and add any discovered form data.
+            for item in link_query:
+                if(item == ['']):
+                    continue
+                try:
+                    [field, value] = item
+                except Exception as e:
+                    [field] = item
+                    value = 'none'
+                # We don't need to process it if the field is empty.
+                if(field == ''):
+                    continue
+                # First, make sure this field is in the forms table.
+                self.db_put('INSERT OR IGNORE INTO forms \
+                            (page, field) VALUES ( \
+                            (SELECT id FROM pages WHERE \
+                            url IS ? AND domain IS ?), ?);',
+                            [link_page, domain_id, field])
+
+                # Next, determine what examples already exist in the database.
+                # Of course, we only want to do this if there is a value to add.
+                if(value == '' or value == 'none'):
+                    continue
+                examples = ''
+                result = self.db_get('SELECT examples FROM forms \
+                                     WHERE page IS (SELECT id FROM pages \
+                                     WHERE url IS ? AND domain IS ?) \
+                                     AND field IS ?;',
+                                     [link_page, domain_id, field])
+                if(result[0][0] == 'none'):
+                    # There are currently no examples in the database.
+                    examples = value
+                else:
+                    # Merge with the returned examples.
+                    example_list = result[0][0].split(',')
+                    example_list.append(value)
+                    examples = ','.join(unique(example_list))
+
+                # Finally, update the examples in the database.
+                self.db_put('UPDATE forms SET examples = ? WHERE \
+                            page IS (SELECT id FROM pages WHERE \
+                            url IS ? AND domain IS ?) AND field IS ?;',
+                            [examples, link_page, domain_id, field])
+
         except Exception as e:
             # There was an error saving the link to the
             # database.
@@ -466,6 +511,17 @@ class Spider():
         # Get the page from a link.
         return urlsplit(url).path
 
+    def get_query(self, url):
+        # Get the query information from the url.
+        query = urlsplit(url).query.split('&')
+        result = []
+        for item in query:
+            item_parts = item.split('=')
+            field = item_parts[0]
+            value = '='.join(item_parts[1:])
+            result.append([field, value])
+        return result
+
     def get_title(self, data):
         # Given HTML input, return the title of the page.
         parse = ParseTitle()
@@ -491,6 +547,10 @@ class Spider():
         title2_parts = title2.split()
         new_title_parts = extract_exact(title1_parts, title2_parts)
         return ' '.join(new_title_parts)
+
+    def merge_lists(list1, list2):
+        # Merge two lists together without duplicates.
+        return list(set(list1 + list2))
 
     def merge_urls(self, url1, url2):
         # Merge the new url (url1) into the original url (url2).
@@ -610,7 +670,6 @@ class Scribe():
                 - title:        The title of the page.
                 - domain:       The numerical ID of the page's parent domain.
                 - info:         Some information about the page.
-                - form_fields:  Form fields used to interact with this page.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
                            id INTEGER PRIMARY KEY, \
@@ -618,8 +677,20 @@ class Scribe():
                            title TEXT DEFAULT 'none', \
                            domain INTEGER, \
                            info TEXT, \
-                           form_fields TEXT, \
                            CONSTRAINT unique_page UNIQUE(domain, url));")
+
+            ''' Forms: Information about the various form fields for each page.
+                - id:           The numerical ID of the form field.
+                - page:         The numerical ID of the page it links to.
+                - field:        The name of the form field.
+                - examples:     Some examples of found values.
+            '''
+            cursor.execute("CREATE TABLE IF NOT EXISTS forms ( \
+                           id INTEGER PRIMARY KEY, \
+                           page INTEGER, \
+                           field TEXT, \
+                           examples TEXT DEFAULT 'none', \
+                           CONSTRAINT unique_field UNIQUE(page, field));")
 
             ''' Links: Information about which domains connect to each other.
                 - domain:       The numerical ID of the origin domain.

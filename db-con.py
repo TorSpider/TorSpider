@@ -8,7 +8,7 @@
 
     BACK UP YOUR DATABASE BEFORE USING THIS TOOL.
 '''
-
+import sys
 import sqlite3 as sql
 from urllib.parse import urlsplit, urlunsplit
 
@@ -34,11 +34,32 @@ def get_page(url):
     return urlsplit(url).path
 
 
+def get_query(this_url):
+    # Get the query information from the url.
+    this_query = urlsplit(this_url).query.split('&')
+    this_result = []
+    for this_item in this_query:
+        item_parts = this_item.split('=')
+        this_field = item_parts[0]
+        this_value = '='.join(item_parts[1:])
+        this_result.append([this_field, this_value])
+    return this_result
+
+
 def merge_titles(title1, title2):
     title1_parts = title1.split()
     title2_parts = title2.split()
     new_title_parts = extract_exact(title1_parts, title2_parts)
     return ' '.join(new_title_parts)
+
+
+def merge_lists(list1, list2):
+    return list(set(list1 + list2))
+
+
+def unique(items):
+    # Return the same list without duplicates)
+    return list(set(items))
 
 
 '''---[ BEGIN CONVERSION ]---'''
@@ -60,8 +81,17 @@ cur.execute("CREATE TABLE IF NOT EXISTS pages ( \
             title TEXT DEFAULT 'none', \
             domain INTEGER, \
             info TEXT, \
-            form_fields TEXT, \
             CONSTRAINT unique_page UNIQUE(domain, url));")
+db.commit()
+
+
+print('Adding forms table to the database.')
+cur.execute("CREATE TABLE IF NOT EXISTS forms ( \
+            id INTEGER PRIMARY KEY, \
+            page INTEGER, \
+            field TEXT DEFAULT 'none', \
+            examples TEXT DEFAULT 'none', \
+            CONSTRAINT unique_field UNIQUE(page, field));")
 db.commit()
 
 
@@ -86,8 +116,9 @@ for item in urls:
     page_title = 'none' if page_title == 'Unknown' else page_title
     domain = get_domain(url)
     domain_id = domains[domain]
+    # First, let's add the page information.
     page = get_page(url)
-    cur.execute('SELECT url, title FROM pages \
+    cur.execute('SELECT title FROM pages \
                 WHERE url = ? AND domain = ?;',
                 [page, domain_id])
     res = cur.fetchall()
@@ -98,7 +129,7 @@ for item in urls:
                     ?, ?, ?);', (domain_id, page, page_title))
     else:
         try:
-            (url, old_title) = res[0]
+            old_title = res[0][0]
             new_title = page_title if page_title != 'none' else old_title
             if(old_title != new_title and old_title != 'none'):
                 new_title = merge_titles(new_title, old_title)
@@ -109,6 +140,52 @@ for item in urls:
         except Exception as e:
             print('Error: {}'.format(res))
     db.commit()
+    # Now, add the query information.
+    link_query = get_query(url)
+    for query in link_query:
+        if(query == ['']):
+            continue
+        try:
+            [field, value] = query
+        except Exception as e:
+            [field] = query
+            value = 'none'
+        # First, make sure this field is in the forms table.
+        if(field == ''):
+            continue
+        cur.execute('INSERT OR IGNORE INTO forms \
+                    (page, field) VALUES ( \
+                    (SELECT id FROM pages WHERE \
+                    url IS ? AND domain IS ?), ?);',
+                    [page, domain_id, field])
+        db.commit()
+
+        # Next, determine what examples already exist in the database.
+        # Of course, we only want to do this if there is a value to add.
+        if(value == '' or value == 'none'):
+            continue
+        examples = ''
+        cur.execute('SELECT examples FROM forms \
+                    WHERE page IS (SELECT id FROM pages \
+                    WHERE url IS ? AND domain IS ?) \
+                    AND field IS ?;',
+                    [page, domain_id, field])
+        result = cur.fetchall()
+        if(result[0][0] == 'none'):
+            # There are currently no examples in the database.
+            examples = value
+        else:
+            # Merge with the returned examples.
+            example_list = result[0][0].split(',')
+            example_list.append(value)
+            examples = ','.join(unique(example_list))
+
+        # Finally, update the examples in the database.
+        cur.execute('UPDATE forms SET examples = ? WHERE \
+                    page IS (SELECT id FROM pages WHERE \
+                    url IS ? AND domain IS ?) AND field IS ?;',
+                    [examples, page, domain_id, field])
+        db.commit()
     records += 1
 
 print('{} records processed.'.format(records))
