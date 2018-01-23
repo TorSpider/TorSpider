@@ -1,6 +1,7 @@
 # To Do
 
 ## High Priority
+* Try to determine the title of the domain based on the titles of its pages.
 
 ## Medium Priority
 * Set up remote database access.
@@ -11,13 +12,14 @@
 * Take note of important header information, such as server type.
 
 ## In Process
-* Populate the form_fields column in the pages table.
-* Write database conversion script to update from last version to new version.
 
 ## Complete
 * Convert v1 to v2 prior to making changes to database and functionality.
 * Drop unnecessary log lines.
 * Handle remaining common status code exceptions.
 * Convert pages table to urls table.
-* Create new pages table: (id, url, title, info, form_fields)
+* Create new pages table: (id, url, title, info)
+* Create new forms table to record data about the forms on various pages.
 * Set the title of a page based on the request's title and the previous titles.
+* Populate the form_fields column in the pages table.
+* Write database conversion script to update from last version to new version.
