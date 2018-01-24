@@ -24,3 +24,4 @@
 * Populate the form_fields column in the pages table.
 * Write database conversion script to update from last version to new version.
 * db-con: Erase faults in urls and pages that need to be re-scanned (like 300-series faults), and set their scan date to 1900-01-01 00:00.
+* Streamline existing code in preparation for stable release.

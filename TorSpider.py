@@ -107,10 +107,13 @@ class Spider():
             # Process and add any discovered form data.
             for item in link_query:
                 if(item == ['']):
+                    # Ignore empty form data.
                     continue
                 try:
                     [field, value] = item
                 except Exception as e:
+                    # Sometimes they have a field without a query.
+                    # e.g. /index.php?do=
                     [field] = item
                     value = 'none'
                 # We don't need to process it if the field is empty.
@@ -124,7 +127,7 @@ class Spider():
                             [link_page, domain_id, field])
 
                 # Next, determine what examples already exist in the database.
-                # Of course, we only want to do this if there is a value to add.
+                # Only do this if we have a value to add.
                 if(value == '' or value == 'none'):
                     continue
                 examples = ''
@@ -187,7 +190,7 @@ class Spider():
                 self.db_put("UPDATE onions SET date = ? \
                        WHERE id IS ?;", [get_timestamp(), domain_id])
 
-                # Check to see if it's an http link.
+                # Check to see if it's an http/https link.
                 if(not self.is_http(url)):
                     # It's not.
                     self.set_fault(url, 'non-http')
@@ -197,15 +200,33 @@ class Spider():
                     # Retrieve the page's headers.
                     head = self.session.head(url, timeout=60)
 
+                    # Redirect codes: These status codes redirect to other
+                    # pages, so grab those other pages and scan them instead.
+                    redirect_codes = [301, 302, 303, 307, 308]
+
+                    # Fault codes: These status codes imply that there was
+                    # something wrong with the page being requested, such as
+                    # being non-existent. Don't rescan pages with these codes.
+                    fault_codes = [400, 401, 403, 404, 405, 410,
+                                   413, 414, 444, 451, 495, 496,
+                                   500, 501, 502, 505, 508, 511]
+
+                    # No-Fault codes: These imply that something temporarily
+                    # went wrong, but it's possible that it might work in the
+                    # future. Just skip to the next url.
+                    no_fault_codes = [408, 421, 423, 429, 503, 504]
+
+                    # Good codes: These are the codes we want to see when we
+                    # are accessing a web service.
+                    good_codes = [200, 201]
+
                     # Did we get the page successfully?
-                    if(head.status_code == 301
-                       or head.status_code == 302
-                       or head.status_code == 303
-                       or head.status_code == 307):
-                        # The url results in a redirection. So let's mark this
-                        # url as invalid and add the new url to the database.
+                    if(head.status_code in redirect_codes):
+                        # The url results in a redirection.
                         self.set_fault(url, str(head.status_code))
                         try:
+                            # Let's grab the redirected url and add it to the
+                            # database.
                             location = head.headers['location']
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
@@ -215,44 +236,14 @@ class Spider():
                             log("{}, but couldn't add target url: {}".format(
                                     str(head.status_code), url))
                             continue
-                    elif(head.status_code == 400):
-                        # Bad request.
-                        self.set_fault(url, '400')
+                    elif(head.status_code in fault_codes):
+                        # The url results in a fault.
+                        self.set_fault(url, str(head.status_code))
                         continue
-                    elif(head.status_code == 401):
-                        # Unauthorized.
-                        self.set_fault(url, '401')
+                    elif(head.status_code in no_fault_codes):
+                        # The url results in a problem, but not a fault.
                         continue
-                    elif(head.status_code == 403):
-                        # Forbidden.
-                        self.set_fault(url, '403')
-                        continue
-                    elif(head.status_code == 404):
-                        # This page doesn't exist. Avoid scanning it again.
-                        self.set_fault(url, '404')
-                        continue
-                    elif(head.status_code == 405):
-                        # Method not allowed.
-                        self.set_fault(url, '405')
-                        continue
-                    elif(head.status_code == 500):
-                        # The server had an error. This might not be our fault,
-                        # but it might be best not to scan that page again.
-                        self.set_fault(url, '500')
-                        continue
-                    elif(head.status_code == 502):
-                        # Bad gateway.
-                        self.set_fault(url, '502')
-                        continue
-                    elif(head.status_code == 503):
-                        # Service temporarily unavailable. We won't update the
-                        # page's status, because it might be available later.
-                        continue
-                    elif(head.status_code == 504):
-                        # Gateway timeout. Again, don't change the page's
-                        # status, because they might be available later.
-                        self.set_fault(url, '504')
-                    elif(head.status_code != 200):
+                    elif(head.status_code not in good_codes):
                         # Unknown status. I'll add more status_code options
                         # as they arise.
                         self.set_fault(url, str(head.status_code))
@@ -514,9 +505,13 @@ class Spider():
 
     def get_query(self, url):
         # Get the query information from the url.
+        # Queries look like: /page.php?field=value&field2=value2
+        # Splitting along the & we get field=value, field2=value2
         query = urlsplit(url).query.split('&')
         result = []
         for item in query:
+            # Splitting each query along the '=' we get
+            # [[field1, value], [field2, value2]]
             item_parts = item.split('=')
             field = item_parts[0]
             value = '='.join(item_parts[1:])
@@ -555,11 +550,11 @@ class Spider():
 
     def merge_urls(self, url1, url2):
         # Merge the new url (url1) into the original url (url2).
-        (ns, nn, np, nq, nf) = urlsplit(url1)
-        (us, un, up, uq, uf) = urlsplit(url2)
-        us = us if ns == '' else ns
-        un = un if nn == '' else nn
-        return urlunsplit((us, un, np, nq, nf))
+        (ns, nn, np, nq, nf) = urlsplit(url1)  # Split first url into parts.
+        (us, un, up, uq, uf) = urlsplit(url2)  # Split second url into parts.
+        us = us if ns == '' else ns  # Try to use the new url's scheme.
+        un = un if nn == '' else nn  # Try to use the new url's netloc.
+        return urlunsplit((us, un, np, nq, nf))  # Join them and return.
 
     def set_fault(self, url, fault):
         # Update the url's fault.
@@ -907,8 +902,10 @@ if __name__ == '__main__':
              'Ronald', 'Gardenia', 'Frank', 'Casper',
              'Chester', 'Maude', 'Denny', 'Hank',
              'Bruce', 'Uma', 'Lizzy', 'Dizzy']
-    count = mp.cpu_count() - 1
-    count = count if count > 0 else 1
+
+    # We'll start two processes for every processor, less one to account for
+    # the scribe process.
+    count = (mp.cpu_count() * 2) - 1
     for x in range(count):
         spider = Spider(queue)
         spider_proc = mp.Process(target=spider.crawl)
