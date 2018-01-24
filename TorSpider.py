@@ -832,6 +832,7 @@ def log(line):
             get_timestamp(),
             mp.current_process().name,
             line)
+    message = ' '.join(message.split()) # Remove unnecessary whitespace.
     if(log_to_console):
         # Print to the screen if log_to_console is enabled.
         print(message)
