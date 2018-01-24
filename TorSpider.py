@@ -319,7 +319,7 @@ class Spider():
                     new_title = str(page_title)
                     # First, get the old title.
                     curr_title = self.db_get('SELECT title FROM pages \
-                                             WHERE page IS ? \
+                                             WHERE url IS ? \
                                              AND domain IS ?;',
                                              [self.get_page(url), domain_id])
                     if(curr_title == 'Unknown'):
