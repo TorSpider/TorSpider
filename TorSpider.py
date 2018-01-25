@@ -341,7 +341,7 @@ class Spider():
                     if(new_title != curr_title):
                         self.db_put('UPDATE pages SET title = ? \
                                     WHERE url IS ? AND domain IS ?;',
-                                    [self.getpage(url), domain_id])
+                                    [self.get_page(url), domain_id])
 
                     # Get the page's links.
                     page_links = self.get_links(page_text, url)
