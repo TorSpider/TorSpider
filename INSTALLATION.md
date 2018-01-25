@@ -33,7 +33,7 @@ The system will download TorSpider into ./TorSpider.
 
 ## Start TorSpider!
 
-At this point, everything should be ready to go. Start up a new screen instance by using **screen -R TorSpider**, then **cd** to the TorSpider directory and run ./TorSpider.py, like so:
+At this point, everything should be ready to go. Start up a new screen instance by using `screen -R TorSpider`, then `cd` to the TorSpider directory and run ./TorSpider.py, like so:
 
 ```bash $ ./TorSpider.py
 2018-01-24 19:13:44| MainProcess: ----------------------------------------
@@ -48,4 +48,4 @@ At this point, everything should be ready to go. Start up a new screen instance 
 2018-01-24 19:13:47| MainProcess: Waking the Spiders...
 2018-01-24 19:13:47| Chester: Ready to explore!```
 
-Once the script is running, you can ctrl-a, ctrl-d to leave the screen running in the background. If you want to stop TorSpider, just `cd` to the TorSpider directory and `touch sleep`. Then you can **screen -R TorSpider** again to watch as the program goes to sleep. (This can take some time, so be patient.)
+Once the script is running, you can ctrl-a, ctrl-d to leave the screen running in the background. If you want to stop TorSpider, just `cd` to the TorSpider directory and `touch sleep`. Then you can `screen -R TorSpider` again to watch as the program goes to sleep. (This can take some time, so be patient.)
