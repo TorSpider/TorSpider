@@ -120,7 +120,12 @@ class Spider():
                 if(field == ''):
                     continue
                 # First, make sure this field is in the forms table.
-                self.db_put('INSERT OR IGNORE INTO forms \
+                #self.db_put('INSERT OR IGNORE INTO forms \
+                #            (page, field) VALUES ( \
+                #            (SELECT id FROM pages WHERE \
+                #            url IS ? AND domain IS ?), ?);',
+                #            [link_page, domain_id, field])
+                self.db_put('INSERT INTO forms \
                             (page, field) VALUES ( \
                             (SELECT id FROM pages WHERE \
                             url IS ? AND domain IS ?), ?);',
