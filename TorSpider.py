@@ -75,6 +75,8 @@ class Spider():
 
     def add_url(self, link_url, domain_id):
         link_url = self.fix_url(link_url)
+        link_page = self.get_page(link_url)
+        link_query = self.get_query(link_url)
         link_domain = self.get_domain(link_url)
         if('.onion' not in link_domain
            or '.onion.' in link_domain):
@@ -84,23 +86,77 @@ class Spider():
             # Insert the new domain into the onions table.
             self.db_put("INSERT OR IGNORE INTO onions \
                         (domain) VALUES (?);", [link_domain])
-            # Insert the new link into the pages table.
-            self.db_put("INSERT OR IGNORE INTO pages \
+            # Insert the new link into the urls table.
+            self.db_put("INSERT OR IGNORE INTO urls \
                         (domain, url) VALUES ( \
                         (SELECT id FROM onions WHERE \
                         domain = ?), ?);",
                         [link_domain, link_url])
+            # Insert the new page into the pages table.
+            self.db_put("INSERT OR IGNORE INTO pages \
+                        (domain, url) VALUES ( \
+                        (SELECT id FROM onions WHERE \
+                        domain = ?), ?);",
+                        [link_domain, link_page])
             # Insert the new connection between domains.
             self.db_put("INSERT OR IGNORE INTO links \
                         (domain, link) \
                         VALUES (?, (SELECT id FROM onions \
                         WHERE domain = ?));",
                         [domain_id, link_domain])
+            # Process and add any discovered form data.
+            for item in link_query:
+                if(item == ['']):
+                    # Ignore empty form data.
+                    continue
+                try:
+                    [field, value] = item
+                except Exception as e:
+                    # Sometimes they have a field without a query.
+                    # e.g. /index.php?do=
+                    [field] = item
+                    value = 'none'
+                # We don't need to process it if the field is empty.
+                if(field == ''):
+                    continue
+                # First, make sure this field is in the forms table.
+                self.db_put('INSERT OR IGNORE INTO forms \
+                            (page, field) VALUES ( \
+                            (SELECT id FROM pages WHERE \
+                            url IS ? AND domain IS ?), ?);',
+                            [link_page, domain_id, field])
+
+                # Next, determine what examples already exist in the database.
+                # Only do this if we have a value to add.
+                if(value == '' or value == 'none'):
+                    continue
+                examples = ''
+                result = self.db_get('SELECT examples FROM forms \
+                                     WHERE page IS (SELECT id FROM pages \
+                                     WHERE url IS ? AND domain IS ?) \
+                                     AND field IS ?;',
+                                     [link_page, domain_id, field])
+                if(result == [] or result[0][0] == 'none'):
+                    # We don't have any current values.
+                    examples = value
+                else:
+                    # Merge with the returned examples.
+                    example_list = result[0][0].split(',')
+                    example_list.append(value)
+                    examples = ','.join(unique(example_list))
+
+                # Finally, update the examples in the database.
+                self.db_put('UPDATE forms SET examples = ? WHERE \
+                            page IS (SELECT id FROM pages WHERE \
+                            url IS ? AND domain IS ?) AND field IS ?;',
+                            [examples, link_page, domain_id, field])
+
         except Exception as e:
             # There was an error saving the link to the
             # database.
             log("Couldn't add link to database: {}".format(
                     e))
+            raise
 
     def crawl(self):
         log("Ready to explore!")
@@ -112,7 +168,7 @@ class Spider():
                 # Query the database for a random link that hasn't been
                 # scanned in 7 days or whose domain was marked offline more
                 # than a day ago.
-                query = self.db_get("SELECT domain, url FROM pages \
+                query = self.db_get("SELECT domain, url FROM urls \
                               WHERE fault IS 'none' \
                               AND (date < DATETIME('now', '-7 day') \
                               OR domain IN (\
@@ -129,13 +185,13 @@ class Spider():
                     continue
 
                 # Update the scan date for this page and domain.
-                self.db_put("UPDATE pages SET date = ? \
+                self.db_put("UPDATE urls SET date = ? \
                        WHERE url IS ? AND domain \
                        IS ?;", [get_timestamp(), url, domain_id])
                 self.db_put("UPDATE onions SET date = ? \
                        WHERE id IS ?;", [get_timestamp(), domain_id])
 
-                # Check to see if it's an http link.
+                # Check to see if it's an http/https link.
                 if(not self.is_http(url)):
                     # It's not.
                     self.set_fault(url, 'non-http')
@@ -145,15 +201,33 @@ class Spider():
                     # Retrieve the page's headers.
                     head = self.session.head(url, timeout=60)
 
+                    # Redirect codes: These status codes redirect to other
+                    # pages, so grab those other pages and scan them instead.
+                    redirect_codes = [301, 302, 303, 307, 308]
+
+                    # Fault codes: These status codes imply that there was
+                    # something wrong with the page being requested, such as
+                    # being non-existent. Don't rescan pages with these codes.
+                    fault_codes = [400, 401, 403, 404, 405, 410,
+                                   413, 414, 444, 451, 495, 496,
+                                   500, 501, 502, 505, 508, 511]
+
+                    # No-Fault codes: These imply that something temporarily
+                    # went wrong, but it's possible that it might work in the
+                    # future. Just skip to the next url.
+                    no_fault_codes = [408, 421, 423, 429, 503, 504]
+
+                    # Good codes: These are the codes we want to see when we
+                    # are accessing a web service.
+                    good_codes = [200, 201]
+
                     # Did we get the page successfully?
-                    if(head.status_code == 301
-                       or head.status_code == 302
-                       or head.status_code == 303
-                       or head.status_code == 307):
-                        # The url results in a redirection. So let's mark this
-                        # url as invalid and add the new url to the database.
+                    if(head.status_code in redirect_codes):
+                        # The url results in a redirection.
                         self.set_fault(url, str(head.status_code))
                         try:
+                            # Let's grab the redirected url and add it to the
+                            # database.
                             location = head.headers['location']
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
@@ -163,45 +237,14 @@ class Spider():
                             log("{}, but couldn't add target url: {}".format(
                                     str(head.status_code), url))
                             continue
-                    elif(head.status_code == 400):
-                        # Bad request.
-                        log("Bad request (400): {}".format(url))
-                        self.set_fault(url, '400')
+                    elif(head.status_code in fault_codes):
+                        # The url results in a fault.
+                        self.set_fault(url, str(head.status_code))
                         continue
-                    elif(head.status_code == 401):
-                        # Unauthorized.
-                        self.set_fault(url, '401')
+                    elif(head.status_code in no_fault_codes):
+                        # The url results in a problem, but not a fault.
                         continue
-                    elif(head.status_code == 403):
-                        # Forbidden.
-                        self.set_fault(url, '403')
-                        continue
-                    elif(head.status_code == 404):
-                        # This page doesn't exist. Avoid scanning it again.
-                        self.set_fault(url, '404')
-                        continue
-                    elif(head.status_code == 405):
-                        # Method not allowed.
-                        self.set_fault(url, '405')
-                        continue
-                    elif(head.status_code == 500):
-                        # The server had an error. This might not be our fault,
-                        # but it might be best not to scan that page again.
-                        self.set_fault(url, '500')
-                        continue
-                    elif(head.status_code == 502):
-                        # Bad gateway.
-                        self.set_fault(url, '502')
-                        continue
-                    elif(head.status_code == 503):
-                        # Service temporarily unavailable. We won't update the
-                        # page's status, because it might be available later.
-                        continue
-                    elif(head.status_code == 504):
-                        # Gateway timeout. Again, don't change the page's
-                        # status, because they might be available later.
-                        self.set_fault(url, '504')
-                    elif(head.status_code != 200):
+                    elif(head.status_code not in good_codes):
                         # Unknown status. I'll add more status_code options
                         # as they arise.
                         self.set_fault(url, str(head.status_code))
@@ -240,7 +283,7 @@ class Spider():
                         page_hash = self.get_hash(request.content)
 
                         # Retrieve the page's last hash.
-                        query = self.db_get("SELECT hash FROM pages WHERE \
+                        query = self.db_get("SELECT hash FROM urls WHERE \
                                             domain IS ? AND url IS ?;",
                                             [domain_id, url])
                         last_hash = query[0][0]
@@ -250,7 +293,7 @@ class Spider():
                             continue
 
                         # Update the page's hash in the database.
-                        self.db_put('UPDATE pages SET hash = ? \
+                        self.db_put('UPDATE urls SET hash = ? \
                                     WHERE domain IS ? AND url IS ?;',
                                     [page_hash, domain_id, url])
 
@@ -269,8 +312,36 @@ class Spider():
                         log('Bad title: {}'.format(url))
                         self.set_fault(url, 'bad title')
                         continue
-                    self.db_put('UPDATE pages SET title = ? \
+                    # Set the title of the url.
+                    self.db_put('UPDATE urls SET title = ? \
                                 WHERE url IS ?;', [page_title, url])
+
+                    # Update the title of the page.
+                    new_title = str(page_title)
+                    # First, get the old title.
+                    curr_title = self.db_get('SELECT title FROM pages \
+                                             WHERE url IS ? \
+                                             AND domain IS ?;',
+                                             [self.get_page(url),
+                                              domain_id])[0][0]
+                    if(curr_title == 'Unknown'):
+                        curr_title = 'none'
+
+                    # Now, if the title is 'none' then just save page_title.
+                    # But if it's something else, we'll need to make a hybrid
+                    # title based on the current title and the title of the
+                    # newly-scraped page.
+                    if(curr_title != 'none'):
+                        new_title = self.merge_titles(curr_title, page_title)
+                    new_title = ' '.join(new_title.split())
+                    # If the title is now empty, just set it to Unknown.
+                    new_title = 'Unknown' if new_title == '' else new_title
+                    # Now, save the new title to the database, but only if the
+                    # title has changed.
+                    if(new_title != curr_title):
+                        self.db_put('UPDATE pages SET title = ? \
+                                    WHERE url IS ? AND domain IS ?;',
+                                    [new_title, self.get_page(url), domain_id])
 
                     # Get the page's links.
                     page_links = self.get_links(page_text, url)
@@ -295,9 +366,10 @@ class Spider():
                         self.db_put("UPDATE onions SET online = '0' \
                                     WHERE id IS ?", [domain_id])
                         # Make sure we don't keep scanning the pages.
-                        self.db_put("UPDATE pages SET date = ? \
+                        self.db_put("UPDATE urls SET date = ? \
                                     WHERE domain = ?;",
                                     [get_timestamp(), domain_id])
+                        self.set_fault(url, 'offline')
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
                         log("I can't get online: {}".format(e))
@@ -381,7 +453,7 @@ class Spider():
 
     def get_domain(self, url):
         # Get the defragmented domain of the given url.
-        domain = self.defrag_domain(urlsplit(url)[1])
+        domain = self.defrag_domain(urlsplit(url).netloc)
         # Let's omit subdomains. Rather than having separate records for urls
         # like sub1.onionpage.onion and sub2.onionpage.onion, just keep them
         # all under onionpage.onion.
@@ -403,7 +475,8 @@ class Spider():
                 # Skip empty links.
                 continue
             # Remove any references to the current directory. ('./')
-            link = link.replace('./', '')
+            while('./' in link):
+                link = link.replace('./', '')
             # Split the link into its component parts.
             (scheme, netloc, path, query, fragment) = urlsplit(link)
             # Fill in empty schemes.
@@ -428,6 +501,25 @@ class Spider():
         # Make sure we don't return any duplicates!
         return unique(links)
 
+    def get_page(self, url):
+        # Get the page from a link.
+        return urlsplit(url).path
+
+    def get_query(self, url):
+        # Get the query information from the url.
+        # Queries look like: /page.php?field=value&field2=value2
+        # Splitting along the & we get field=value, field2=value2
+        query = urlsplit(url).query.split('&')
+        result = []
+        for item in query:
+            # Splitting each query along the '=' we get
+            # [[field1, value], [field2, value2]]
+            item_parts = item.split('=')
+            field = item_parts[0]
+            value = '='.join(item_parts[1:])
+            result.append([field, value])
+        return result
+
     def get_title(self, data):
         # Given HTML input, return the title of the page.
         parse = ParseTitle()
@@ -448,18 +540,35 @@ class Spider():
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         return True if 'http' in scheme else False
 
+    def merge_titles(self, title1, title2):
+        title1_parts = title1.split()
+        title2_parts = title2.split()
+        new_title_parts = extract_exact(title1_parts, title2_parts)
+        return ' '.join(new_title_parts)
+
+    def merge_lists(list1, list2):
+        # Merge two lists together without duplicates.
+        return list(set(list1 + list2))
+
     def merge_urls(self, url1, url2):
         # Merge the new url (url1) into the original url (url2).
-        (ns, nn, np, nq, nf) = urlsplit(url1)
-        (us, un, up, uq, uf) = urlsplit(url2)
-        us = us if ns == '' else ns
-        un = un if nn == '' else nn
-        return urlunsplit((us, un, np, nq, nf))
+        (ns, nn, np, nq, nf) = urlsplit(url1)  # Split first url into parts.
+        (us, un, up, uq, uf) = urlsplit(url2)  # Split second url into parts.
+        us = us if ns == '' else ns  # Try to use the new url's scheme.
+        un = un if nn == '' else nn  # Try to use the new url's netloc.
+        return urlunsplit((us, un, np, nq, nf))  # Join them and return.
 
     def set_fault(self, url, fault):
         # Update the url's fault.
+        self.db_put('UPDATE urls SET fault = ? \
+                    WHERE url IS ?;', [fault, url])
+        # Then, update the page's fault.
+        page = self.get_page(url)
+        domain = self.get_domain(url)
         self.db_put('UPDATE pages SET fault = ? \
-               WHERE url IS ?;', [fault, url])
+                    WHERE url = ? AND domain = \
+                    (SELECT id FROM onions WHERE domain = ?);',
+                    [fault, page, domain])
 
 
 class Scribe():
@@ -495,6 +604,8 @@ class Scribe():
                     # Let's keep trying until we successfully execute.
                     try:
                         # Execute the command.
+                        #print("message: {}".format(message))
+                        #print("args: {}".format(args))
                         cursor.execute(message, args)
                         executed = True
                     except Exception as e:
@@ -541,16 +652,16 @@ class Scribe():
                             info TEXT DEFAULT 'none', \
                             CONSTRAINT unique_domain UNIQUE(domain));")
 
-            ''' Pages: Information about each link discovered.
-                - id:           The numerical ID of that page.
-                - title:        The page's title.
-                - domain:       The numerical ID of the page's parent domain.
-                - url:          The url for the page.
+            ''' Urls: Information about each link discovered.
+                - id:           The numerical ID of that url.
+                - title:        The url's title.
+                - domain:       The numerical ID of the url's parent domain.
+                - url:          The url itself.
                 - hash:         The page's sha1 hash, for detecting changes.
                 - date:         The date of the last scan.
                 - fault:        If there's a fault preventing scanning, log it.
             '''
-            cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
+            cursor.execute("CREATE TABLE IF NOT EXISTS urls ( \
                             id INTEGER PRIMARY KEY, \
                             title TEXT DEFAULT 'none', \
                             domain INTEGER, \
@@ -558,7 +669,37 @@ class Scribe():
                             hash TEXT DEFAULT 'none', \
                             date DATETIME DEFAULT '1900-01-01 00:00:01', \
                             fault TEXT DEFAULT 'none', \
-                            CONSTRAINT unique_page UNIQUE(domain, url));")
+                            CONSTRAINT unique_url UNIQUE(domain, url));")
+
+            ''' Pages: Information about the various pages in each domain.
+                - id:           The numerical ID of the page.
+                - url:          The url of the page.
+                - title:        The title of the page.
+                - domain:       The numerical ID of the page's parent domain.
+                - info:         Some information about the page.
+                - fault:        If there's a fault preventing scanning, log it.
+            '''
+            cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
+                           id INTEGER PRIMARY KEY, \
+                           url TEXT, \
+                           title TEXT DEFAULT 'none', \
+                           domain INTEGER, \
+                           info TEXT, \
+                           fault TEXT DEFAULT 'none', \
+                           CONSTRAINT unique_page UNIQUE(domain, url));")
+
+            ''' Forms: Information about the various form fields for each page.
+                - id:           The numerical ID of the form field.
+                - page:         The numerical ID of the page it links to.
+                - field:        The name of the form field.
+                - examples:     Some examples of found values.
+            '''
+            cursor.execute("CREATE TABLE IF NOT EXISTS forms ( \
+                           id INTEGER PRIMARY KEY, \
+                           page INTEGER, \
+                           field TEXT, \
+                           examples TEXT DEFAULT 'none', \
+                           CONSTRAINT unique_field UNIQUE(page, field));")
 
             ''' Links: Information about which domains connect to each other.
                 - domain:       The numerical ID of the origin domain.
@@ -577,57 +718,78 @@ class Scribe():
             # http://zqktlwi4fecvo6ri.onion/wiki/Main_Page
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'zqktlwi4fecvo6ri.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '1', \
                            'http://zqktlwi4fecvo6ri.onion/wiki/Main_Page');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '1', \
+                           '/wiki/Main_Page');")
 
             # OnionDir
             # http://auutwvpt2zktxwng.onion/index.php
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'auutwvpt2zktxwng.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '2', \
                            'http://auutwvpt2zktxwng.onion/index.php');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '2', \
+                           '/index.php');")
 
             # Wiki links
             # http://wikilink77h7lrbi.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'wikilink77h7lrbi.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '3', \
                            'http://wikilink77h7lrbi.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '3', \
+                           '/');")
 
             # Deep Web Links
             # http://wiki5kauuihowqi5.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'wiki5kauuihowqi5.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '4', \
                            'http://wiki5kauuihowqi5.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '4', \
+                           '/');")
 
             # OnionDir Deep Web Directory
             # http://dirnxxdraygbifgc.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'dirnxxdraygbifgc.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '5', \
                            'http://dirnxxdraygbifgc.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '5', \
+                           '/');")
 
             # The Onion Crate
             # http://7cbqhjnlkivmigxf.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            '7cbqhjnlkivmigxf.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '6', \
                            'http://7cbqhjnlkivmigxf.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '6', \
+                           '/');")
 
             # Fresh Onions
             # http://zlal32teyptf4tvi.onion/
             cursor.execute("INSERT INTO onions (domain) VALUES ( \
                            'zlal32teyptf4tvi.onion');")
-            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+            cursor.execute("INSERT INTO urls (domain, url) VALUES ( \
                            '7', \
                            'http://zlal32teyptf4tvi.onion/');")
+            cursor.execute("INSERT INTO pages (domain, url) VALUES ( \
+                           '7', \
+                           '/');")
 
             connection.commit()
             connection.close()
@@ -645,6 +807,12 @@ def combine(message, args=[]):
     while(len(args) > 0):
         message = message.replace('?', args.pop(0), 1)
     return message
+
+
+def extract_exact(list1, list2):
+    # Return the common items from both lists.
+    return [item for item in list1
+            if any(scan == item for scan in list2)]
 
 
 def get_timestamp():
@@ -668,6 +836,7 @@ def log(line):
             get_timestamp(),
             mp.current_process().name,
             line)
+    message = ' '.join(message.split()) # Remove unnecessary whitespace.
     if(log_to_console):
         # Print to the screen if log_to_console is enabled.
         print(message)
@@ -738,8 +907,10 @@ if __name__ == '__main__':
              'Ronald', 'Gardenia', 'Frank', 'Casper',
              'Chester', 'Maude', 'Denny', 'Hank',
              'Bruce', 'Uma', 'Lizzy', 'Dizzy']
-    count = mp.cpu_count() - 1
-    count = count if count > 0 else 1
+
+    # We'll start two processes for every processor, less one to account for
+    # the scribe process.
+    count = (mp.cpu_count() * 2) - 1
     for x in range(count):
         spider = Spider(queue)
         spider_proc = mp.Process(target=spider.crawl)
