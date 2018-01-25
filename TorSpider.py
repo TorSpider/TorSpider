@@ -604,6 +604,8 @@ class Scribe():
                     # Let's keep trying until we successfully execute.
                     try:
                         # Execute the command.
+                        print("message: {}".format(message))
+                        print("args: {}".format(args))
                         cursor.execute(message, args)
                         executed = True
                     except Exception as e:
