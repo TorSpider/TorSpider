@@ -341,7 +341,7 @@ class Spider():
                     if(new_title != curr_title):
                         self.db_put('UPDATE pages SET title = ? \
                                     WHERE url IS ? AND domain IS ?;',
-                                    [self.get_page(url), domain_id])
+                                    [new_title, self.get_page(url), domain_id])
 
                     # Get the page's links.
                     page_links = self.get_links(page_text, url)
@@ -604,8 +604,6 @@ class Scribe():
                     # Let's keep trying until we successfully execute.
                     try:
                         # Execute the command.
-                        print("message: {}".format(message))
-                        print("args: {}".format(args))
                         cursor.execute(message, args)
                         executed = True
                     except Exception as e:
