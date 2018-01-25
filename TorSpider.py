@@ -120,12 +120,7 @@ class Spider():
                 if(field == ''):
                     continue
                 # First, make sure this field is in the forms table.
-                #self.db_put('INSERT OR IGNORE INTO forms \
-                #            (page, field) VALUES ( \
-                #            (SELECT id FROM pages WHERE \
-                #            url IS ? AND domain IS ?), ?);',
-                #            [link_page, domain_id, field])
-                self.db_put('INSERT INTO forms \
+                self.db_put('INSERT OR IGNORE INTO forms \
                             (page, field) VALUES ( \
                             (SELECT id FROM pages WHERE \
                             url IS ? AND domain IS ?), ?);',
@@ -142,7 +137,11 @@ class Spider():
                                      AND field IS ?;',
                                      [link_page, domain_id, field])
                 print(result)
-                if(result[0][0] == 'none'):
+                if(result == []):
+                    # We got no result... what happens when we try to update
+                    # the form?
+                    examples = value
+                elif(result[0][0] == 'none'):
                     # There are currently no examples in the database.
                     examples = value
                 else:
