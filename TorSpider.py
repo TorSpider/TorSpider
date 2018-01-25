@@ -156,6 +156,7 @@ class Spider():
             # database.
             log("Couldn't add link to database: {}".format(
                     e))
+            raise
 
     def crawl(self):
         log("Ready to explore!")
@@ -321,7 +322,8 @@ class Spider():
                     curr_title = self.db_get('SELECT title FROM pages \
                                              WHERE url IS ? \
                                              AND domain IS ?;',
-                                             [self.get_page(url), domain_id])
+                                             [self.get_page(url),
+                                              domain_id])[0][0]
                     if(curr_title == 'Unknown'):
                         curr_title = 'none'
 

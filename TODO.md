@@ -12,6 +12,7 @@
 * Take note of important header information, such as server type.
 
 ## In Process
+* Fix an index out of range bug.
 
 ## Complete
 * Convert v1 to v2 prior to making changes to database and functionality.
