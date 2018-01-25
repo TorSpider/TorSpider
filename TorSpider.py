@@ -136,13 +136,8 @@ class Spider():
                                      WHERE url IS ? AND domain IS ?) \
                                      AND field IS ?;',
                                      [link_page, domain_id, field])
-                print(result)
-                if(result == []):
-                    # We got no result... what happens when we try to update
-                    # the form?
-                    examples = value
-                elif(result[0][0] == 'none'):
-                    # There are currently no examples in the database.
+                if(result == [] or result[0][0] == 'none'):
+                    # We don't have any current values.
                     examples = value
                 else:
                     # Merge with the returned examples.
