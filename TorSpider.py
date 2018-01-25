@@ -136,6 +136,7 @@ class Spider():
                                      WHERE url IS ? AND domain IS ?) \
                                      AND field IS ?;',
                                      [link_page, domain_id, field])
+                print(result)
                 if(result[0][0] == 'none'):
                     # There are currently no examples in the database.
                     examples = value
@@ -604,8 +605,8 @@ class Scribe():
                     # Let's keep trying until we successfully execute.
                     try:
                         # Execute the command.
-                        print("message: {}".format(message))
-                        print("args: {}".format(args))
+                        #print("message: {}".format(message))
+                        #print("args: {}".format(args))
                         cursor.execute(message, args)
                         executed = True
                     except Exception as e:
