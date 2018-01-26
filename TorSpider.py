@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^---TorSpider-v2---^-----+                   |
+   |                   +-----^--TorSpider-v0.3--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -20,7 +20,7 @@ import time                  # |     The Invisible Web is rife with     | #
 import random                # | wondrous and terrible things. It is no | #
 import requests              # |  place for the squeamish or the faint  | #
 import configparser          # |    of heart. Here there be dragons!    | #
-import sqlite3 as sql        # +----------------------------------------+ #
+import psycopg2 as sql       # +----------------------------------------+ #
 from hashlib import sha1
 import multiprocessing as mp
 from datetime import datetime
@@ -407,7 +407,13 @@ class Spider():
 
     def db_get(self, query, args=[]):
         # Request information from the database.
-        connection = sql.connect('data/SpiderWeb.db')
+        connection = sql.connect(
+                "dbname='{}' user='{}' host='{}' \
+                password='{}'".format(
+                        postgre_dbase,
+                        postgre_user,
+                        postgre_host,
+                        postgre_pass))
         cursor = connection.cursor()
         while(True):
             try:
@@ -584,7 +590,13 @@ class Scribe():
             # As long as the scribe is awake, he'll keep processing the
             # messages provided.
 
-            connection = sql.connect('data/SpiderWeb.db')
+            connection = sql.connect(
+                    "dbname='{}' user='{}' host='{}' \
+                    password='{}'".format(
+                            postgre_dbase,
+                            postgre_user,
+                            postgre_host,
+                            postgre_pass))
             cursor = connection.cursor()
 
             while(not self.queue.empty()):
@@ -629,7 +641,13 @@ class Scribe():
             log("Initializing new database...")
 
             # First, we'll set up the database structure.
-            connection = sql.connect('data/SpiderWeb.db')
+            connection = sql.connect(
+                    "dbname='{}' user='{}' host='{}' \
+                    password='{}'".format(
+                            postgre_dbase,
+                            postgre_user,
+                            postgre_host,
+                            postgre_pass))
             cursor = connection.cursor()
 
             ''' Onions: Information about each individual onion domain.
@@ -881,6 +899,7 @@ if __name__ == '__main__':
         postgre_user = config['PostgreSQL'].get('Username')
         postgre_pass = config['PostgreSQL'].get('Password')
         postgre_host = config['PostgreSQL'].get('Hostname')
+        postgre_dbase = config['PostgreSQL'].get('Database')
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
         sys.exit(0)
