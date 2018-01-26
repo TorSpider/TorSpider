@@ -19,8 +19,9 @@ import sys                   # |       Beware, ye who enter here:       | #
 import time                  # |     The Invisible Web is rife with     | #
 import random                # | wondrous and terrible things. It is no | #
 import requests              # |  place for the squeamish or the faint  | #
-import sqlite3 as sql        # |    of heart. Here there be dragons!    | #
-from hashlib import sha1     # +----------------------------------------+ #
+import configparser          # |    of heart. Here there be dragons!    | #
+import sqlite3 as sql        # +----------------------------------------+ #
+from hashlib import sha1
 import multiprocessing as mp
 from datetime import datetime
 from html.parser import HTMLParser
@@ -28,16 +29,12 @@ from urllib.parse import urlsplit, urlunsplit
 
 '''---[ GLOBAL VARIABLES ]---'''
 
-# Should we log to the console?
-log_to_console = True
-
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
 
 # Just to prevent some SSL errors.
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += \
                                               ':ECDHE-ECDSA-AES128-GCM-SHA256'
-
 
 '''---[ CLASS DEFINITIONS ]---'''
 
@@ -854,6 +851,40 @@ def unique(items):
 '''---[ SCRIPT ]---'''
 
 if __name__ == '__main__':
+    if(not os.path.exists('spider.cfg')):
+        # If we don't yet have a configuration file, make one and tell the
+        # user to set it up before continuing.
+        default_config = configparser.RawConfigParser()
+        default_config.optionxform = lambda option: option
+        default_config['TorSpider'] = {
+                'LogToConsole': 'True',
+                'Daemonize': 'False'
+        }
+        default_config['PostgreSQL'] = {
+                'Username': 'username',
+                'Password': 'password',
+                'Hostname': '127.0.0.1',
+                'Database': 'TorSpider'
+        }
+        with open('spider.cfg', 'w') as config_file:
+            default_config.write(config_file)
+        print('Default configuration stored in spider.cfg.')
+        print('Please edit spider.cfg before running TorSpider again.')
+        sys.exit(0)
+
+    # Load the configuration file.
+    try:
+        config = configparser.ConfigParser()
+        config.read('spider.cfg')
+        log_to_console = config['TorSpider'].getboolean('LogToConsole')
+        daemonize = config['TorSpider'].getboolean('Daemonize')
+        postgre_user = config['PostgreSQL'].get('Username')
+        postgre_pass = config['PostgreSQL'].get('Password')
+        postgre_host = config['PostgreSQL'].get('Hostname')
+    except Exception as e:
+        print('Could not parse spider.cfg. Please verify its syntax.')
+        sys.exit(0)
+
     # If the data directory doesn't exist, create it.
     if(not os.path.exists('data')):
         try:
@@ -864,7 +895,7 @@ if __name__ == '__main__':
             sys.exit(0)
 
     log('-' * 40)
-    log('TorSpider v2 Initializing...')
+    log('TorSpider v0.3 Initializing...')
 
     # Create a Tor session and check if it's working.
     log("Establishing Tor connection...")
