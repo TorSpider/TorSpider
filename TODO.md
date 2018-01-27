@@ -9,9 +9,11 @@
 
 ## Low Priority
 * Begin work on WebCrawler site front-end. (Requires database redesign to be complete.)
+* Enable notes to be stored regarding interesting information for pages and onions.
 * Take note of important header information, such as server type.
 
 ## In Process
-* Set up remote database access.
 
 ## Complete
+* Convert all queries to PostgreSQL format.
+* Set up remote database access.
