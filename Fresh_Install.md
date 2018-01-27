@@ -15,16 +15,16 @@
 
 ## Install pip for Python 3
 
-The latest version of raspbian comes with Python 3.5 already installed. What we need, however, is pip3, so we can install our dependencies.
+The latest version of raspbian comes with Python 3.5 already installed. What we need, however, is pip3 and libpq-dev, so we can install our dependencies.
 
 ```
-sudo apt install python3-pip
+sudo apt install python3-pip libpq-dev
 ```
 
 Once pip3 has installed, you can install the other remaining requirements for TorSpider with the following commands:
 
 ```
-pip3 install pysocks requests cherrypy
+sudo pip3 install pysocks requests cherrypy psycopg2
 ```
 
 ## Clone TorSpider
