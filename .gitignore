@@ -89,4 +89,5 @@ ENV/
 .ropeproject
 
 # TorSpider-specific files
-data/
+*.cfg
+*.log

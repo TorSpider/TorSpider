@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^---TorSpider-v2---^-----+                   |
+   |                   +-----^--TorSpider-v0.3--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -19,8 +19,9 @@ import sys                   # |       Beware, ye who enter here:       | #
 import time                  # |     The Invisible Web is rife with     | #
 import random                # | wondrous and terrible things. It is no | #
 import requests              # |  place for the squeamish or the faint  | #
-import sqlite3 as sql        # |    of heart. Here there be dragons!    | #
-from hashlib import sha1     # +----------------------------------------+ #
+import configparser          # |    of heart. Here there be dragons!    | #
+import psycopg2 as sql       # +----------------------------------------+ #
+from hashlib import sha1
 import multiprocessing as mp
 from datetime import datetime
 from html.parser import HTMLParser
@@ -28,16 +29,12 @@ from urllib.parse import urlsplit, urlunsplit
 
 '''---[ GLOBAL VARIABLES ]---'''
 
-# Should we log to the console?
-log_to_console = True
-
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
 
 # Just to prevent some SSL errors.
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += \
                                               ':ECDHE-ECDSA-AES128-GCM-SHA256'
-
 
 '''---[ CLASS DEFINITIONS ]---'''
 
@@ -84,26 +81,26 @@ class Spider():
             return
         try:
             # Insert the new domain into the onions table.
-            self.db_put("INSERT OR IGNORE INTO onions \
-                        (domain) VALUES (?);", [link_domain])
+            self.db_put("INSERT INTO onions \
+                        (domain) VALUES (%s) ON CONFLICT DO NOTHING;", (link_domain, ))
             # Insert the new link into the urls table.
-            self.db_put("INSERT OR IGNORE INTO urls \
+            self.db_put("INSERT INTO urls \
                         (domain, url) VALUES ( \
                         (SELECT id FROM onions WHERE \
-                        domain = ?), ?);",
-                        [link_domain, link_url])
+                        domain = %s), %s) ON CONFLICT DO NOTHING;",
+                        (link_domain, link_url))
             # Insert the new page into the pages table.
-            self.db_put("INSERT OR IGNORE INTO pages \
+            self.db_put("INSERT INTO pages \
                         (domain, url) VALUES ( \
                         (SELECT id FROM onions WHERE \
-                        domain = ?), ?);",
-                        [link_domain, link_page])
+                        domain = %s), %s) ON CONFLICT DO NOTHING;",
+                        (link_domain, link_page))
             # Insert the new connection between domains.
-            self.db_put("INSERT OR IGNORE INTO links \
+            self.db_put("INSERT INTO links \
                         (domain, link) \
-                        VALUES (?, (SELECT id FROM onions \
-                        WHERE domain = ?));",
-                        [domain_id, link_domain])
+                        VALUES (%s, (SELECT id FROM onions \
+                        WHERE domain = %s)) ON CONFLICT DO NOTHING;",
+                        (domain_id, link_domain))
             # Process and add any discovered form data.
             for item in link_query:
                 if(item == ['']):
@@ -120,11 +117,12 @@ class Spider():
                 if(field == ''):
                     continue
                 # First, make sure this field is in the forms table.
-                self.db_put('INSERT OR IGNORE INTO forms \
+                self.db_put('INSERT INTO forms \
                             (page, field) VALUES ( \
                             (SELECT id FROM pages WHERE \
-                            url IS ? AND domain IS ?), ?);',
-                            [link_page, domain_id, field])
+                            url = %s AND domain = %s), %s) \
+                            ON CONFLICT DO NOTHING;',
+                            (link_page, domain_id, field))
 
                 # Next, determine what examples already exist in the database.
                 # Only do this if we have a value to add.
@@ -132,10 +130,10 @@ class Spider():
                     continue
                 examples = ''
                 result = self.db_get('SELECT examples FROM forms \
-                                     WHERE page IS (SELECT id FROM pages \
-                                     WHERE url IS ? AND domain IS ?) \
-                                     AND field IS ?;',
-                                     [link_page, domain_id, field])
+                                     WHERE page = (SELECT id FROM pages \
+                                     WHERE url = %s AND domain = %s) \
+                                     AND field = %s;',
+                                     (link_page, domain_id, field))
                 if(result == [] or result[0][0] == 'none'):
                     # We don't have any current values.
                     examples = value
@@ -146,10 +144,10 @@ class Spider():
                     examples = ','.join(unique(example_list))
 
                 # Finally, update the examples in the database.
-                self.db_put('UPDATE forms SET examples = ? WHERE \
-                            page IS (SELECT id FROM pages WHERE \
-                            url IS ? AND domain IS ?) AND field IS ?;',
-                            [examples, link_page, domain_id, field])
+                self.db_put('UPDATE forms SET examples = %s WHERE \
+                            page = (SELECT id FROM pages WHERE \
+                            url = %s AND domain = %s) AND field = %s;',
+                            (examples, link_page, domain_id, field))
 
         except Exception as e:
             # There was an error saving the link to the
@@ -169,13 +167,13 @@ class Spider():
                 # scanned in 7 days or whose domain was marked offline more
                 # than a day ago.
                 query = self.db_get("SELECT domain, url FROM urls \
-                              WHERE fault IS 'none' \
-                              AND (date < DATETIME('now', '-7 day') \
+                              WHERE fault = 'none' \
+                              AND (date < (CURRENT_DATE - INTERVAL '7 days') \
                               OR domain IN (\
                                     SELECT id FROM onions \
-                                    WHERE online IS '0' \
-                                    AND date < DATETIME('now', '-1 day')\
-                              )) ORDER BY RANDOM() LIMIT 1;")
+                                    WHERE online = '0' \
+                                    AND date < (CURRENT_DATE - INTERVAL \
+                                    '1 day'))) ORDER BY RANDOM() LIMIT 1;")
                 try:
                     (domain_id, url) = query[0]
                     url = self.fix_url(url)
@@ -185,11 +183,11 @@ class Spider():
                     continue
 
                 # Update the scan date for this page and domain.
-                self.db_put("UPDATE urls SET date = ? \
-                       WHERE url IS ? AND domain \
-                       IS ?;", [get_timestamp(), url, domain_id])
-                self.db_put("UPDATE onions SET date = ? \
-                       WHERE id IS ?;", [get_timestamp(), domain_id])
+                self.db_put("UPDATE urls SET date = CURRENT_DATE \
+                       WHERE url = %s AND domain \
+                       = %s;", (url, domain_id))
+                self.db_put("UPDATE onions SET date = CURRENT_DATE \
+                       WHERE id = %s;", (domain_id, ))
 
                 # Check to see if it's an http/https link.
                 if(not self.is_http(url)):
@@ -208,7 +206,7 @@ class Spider():
                     # Fault codes: These status codes imply that there was
                     # something wrong with the page being requested, such as
                     # being non-existent. Don't rescan pages with these codes.
-                    fault_codes = [400, 401, 403, 404, 405, 410,
+                    fault_codes = [400, 401, 403, 404, 405, 406, 410,
                                    413, 414, 444, 451, 495, 496,
                                    500, 501, 502, 505, 508, 511]
 
@@ -253,8 +251,8 @@ class Spider():
                         continue
 
                     # Update the last_online date.
-                    self.db_put('UPDATE onions SET last_online = ? \
-                                WHERE id IS ?;', [get_timestamp(), domain_id])
+                    self.db_put('UPDATE onions SET last_online = CURRENT_DATE \
+                                WHERE id = %s;', (domain_id, ))
 
                     content_type = self.get_type(head.headers)
                     # We only want to scan text for links. But if we don't
@@ -284,8 +282,8 @@ class Spider():
 
                         # Retrieve the page's last hash.
                         query = self.db_get("SELECT hash FROM urls WHERE \
-                                            domain IS ? AND url IS ?;",
-                                            [domain_id, url])
+                                            domain = %s AND url = %s;",
+                                            (domain_id, url))
                         last_hash = query[0][0]
 
                         # If the hash hasn't changed, don't process the page.
@@ -293,9 +291,9 @@ class Spider():
                             continue
 
                         # Update the page's hash in the database.
-                        self.db_put('UPDATE urls SET hash = ? \
-                                    WHERE domain IS ? AND url IS ?;',
-                                    [page_hash, domain_id, url])
+                        self.db_put('UPDATE urls SET hash = %s \
+                                    WHERE domain = %s AND url = %s;',
+                                    (page_hash, domain_id, url))
 
                     except Exception as e:
                         log("Couldn't retrieve previous hash: {}".format(url))
@@ -313,17 +311,17 @@ class Spider():
                         self.set_fault(url, 'bad title')
                         continue
                     # Set the title of the url.
-                    self.db_put('UPDATE urls SET title = ? \
-                                WHERE url IS ?;', [page_title, url])
+                    self.db_put('UPDATE urls SET title = %s \
+                                WHERE url = %s;', (page_title, url))
 
                     # Update the title of the page.
                     new_title = str(page_title)
                     # First, get the old title.
                     curr_title = self.db_get('SELECT title FROM pages \
-                                             WHERE url IS ? \
-                                             AND domain IS ?;',
-                                             [self.get_page(url),
-                                              domain_id])[0][0]
+                                             WHERE url = %s \
+                                             AND domain = %s;',
+                                             (self.get_page(url),
+                                              domain_id))[0][0]
                     if(curr_title == 'Unknown'):
                         curr_title = 'none'
 
@@ -339,9 +337,9 @@ class Spider():
                     # Now, save the new title to the database, but only if the
                     # title has changed.
                     if(new_title != curr_title):
-                        self.db_put('UPDATE pages SET title = ? \
-                                    WHERE url IS ? AND domain IS ?;',
-                                    [new_title, self.get_page(url), domain_id])
+                        self.db_put('UPDATE pages SET title = %s \
+                                    WHERE url = %s AND domain = %s;',
+                                    (new_title, self.get_page(url), domain_id))
 
                     # Get the page's links.
                     page_links = self.get_links(page_text, url)
@@ -364,11 +362,11 @@ class Spider():
                         # If we've reached this point, Tor is working.
                         # Set the domain to offline.
                         self.db_put("UPDATE onions SET online = '0' \
-                                    WHERE id IS ?", [domain_id])
+                                    WHERE id = %s", (domain_id, ))
                         # Make sure we don't keep scanning the pages.
-                        self.db_put("UPDATE urls SET date = ? \
-                                    WHERE domain = ?;",
-                                    [get_timestamp(), domain_id])
+                        self.db_put("UPDATE urls SET date = CURRENT_DATE \
+                                    WHERE domain = %s;",
+                                    (domain_id, ))
                         self.set_fault(url, 'offline')
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
@@ -410,7 +408,13 @@ class Spider():
 
     def db_get(self, query, args=[]):
         # Request information from the database.
-        connection = sql.connect('data/SpiderWeb.db')
+        connection = sql.connect(
+                "dbname='{}' user='{}' host='{}' \
+                password='{}'".format(
+                        postgre_dbase,
+                        postgre_user,
+                        postgre_host,
+                        postgre_pass))
         cursor = connection.cursor()
         while(True):
             try:
@@ -560,15 +564,15 @@ class Spider():
 
     def set_fault(self, url, fault):
         # Update the url's fault.
-        self.db_put('UPDATE urls SET fault = ? \
-                    WHERE url IS ?;', [fault, url])
+        self.db_put('UPDATE urls SET fault = %s \
+                    WHERE url = %s;', (fault, url))
         # Then, update the page's fault.
         page = self.get_page(url)
         domain = self.get_domain(url)
-        self.db_put('UPDATE pages SET fault = ? \
-                    WHERE url = ? AND domain = \
-                    (SELECT id FROM onions WHERE domain = ?);',
-                    [fault, page, domain])
+        self.db_put('UPDATE pages SET fault = %s \
+                    WHERE url = %s AND domain = \
+                    (SELECT id FROM onions WHERE domain = %s);',
+                    (fault, page, domain))
 
 
 class Scribe():
@@ -579,15 +583,20 @@ class Scribe():
         log("I'm awake! Checking my database.")
         self.check_db()
         log("Okay, I'm ready.")
-        num_spiders = mp.cpu_count() - 1
-        num_spiders = num_spiders if num_spiders > 0 else 1
+        num_spiders = (mp.cpu_count() * 2) - 1
         spiders_sleeping = 0
         time_to_sleep = False
         while(not time_to_sleep):
             # As long as the scribe is awake, he'll keep processing the
             # messages provided.
 
-            connection = sql.connect('data/SpiderWeb.db')
+            connection = sql.connect(
+                    "dbname='{}' user='{}' host='{}' \
+                    password='{}'".format(
+                            postgre_dbase,
+                            postgre_user,
+                            postgre_host,
+                            postgre_pass))
             cursor = connection.cursor()
 
             while(not self.queue.empty()):
@@ -615,6 +624,7 @@ class Scribe():
                             # We don't need to keep retrying a broken SQL
                             # statement, so let's break the loop.
                             executed = True
+                            raise
                         else:
                             time.sleep(0.1)  # See if the database frees up.
 
@@ -628,12 +638,21 @@ class Scribe():
         log('Going to sleep!')
 
     def check_db(self):
-        if(not os.path.exists('data/SpiderWeb.db')):
-            log("Initializing new database...")
+        # First, we'll set up the database connection.
+        connection = sql.connect(
+                "dbname='{}' user='{}' host='{}' \
+                password='{}'".format(
+                        postgre_dbase,
+                        postgre_user,
+                        postgre_host,
+                        postgre_pass))
+        cursor = connection.cursor()
 
-            # First, we'll set up the database structure.
-            connection = sql.connect('data/SpiderWeb.db')
-            cursor = connection.cursor()
+        # Check to see if the db exists.
+        cursor.execute("SELECT EXISTS (SELECT 1 FROM pg_tables \
+                       WHERE tablename = 'links');")
+        if(cursor.fetchall()[0][0] == False):
+            log("Initializing new database...")
 
             ''' Onions: Information about each individual onion domain.
                 - id:           The numerical ID of that domain.
@@ -641,15 +660,13 @@ class Scribe():
                 - online:       Whether the domain was online in the last scan.
                 - last_online:  The last date the page was seen online.
                 - date:         The date of the last scan.
-                - info:         Any additional info known about the domain.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS onions ( \
-                            id INTEGER PRIMARY KEY, \
+                            id SERIAL PRIMARY KEY, \
                             domain TEXT, \
                             online INTEGER DEFAULT '1', \
-                            last_online DATETIME DEFAULT 'never', \
-                            date DATETIME DEFAULT '1900-01-01 00:00:01', \
-                            info TEXT DEFAULT 'none', \
+                            last_online DATE DEFAULT '1900-01-01', \
+                            date DATE DEFAULT '1900-01-01', \
                             CONSTRAINT unique_domain UNIQUE(domain));")
 
             ''' Urls: Information about each link discovered.
@@ -662,12 +679,12 @@ class Scribe():
                 - fault:        If there's a fault preventing scanning, log it.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS urls ( \
-                            id INTEGER PRIMARY KEY, \
+                            id SERIAL PRIMARY KEY, \
                             title TEXT DEFAULT 'none', \
                             domain INTEGER, \
                             url TEXT, \
                             hash TEXT DEFAULT 'none', \
-                            date DATETIME DEFAULT '1900-01-01 00:00:01', \
+                            date DATE DEFAULT '1900-01-01', \
                             fault TEXT DEFAULT 'none', \
                             CONSTRAINT unique_url UNIQUE(domain, url));")
 
@@ -676,15 +693,13 @@ class Scribe():
                 - url:          The url of the page.
                 - title:        The title of the page.
                 - domain:       The numerical ID of the page's parent domain.
-                - info:         Some information about the page.
                 - fault:        If there's a fault preventing scanning, log it.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
-                           id INTEGER PRIMARY KEY, \
+                           id SERIAL PRIMARY KEY, \
                            url TEXT, \
                            title TEXT DEFAULT 'none', \
                            domain INTEGER, \
-                           info TEXT, \
                            fault TEXT DEFAULT 'none', \
                            CONSTRAINT unique_page UNIQUE(domain, url));")
 
@@ -695,7 +710,7 @@ class Scribe():
                 - examples:     Some examples of found values.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS forms ( \
-                           id INTEGER PRIMARY KEY, \
+                           id SERIAL PRIMARY KEY, \
                            page INTEGER, \
                            field TEXT, \
                            examples TEXT DEFAULT 'none', \
@@ -791,22 +806,21 @@ class Scribe():
                            '7', \
                            '/');")
 
+            # Save our changes.
             connection.commit()
-            connection.close()
 
             log("Database initialized.")
         else:
             # The database already exists.
             log("Database loaded.")
+        connection.close()
 
 
 '''---[ FUNCTION DEFINITIONS ]---'''
 
 
-def combine(message, args=[]):
-    while(len(args) > 0):
-        message = message.replace('?', args.pop(0), 1)
-    return message
+def combine(message, args=()):
+    return 'Message: {}\t| Args: {}'.format(message, args)
 
 
 def extract_exact(list1, list2):
@@ -816,8 +830,8 @@ def extract_exact(list1, list2):
 
 
 def get_timestamp():
-    # Get a time stamp that fits Sqlite3's DATETIME format.
-    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    # Get a time stamp that fits PostgreSQL's DATE format.
+    return datetime.now().strftime('%Y-%m-%d')
 
 
 def get_tor_session():
@@ -833,7 +847,7 @@ def get_tor_session():
 
 def log(line):
     message = '{}| {}: {}'.format(
-            get_timestamp(),
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             mp.current_process().name,
             line)
     message = ' '.join(message.split()) # Remove unnecessary whitespace.
@@ -841,7 +855,7 @@ def log(line):
         # Print to the screen if log_to_console is enabled.
         print(message)
     # Append the message to the logfile.
-    f = open('data/spider.log', 'a')
+    f = open('run.log', 'a')
     f.write('{}\n'.format(message))
     f.close()
 
@@ -854,17 +868,43 @@ def unique(items):
 '''---[ SCRIPT ]---'''
 
 if __name__ == '__main__':
-    # If the data directory doesn't exist, create it.
-    if(not os.path.exists('data')):
-        try:
-            os.mkdir('data')
-        except Exception as e:
-            log('Failed to create data directory: {}'.format(e))
-            log('-' * 40)
-            sys.exit(0)
+    if(not os.path.exists('spider.cfg')):
+        # If we don't yet have a configuration file, make one and tell the
+        # user to set it up before continuing.
+        default_config = configparser.RawConfigParser()
+        default_config.optionxform = lambda option: option
+        default_config['TorSpider'] = {
+                'LogToConsole': 'True',
+                'Daemonize': 'False'
+        }
+        default_config['PostgreSQL'] = {
+                'Username': 'username',
+                'Password': 'password',
+                'Hostname': '127.0.0.1',
+                'Database': 'TorSpider'
+        }
+        with open('spider.cfg', 'w') as config_file:
+            default_config.write(config_file)
+        print('Default configuration stored in spider.cfg.')
+        print('Please edit spider.cfg before running TorSpider again.')
+        sys.exit(0)
+
+    # Load the configuration file.
+    try:
+        config = configparser.ConfigParser()
+        config.read('spider.cfg')
+        log_to_console = config['TorSpider'].getboolean('LogToConsole')
+        daemonize = config['TorSpider'].getboolean('Daemonize')
+        postgre_user = config['PostgreSQL'].get('Username')
+        postgre_pass = config['PostgreSQL'].get('Password')
+        postgre_host = config['PostgreSQL'].get('Hostname')
+        postgre_dbase = config['PostgreSQL'].get('Database')
+    except Exception as e:
+        print('Could not parse spider.cfg. Please verify its syntax.')
+        sys.exit(0)
 
     log('-' * 40)
-    log('TorSpider v2 Initializing...')
+    log('TorSpider v0.3 Initializing...')
 
     # Create a Tor session and check if it's working.
     log("Establishing Tor connection...")
@@ -889,10 +929,7 @@ if __name__ == '__main__':
     Voltaire_Process = mp.Process(target=Voltaire.begin)
     Voltaire_Process.name = 'Voltaire'
     Voltaire_Process.start()
-
-    # Wait for the database to be created.
-    while(not os.path.exists('data/SpiderWeb.db')):
-        time.sleep(1)
+    time.sleep(5) # Give Voltaire time to get ready.
 
     Spiders = []
     Spider_Procs = []
