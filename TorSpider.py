@@ -422,8 +422,11 @@ class Spider():
                 output = cursor.fetchall()
                 connection.close()
                 return output
+            except psycopg2.extensions.TransactionRollbackError:
+                time.sleep(0.1)
             except Exception as e:
-                if(e != 'database is locked'):
+                if(e != 'database is locked'
+                   and e != 'deadlock detected'):
                     connection.close()
                     log("SQL Error: {}".format(
                             combine(query, args)))
@@ -453,6 +456,7 @@ class Spider():
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         netloc = self.defrag_domain(netloc)
         url = urlunsplit((scheme, netloc, path, query, fragment))
+        url = url.replace('\x00','')
         return url
 
     def get_domain(self, url):
@@ -613,12 +617,13 @@ class Scribe():
                     # Let's keep trying until we successfully execute.
                     try:
                         # Execute the command.
-                        #print("message: {}".format(message))
-                        #print("args: {}".format(args))
                         cursor.execute(message, args)
+                        # Now commit this change to the database.
+                        connection.commit()
                         executed = True
                     except Exception as e:
-                        if(e != 'database is locked'):
+                        if(e != 'database is locked'
+                           and e != 'deadlock detected'):
                             log("SQL Error: {}".format(
                                     combine(message, args)))
                             # We don't need to keep retrying a broken SQL
@@ -627,9 +632,6 @@ class Scribe():
                             raise
                         else:
                             time.sleep(0.1)  # See if the database frees up.
-
-            # Now commit those changes to the database.
-            connection.commit()
             connection.close()
 
             if(os.path.exists('sleep') and spiders_sleeping == num_spiders):

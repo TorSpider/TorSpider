@@ -1,6 +1,7 @@
 # To Do
 
 ## High Priority
+* Fix deadlock problem.
 
 ## Medium Priority
 * Enable the script to become daemonized.
