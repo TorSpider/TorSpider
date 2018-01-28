@@ -75,4 +75,4 @@ Now, go ahead and create the database for TorSpider to use.
 createdb -O spider TorSpider
 ```
 
-Now, we'll need to install the required libraries for Python to connect to the PostgreSQL server. First, drop out of the postgres user account with `ctrl-d`. Next, install psycopg2 using `pip3 install psycopg2`.
+Now, we'll need to install the required libraries for Python to connect to the PostgreSQL server. First, drop out of the postgres user account with `ctrl-d`. Next, if you haven't already, install psycopg2 using `pip3 install psycopg2`.

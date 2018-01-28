@@ -27,6 +27,10 @@ Once pip3 has installed, you can install the other remaining requirements for To
 sudo pip3 install pysocks requests cherrypy psycopg2
 ```
 
+## Install and configure PostgreSQL.
+
+You'll need an installation of PostgreSQL. Check out the `PGSQL_Install.md` file to see how this is done.
+
 ## Clone TorSpider
 
 To download the latest stable release of TorSpider, you'll want to clone it. First, change directories to wherever you want to keep TorSpider. Then:
@@ -39,7 +43,9 @@ The system will download TorSpider into ./TorSpider.
 
 ## Start TorSpider!
 
-At this point, everything should be ready to go. Start up a new screen instance by using `screen -R TorSpider`, then `cd` to the TorSpider directory and run ./TorSpider.py, like so:
+At this point, everything should be ready to go. Start up a new screen instance by using `screen -R TorSpider`, then `cd` to the TorSpider directory and run ./TorSpider.py. The first time you run the script, it'll create a configuration file called `spider.cfg`. Edit this file to include the login credentials and name of the PostgreSQL database, then save the file and run TorSpider again, like so:
+
+
 
 ```
 bash $ ./TorSpider.py
