@@ -370,10 +370,9 @@ class Spider():
                         self.set_fault(url, 'offline')
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
-                        log("I can't get online: {}".format(e))
                         # It might be a temporary outage, so let's wait
                         # for a little while and see if it fixes itself.
-                        time.sleep(10)
+                        time.sleep(5)
                         continue
 
                 except requests.exceptions.Timeout:
@@ -931,7 +930,7 @@ if __name__ == '__main__':
     Voltaire_Process = mp.Process(target=Voltaire.begin)
     Voltaire_Process.name = 'Voltaire'
     Voltaire_Process.start()
-    time.sleep(5) # Give Voltaire time to get ready.
+    time.sleep(2) # Give Voltaire time to get ready.
 
     Spiders = []
     Spider_Procs = []
