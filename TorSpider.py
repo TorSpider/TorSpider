@@ -197,7 +197,7 @@ class Spider():
 
                 try:
                     # Retrieve the page's headers.
-                    head = self.session.head(url, timeout=60)
+                    head = self.session.head(url, timeout=30)
 
                     # Redirect codes: These status codes redirect to other
                     # pages, so grab those other pages and scan them instead.
@@ -264,7 +264,7 @@ class Spider():
                         self.set_fault(url, 'type: {}'.format(content_type))
                         continue
 
-                    request = self.session.get(url, timeout=60)
+                    request = self.session.get(url, timeout=30)
                     if(content_type is None):
                         # We're going to process the request in the same way,
                         # because we couldn't get a content type from the head.
@@ -352,7 +352,19 @@ class Spider():
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
                     log("Invalid url: {}".format(url))
-                    self.set_fault(url, 'invalid')
+                    self.set_fault(url, 'invalid url')
+
+                except requests.exceptions.InvalidSchema:
+                    # We got an invalid schema.
+                    (s, n, p, q, f) = urlsplit(url)
+                    if('http' in s):
+                        # The scheme was likely misspelled. Add it with http
+                        # and https, just in case.
+                        for scheme in ['http', 'https']:
+                            s = scheme
+                            new_url = urlunsplit((s, n, p, q, f))
+                            self.add_url(new_url, domain_id)
+                    self.set_fault(url, 'invalid schema')
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.

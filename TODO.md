@@ -1,7 +1,7 @@
 # To Do
 
 ## High Priority
-* Fix deadlock problem.
+* Determine the cause of the heavy delay when putting the spiders to sleep.
 
 ## Medium Priority
 * Enable the script to become daemonized.
@@ -16,5 +16,4 @@
 ## In Process
 
 ## Complete
-* Convert all queries to PostgreSQL format.
-* Set up remote database access.
+* Create a SpiderStats script to gather information about what has been found.
