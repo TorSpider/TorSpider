@@ -605,16 +605,16 @@ class Scribe():
             # As long as the scribe is awake, he'll keep processing the
             # messages provided.
 
-            connection = sql.connect(
-                    "dbname='{}' user='{}' host='{}' \
-                    password='{}'".format(
-                            postgre_dbase,
-                            postgre_user,
-                            postgre_host,
-                            postgre_pass))
-            cursor = connection.cursor()
-
             while(not self.queue.empty()):
+                connection = sql.connect(
+                        "dbname='{}' user='{}' host='{}' \
+                        password='{}'".format(
+                                postgre_dbase,
+                                postgre_user,
+                                postgre_host,
+                                postgre_pass))
+                cursor = connection.cursor()
+
                 # Process all the messages in the queue.
                 (message, args) = self.queue.get()  # Get the next message.
                 executed = False
@@ -643,7 +643,7 @@ class Scribe():
                             raise
                         else:
                             time.sleep(0.1)  # See if the database frees up.
-            connection.close()
+                connection.close()
 
             if(os.path.exists('sleep') and spiders_sleeping == num_spiders):
                 # All the spiders have gone to sleep, so should we.

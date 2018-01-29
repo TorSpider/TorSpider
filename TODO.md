@@ -19,3 +19,4 @@
 
 ## Complete
 * Create a SpiderStats script to gather information about what has been found.
+* Close the connection after every update. Perhaps this will prevent some of the blocking and slow-downs.
