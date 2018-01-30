@@ -4,6 +4,7 @@
     doing.
 '''
 
+import sys
 import configparser
 import psycopg2 as sql
 
