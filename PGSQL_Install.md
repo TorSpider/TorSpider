@@ -67,7 +67,7 @@ Now create a user for the database.
 createuser spider -P --interactive
 ```
 
-When asked if the user should be a superuser, say no. When asked if they can create databases, say yes. Same for creating new roles; answer yes.
+When asked if the user should be a superuser, say no. When asked if they can create databases, say no. Same for creating new roles; answer no. The only database this account needs access to is TorSpider.
 
 Now, go ahead and create the database for TorSpider to use.
 
@@ -75,4 +75,4 @@ Now, go ahead and create the database for TorSpider to use.
 createdb -O spider TorSpider
 ```
 
-Now, we'll need to install the required libraries for Python to connect to the PostgreSQL server. First, drop out of the postgres user account with `ctrl-d`. Next, if you haven't already, install psycopg2 using `pip3 install psycopg2`.
+Now you can drop out of the postgres account with `ctrl-d` and you should be ready to roll! Make sure you've followed the `Fresh_Install.md` instructions, which include installing the `psycopg2` library for Python, and you should be up and running in no time!

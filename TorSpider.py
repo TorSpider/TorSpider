@@ -942,7 +942,7 @@ if __name__ == '__main__':
     Voltaire_Process = mp.Process(target=Voltaire.begin)
     Voltaire_Process.name = 'Voltaire'
     Voltaire_Process.start()
-    time.sleep(2) # Give Voltaire time to get ready.
+    time.sleep(4) # Give Voltaire time to get ready.
 
     Spiders = []
     Spider_Procs = []
