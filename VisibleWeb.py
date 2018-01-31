@@ -73,9 +73,9 @@ class VisibleWeb:
                     links.append([link_from, link_to])
             # Design output.
             output_list = []
-            for domain in domains.keys():
-                output_list.append(f"graph.addNode({domain},\
-                                   '{domains[domain]}');")
+            #for domain in domains.keys():
+            #    output_list.append(f"graph.addNode({domain},\
+            #                       '{domains[domain]}');")
             for link in links:
                 [link_from, link_to] = link
                 output_list.append(f"graph.addLink({link_from}, {link_to});")
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         '/':{'tools.staticdir.root': os.getcwd()},
         '/web':{
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': os.path.abspath('.')
+            'tools.staticdir.dir': os.path.abspath('./web')
         },
         'global':{
             'server.environment':'production',
