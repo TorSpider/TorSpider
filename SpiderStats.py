@@ -5,6 +5,7 @@
 '''
 
 import sys
+import textwrap
 import configparser
 import psycopg2 as sql
 
@@ -35,44 +36,59 @@ if(cursor.fetchall()[0][0] == False):
 print('Gathering metrics...')
 
 print('Url count...')
-cursor.execute('SELECT count(id) FROM urls;')
+cursor.execute("SELECT count(id) FROM urls;")
 url_count = cursor.fetchall()[0][0]
+cursor.execute("SELECT count(id) FROM urls WHERE date != '1900-01-01';")
+url_count_scanned = cursor.fetchall()[0][0]
+url_count_percentage = (url_count_scanned / url_count)
 
 print('Onions...')
-cursor.execute('SELECT count(id) FROM onions WHERE online = 1;')
+cursor.execute("SELECT count(id) FROM onions WHERE online = 1 AND \
+               date != '1900-01-01';")
 onion_count = cursor.fetchall()[0][0]
 
 print('Pages...')
-cursor.execute('SELECT count(id) FROM pages WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1);')
+cursor.execute("SELECT count(id) FROM pages WHERE domain IN \
+               (SELECT id FROM onions WHERE online = 1 AND \
+               date != '1900-01-01');")
 page_count = cursor.fetchall()[0][0]
 
 print('Unique forms...')
-cursor.execute('SELECT count(DISTINCT page) FROM forms WHERE page IN \
+cursor.execute("SELECT count(DISTINCT page) FROM forms WHERE page IN \
                (SELECT id FROM pages WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1));')
+               (SELECT id FROM onions WHERE online = 1 AND \
+               date != '1900-01-01'));")
 form_page_count = cursor.fetchall()[0][0]
 
 print('Form fields...')
-cursor.execute('SELECT count(id) FROM forms WHERE page IN \
+cursor.execute("SELECT count(id) FROM forms WHERE page IN \
                (SELECT id FROM pages WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1));')
+               (SELECT id FROM onions WHERE online = 1 AND \
+               date != '1900-01-01'));")
 form_field_count = cursor.fetchall()[0][0]
 
 print('Links...')
-cursor.execute('SELECT count(domain) FROM links WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1) AND link IN \
-               (SELECT id FROM onions WHERE online = 1);')
+cursor.execute("SELECT count(domain) FROM links WHERE domain IN \
+               (SELECT id FROM onions WHERE online = 1 AND \
+               date != '1900-01-01') AND link IN \
+               (SELECT id FROM onions WHERE online = 1 AND \
+               date != '1900-01-01');")
 link_count = cursor.fetchall()[0][0]
 
-print('–' * 60)
+print('–' * 70)
 print('Results:')
 messages = [
-        'So far, TorSpider has found {} urls which have revealed {} active',
-        'onion sites, comprising {} pages, with a total of {} forms and {}',
-        'form fields. TorSpider has documented {} associations between sites.'
+        'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
+        'discovered so far. Of the scanned sites, {:,} are known to be active,',
+        'comprising {:,} pages, {:,} forms and {:,} form fields. TorSpider has',
+        'found {:,} direct links between these sites.'
 ]
-message = '\n'.join(messages)
-print(message.format(url_count, onion_count, page_count, form_page_count, form_field_count, link_count))
+
+message = ' '.join(messages)
+message = message.format(url_count_scanned, url_count_percentage, url_count,
+                         onion_count, page_count, form_page_count,
+                         form_field_count, link_count)
+message = textwrap.fill(message)
+print(message)
 
 connection.close()
