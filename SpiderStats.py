@@ -79,7 +79,7 @@ print('–' * 70)
 print('Results:')
 messages = [
         'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
-        'discovered so far. Of the scanned sites, {:,} are known to be active,',
+        'discovered. Of the scanned sites, {:,} are known to be active,',
         'comprising {:,} pages, {:,} forms and {:,} form fields. TorSpider has',
         'found {:,} direct links between these sites.'
 ]
