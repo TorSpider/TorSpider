@@ -74,18 +74,19 @@ class VisibleWeb:
             # Design output.
             output_list = []
             #for domain in domains.keys():
-            #    output_list.append(f"graph.addNode({domain},\
-            #                       '{domains[domain]}');")
+                output_list.append("graph.addNode({}, '{}');".format(
+                        domain, domains[domain]))
             for link in links:
                 [link_from, link_to] = link
-                output_list.append(f"graph.addLink({link_from}, {link_to});")
+                output_list.append("graph.addLink({}, {});".format(
+                        link_from, link_to))
             output_list.append('var renderer = \
                                Viva.Graph.View.renderer(graph);')
             # Create HTML.
             output = open('web/head.html','r').read()
             for item in output_list:
                 stripped = ' '.join(item.split())
-                output += f'            {stripped}\n'
+                output += '            {}\n'.format(stripped)
             output += open('web/foot.html','r').read()
             return output
     index.exposed = True
