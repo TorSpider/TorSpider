@@ -96,7 +96,7 @@ if __name__ == '__main__':
         '/':{'tools.staticdir.root': os.getcwd()},
         '/web':{
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': os.path.abspath('./web')
+            'tools.staticdir.dir': './web'
         },
         'global':{
             'server.environment':'production',
