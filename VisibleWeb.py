@@ -41,7 +41,7 @@ class VisibleWeb:
 
     def index(self):
         # Retrieve link information, then build visual representation.
-        result = db_get("SELECT EXISTS (SELECT 1 FROM pg_tables \
+        result = self.db_get("SELECT EXISTS (SELECT 1 FROM pg_tables \
                        WHERE tablename = 'links');")
         if(result[0][0] != False):
             # Get the list of domains.
