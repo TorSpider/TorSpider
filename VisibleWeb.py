@@ -73,7 +73,7 @@ class VisibleWeb:
                     links.append([link_from, link_to])
             # Design output.
             output_list = []
-            #for domain in domains.keys():
+            for domain in domains.keys():
                 output_list.append("graph.addNode({}, '{}');".format(
                         domain, domains[domain]))
             for link in links:
