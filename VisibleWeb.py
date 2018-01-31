@@ -36,7 +36,7 @@ class VisibleWeb:
             connection.close()
             return result
         except Exception as e:
-            print(f'Error: {e}')
+            print('Error: {}'.format(e))
             return None
 
     def index(self):
