@@ -5,7 +5,7 @@
     crafts a visible render of the Invisible Web as we presently know it.
 '''
 
-import sys
+import sys, os
 import configparser
 import cherrypy as web
 import psycopg2 as sql
