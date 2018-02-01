@@ -18,6 +18,7 @@
 
 ## In Process
 * Test new changes.
+* Catch and fix exception psycopg2.OperationalError (server closed the connection unexpectedly) -- retry query if possible.
 * Streamline scans to reduce network and processor load on the database.
 
 ## Complete

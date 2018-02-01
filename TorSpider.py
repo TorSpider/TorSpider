@@ -459,6 +459,19 @@ class Spider():
                 return output
             except psycopg2.extensions.TransactionRollbackError:
                 time.sleep(0.1)
+            except psycopg2.OperationalError:
+                # The connection to the database failed. Wait a while
+                # and try again.
+                connection.close()
+                time.sleep(1)
+                connection = sql.connect(
+                        "dbname='{}' user='{}' host='{}' \
+                        password='{}'".format(
+                                postgre_dbase,
+                                postgre_user,
+                                postgre_host,
+                                postgre_pass))
+                cursor = connection.cursor()
             except Exception as e:
                 if(e != 'database is locked'
                    and e != 'deadlock detected'):
@@ -663,6 +676,21 @@ class Scribe():
                         # Now commit this change to the database.
                         connection.commit()
                         executed = True
+                    except psycopg2.extensions.TransactionRollbackError:
+                        time.sleep(0.1)
+                    except psycopg2.OperationalError:
+                        # The connection to the database failed. Wait a while
+                        # and try again.
+                        connection.close()
+                        time.sleep(1)
+                        connection = sql.connect(
+                                "dbname='{}' user='{}' host='{}' \
+                                password='{}'".format(
+                                        postgre_dbase,
+                                        postgre_user,
+                                        postgre_host,
+                                        postgre_pass))
+                        cursor = connection.cursor()
                     except Exception as e:
                         if(e != 'database is locked'
                            and e != 'deadlock detected'):
