@@ -654,6 +654,7 @@ class Scribe():
 
                 # Process all the messages in the queue.
                 (message, args) = self.queue.get()  # Get the next message.
+                log("{}::{}".format(message, args))
                 executed = False
 
                 if(message == 'sleeping'):
