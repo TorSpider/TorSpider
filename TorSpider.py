@@ -646,7 +646,14 @@ class Scribe():
                 if(message == 'sleeping'):
                     # Take note when a spider goes to sleep.
                     spiders_sleeping += 1
+                    if(spiders_sleeping == num_spiders):
+                        log("Time to wrap it up. The spiders are sleeping.")
                     executed = True
+
+                if(spiders_sleeping == num_spiders):
+                    log('I have {} more items to process.'.format(
+                            self.queue.qsize()
+                    ))
 
                 while(not executed):
                     # Let's keep trying until we successfully execute.
