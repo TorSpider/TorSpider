@@ -438,6 +438,10 @@ class Spider():
 
                 except NotImplementedError as e:
                     log("I don't know what this means: {} - {}".format(e, url))
+
+                # Take a nap for a little while, to give Voltaire some time
+                # to catch up.
+                time.sleep(5)
         self.db_put('sleeping')  # Let the Scribe know we're going to sleep.
         log("Going to sleep!")
 
@@ -654,20 +658,7 @@ class Scribe():
 
                 # Process all the messages in the queue.
                 (message, args) = self.queue.get()  # Get the next message.
-                log("{}::{}".format(message, args))
                 executed = False
-
-                if(message == 'sleeping'):
-                    # Take note when a spider goes to sleep.
-                    spiders_sleeping += 1
-                    if(spiders_sleeping == num_spiders):
-                        log("Time to wrap it up. The spiders are sleeping.")
-                    executed = True
-
-                if(spiders_sleeping == num_spiders):
-                    log('I have {} more items to process.'.format(
-                            self.queue.qsize()
-                    ))
 
                 while(not executed):
                     # Let's keep trying until we successfully execute.
@@ -1043,5 +1034,5 @@ if __name__ == '__main__':
         os.unlink('sleep')
     except Exception as e:
         pass
-    log('The Spiders and Scribe gone to sleep. ZzZzz...')
+    log('The Spiders and Scribe have gone to sleep. ZzZzz...')
     log('-' * 40)
