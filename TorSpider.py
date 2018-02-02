@@ -480,7 +480,6 @@ class Spider():
                     connection.close()
                     log("SQL Error: {}".format(
                             combine(query, args)))
-                    raise
                     return None
                 else:
                     # Let's see if the database frees up.
