@@ -930,7 +930,7 @@ if __name__ == '__main__':
     # the scribe process.
     count = (mp.cpu_count() * 2)
     for x in range(count):
-        spider = Spider(queue)
+        spider = Spider()
         spider_proc = mp.Process(target=spider.crawl)
         random.shuffle(names)
         spider_proc.name = names.pop()
