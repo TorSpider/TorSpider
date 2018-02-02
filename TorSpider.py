@@ -9,8 +9,6 @@
    |                                                                      |
    | TorSpider employs an army of spiders to explore Tor hidden services, |
    | seeking to uncover and catalogue the deepest reaches of the darknet. |
-   | They are accompanied by Voltaire, their trusty historian and scribe, |
-   | who chronicles their adventure with his sharp quill and sharper wit. |
     ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 '''
 

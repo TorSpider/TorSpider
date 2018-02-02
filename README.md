@@ -16,7 +16,7 @@ WebCrawler provides an intuitive web-based front-end to this database, allowing 
 
 ### Prerequisites:
 
-TorSpider and TorWeb are both written in **Python 3.6**.
+TorSpider and TorWeb are both written in **Python 3**.
 
 TorSpider requires the **requests** and **pysocks** libraries in order to scrape pages through Tor.
 
