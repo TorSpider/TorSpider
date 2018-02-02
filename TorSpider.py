@@ -453,7 +453,10 @@ class Spider():
         while(True):
             try:
                 cursor.execute(query, args)
-                output = cursor.fetchall()
+                try:
+                    output = cursor.fetchall()
+                except Exception as e:
+                    output = None
                 connection.close()
                 return output
             except sql.extensions.TransactionRollbackError:
