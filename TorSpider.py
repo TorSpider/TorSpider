@@ -457,6 +457,7 @@ class Spider():
                     output = cursor.fetchall()
                 except Exception as e:
                     output = None
+                connection.commit()
                 connection.close()
                 return output
             except sql.extensions.TransactionRollbackError:
