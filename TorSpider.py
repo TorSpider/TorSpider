@@ -461,9 +461,9 @@ class Spider():
                 output = cursor.fetchall()
                 connection.close()
                 return output
-            except psycopg2.extensions.TransactionRollbackError:
+            except sql.extensions.TransactionRollbackError:
                 time.sleep(0.1)
-            except psycopg2.OperationalError:
+            except sql.OperationalError:
                 # The connection to the database failed. Wait a while
                 # and try again.
                 connection.close()
@@ -660,6 +660,9 @@ class Scribe():
                 (message, args) = self.queue.get()  # Get the next message.
                 executed = False
 
+                if(message is 'sleeping'):
+                    executed = True
+
                 while(not executed):
                     # Let's keep trying until we successfully execute.
                     try:
@@ -668,9 +671,9 @@ class Scribe():
                         # Now commit this change to the database.
                         connection.commit()
                         executed = True
-                    except psycopg2.extensions.TransactionRollbackError:
+                    except sql.extensions.TransactionRollbackError:
                         time.sleep(0.1)
-                    except psycopg2.OperationalError:
+                    except sql.OperationalError:
                         # The connection to the database failed. Wait a while
                         # and try again.
                         connection.close()
