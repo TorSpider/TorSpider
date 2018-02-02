@@ -650,7 +650,7 @@ def check_db():
             - online:        Whether the domain was online in the last scan.
             - last_online:   The last date the page was seen online.
             - date:          The date of the last scan.
-            - scans_offline: How many times the onion has scanned offline.
+            - offline_scans: How many times the onion has scanned offline.
         '''
         cursor.execute("CREATE TABLE IF NOT EXISTS onions ( \
                         id SERIAL PRIMARY KEY, \
@@ -658,7 +658,7 @@ def check_db():
                         online INTEGER DEFAULT '1', \
                         last_online DATE DEFAULT '1900-01-01', \
                         date DATE DEFAULT '1900-01-01', \
-                        scans_offline INTEGER DEFAULT '0', \
+                        offline_scans INTEGER DEFAULT '0', \
                         CONSTRAINT unique_domain UNIQUE(domain));")
 
         ''' Urls: Information about each link discovered.
