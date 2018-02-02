@@ -164,7 +164,7 @@ class Spider():
                 time_to_sleep = True
             else:
                 # Query the database for a random link that hasn't been
-                # scanned in 7 days or whose domain was marked offline more
+                # scanned in 7 days or whose domain was last scanned more
                 # than a day ago.
                 query = self.db_get("SELECT domain, url FROM urls \
                               WHERE fault = 'none' \
@@ -253,6 +253,9 @@ class Spider():
                     # Update the last_online date.
                     self.db_put('UPDATE onions SET last_online = CURRENT_DATE \
                                 WHERE id = %s;', (domain_id, ))
+                    # Reset the offline_scans number to zero.
+                    self.db_put("UPDATE onions SET offline_scans = '0' \
+                                WHERE id = %s;", (domain_id, ))
 
                     content_type = self.get_type(head.headers)
                     # We only want to scan text for links. But if we don't
@@ -374,12 +377,33 @@ class Spider():
                         # If we've reached this point, Tor is working.
                         # Set the domain to offline.
                         self.db_put("UPDATE onions SET online = '0' \
-                                    WHERE id = %s", (domain_id, ))
-                        # Make sure we don't keep scanning the pages.
-                        self.db_put("UPDATE urls SET date = CURRENT_DATE \
+                                    WHERE id = %s;", (domain_id, ))
+                        # In order to reduce the frequency of scans for offline
+                        # pages, set the scan date ahead by the number of times
+                        # the page has been scanned offline. To do this, first
+                        # retrieve the number of times the page has been
+                        # scanned offline.
+                        offline_scans = self.db_get(
+                                'SELECT offline_scans FROM onions WHERE \
+                                id = %s;', (domain_id, )
+                        )[0][0]
+                        # Next, increment the scans by one.
+                        offline_scans += 1
+                        # Save the new value to the database.
+                        self.db_put("UPDATE onions SET offline_scans = %s \
+                                    WHERE id = %s;",
+                                    (offline_scans, domain_id))
+                        # Now, set the interval we'll be using for the date.
+                        interval = ('1 day' if offline_scans == 1
+                                    else '{} days'.format(offline_scans))
+                        # Then update the urls and onions scan dates.
+                        self.db_put("UPDATE urls SET date = \
+                                    (CURRENT_DATE + INTERVAL %s) \
                                     WHERE domain = %s;",
-                                    (domain_id, ))
-                        self.set_fault(url, 'offline')
+                                    (interval, domain_id, ))
+                        self.db_put("UPDATE onions SET date = \
+                                    (CURRENT_DATE + INTERVAL %s) \
+                                    WHERE id = %s;", (interval, domain_id, ))
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
                         # It might be a temporary outage, so let's wait
@@ -414,6 +438,10 @@ class Spider():
 
                 except NotImplementedError as e:
                     log("I don't know what this means: {} - {}".format(e, url))
+
+                # Take a nap for a little while, to give Voltaire some time
+                # to catch up.
+                time.sleep(5)
         self.db_put('sleeping')  # Let the Scribe know we're going to sleep.
         log("Going to sleep!")
 
@@ -435,6 +463,19 @@ class Spider():
                 return output
             except psycopg2.extensions.TransactionRollbackError:
                 time.sleep(0.1)
+            except psycopg2.OperationalError:
+                # The connection to the database failed. Wait a while
+                # and try again.
+                connection.close()
+                time.sleep(1)
+                connection = sql.connect(
+                        "dbname='{}' user='{}' host='{}' \
+                        password='{}'".format(
+                                postgre_dbase,
+                                postgre_user,
+                                postgre_host,
+                                postgre_pass))
+                cursor = connection.cursor()
             except Exception as e:
                 if(e != 'database is locked'
                    and e != 'deadlock detected'):
@@ -619,11 +660,6 @@ class Scribe():
                 (message, args) = self.queue.get()  # Get the next message.
                 executed = False
 
-                if(message == 'sleeping'):
-                    # Take note when a spider goes to sleep.
-                    spiders_sleeping += 1
-                    executed = True
-
                 while(not executed):
                     # Let's keep trying until we successfully execute.
                     try:
@@ -632,6 +668,21 @@ class Scribe():
                         # Now commit this change to the database.
                         connection.commit()
                         executed = True
+                    except psycopg2.extensions.TransactionRollbackError:
+                        time.sleep(0.1)
+                    except psycopg2.OperationalError:
+                        # The connection to the database failed. Wait a while
+                        # and try again.
+                        connection.close()
+                        time.sleep(1)
+                        connection = sql.connect(
+                                "dbname='{}' user='{}' host='{}' \
+                                password='{}'".format(
+                                        postgre_dbase,
+                                        postgre_user,
+                                        postgre_host,
+                                        postgre_pass))
+                        cursor = connection.cursor()
                     except Exception as e:
                         if(e != 'database is locked'
                            and e != 'deadlock detected'):
@@ -668,11 +719,12 @@ class Scribe():
             log("Initializing new database...")
 
             ''' Onions: Information about each individual onion domain.
-                - id:           The numerical ID of that domain.
-                - domain:       The domain itself (i.e. 'google.com').
-                - online:       Whether the domain was online in the last scan.
-                - last_online:  The last date the page was seen online.
-                - date:         The date of the last scan.
+                - id:            The numerical ID of that domain.
+                - domain:        The domain itself (i.e. 'google.com').
+                - online:        Whether the domain was online in the last scan.
+                - last_online:   The last date the page was seen online.
+                - date:          The date of the last scan.
+                - scans_offline: How many times the onion has scanned offline.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS onions ( \
                             id SERIAL PRIMARY KEY, \
@@ -680,16 +732,17 @@ class Scribe():
                             online INTEGER DEFAULT '1', \
                             last_online DATE DEFAULT '1900-01-01', \
                             date DATE DEFAULT '1900-01-01', \
+                            scans_offline INTEGER DEFAULT '0', \
                             CONSTRAINT unique_domain UNIQUE(domain));")
 
             ''' Urls: Information about each link discovered.
-                - id:           The numerical ID of that url.
-                - title:        The url's title.
-                - domain:       The numerical ID of the url's parent domain.
-                - url:          The url itself.
-                - hash:         The page's sha1 hash, for detecting changes.
-                - date:         The date of the last scan.
-                - fault:        If there's a fault preventing scanning, log it.
+                - id:            The numerical ID of that url.
+                - title:         The url's title.
+                - domain:        The numerical ID of the url's parent domain.
+                - url:           The url itself.
+                - hash:          The page's sha1 hash, for detecting changes.
+                - date:          The date of the last scan.
+                - fault:         If there's a fault preventing scanning, log it.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS urls ( \
                             id SERIAL PRIMARY KEY, \
@@ -702,11 +755,11 @@ class Scribe():
                             CONSTRAINT unique_url UNIQUE(domain, url));")
 
             ''' Pages: Information about the various pages in each domain.
-                - id:           The numerical ID of the page.
-                - url:          The url of the page.
-                - title:        The title of the page.
-                - domain:       The numerical ID of the page's parent domain.
-                - fault:        If there's a fault preventing scanning, log it.
+                - id:            The numerical ID of the page.
+                - url:           The url of the page.
+                - title:         The title of the page.
+                - domain:        The numerical ID of the page's parent domain.
+                - fault:         If there's a fault preventing scanning, log it.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS pages ( \
                            id SERIAL PRIMARY KEY, \
@@ -717,10 +770,10 @@ class Scribe():
                            CONSTRAINT unique_page UNIQUE(domain, url));")
 
             ''' Forms: Information about the various form fields for each page.
-                - id:           The numerical ID of the form field.
-                - page:         The numerical ID of the page it links to.
-                - field:        The name of the form field.
-                - examples:     Some examples of found values.
+                - id:            The numerical ID of the form field.
+                - page:          The numerical ID of the page it links to.
+                - field:         The name of the form field.
+                - examples:      Some examples of found values.
             '''
             cursor.execute("CREATE TABLE IF NOT EXISTS forms ( \
                            id SERIAL PRIMARY KEY, \
@@ -730,8 +783,8 @@ class Scribe():
                            CONSTRAINT unique_field UNIQUE(page, field));")
 
             ''' Links: Information about which domains connect to each other.
-                - domain:       The numerical ID of the origin domain.
-                - link:         The numerical ID of the target domain.
+                - domain:        The numerical ID of the origin domain.
+                - link:          The numerical ID of the target domain.
             '''
             cursor.execute('CREATE TABLE IF NOT EXISTS links ( \
                             domain INTEGER, \
@@ -981,5 +1034,5 @@ if __name__ == '__main__':
         os.unlink('sleep')
     except Exception as e:
         pass
-    log('The Spiders and Scribe gone to sleep. ZzZzz...')
+    log('The Spiders and Scribe have gone to sleep. ZzZzz...')
     log('-' * 40)
