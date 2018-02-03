@@ -1,10 +1,63 @@
-#!/usr/bin/env python3
-
-''' Test parsing forms. '''
-
 from html.parser import HTMLParser
 
+
+class ParseLinks(HTMLParser):
+    # Parse given HTML for all a.href links.
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.output_list = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.output_list.append(dict(attrs).get('href'))
+
+
+class ParseTitle(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.match = False
+        self.title = ''
+
+    def handle_starttag(self, tag, attributes):
+        self.match = True if tag == 'title' else False
+
+    def handle_data(self, data):
+        if self.match:
+            self.title = data
+            self.match = False
+
+
 class FormParser(HTMLParser):
+    ''' Here's the format of the FormParser's output (list of dictionaries):
+        [{
+            'action': 'page.html',
+            'method': 'get/put',
+            'target': 'whatever',
+            'text_fields': {
+                'name': 'default value'
+            },
+            'radio_buttons': {
+                'name': ['values']
+            },
+            'checkboxes': {
+                'name': ['values']
+            },
+            'dropdowns': {
+                'name': ['values']
+            },
+            'text_areas': {
+                'name': 'default value'
+            },
+            'dates': [names],
+            'datetimes': [names],
+            'months': [names],
+            'numbers': [names],
+            'ranges': [names],
+            'times': [names],
+            'weeks': [names]
+        }]
+        There's one list entry per form on the page.
+    '''
     def __init__(self):
         HTMLParser.__init__(self)
         self.found = False
@@ -14,6 +67,7 @@ class FormParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         if(tag == 'form'):
+            # We're starting a fresh form.
             self.found = True
             self.form = []
             self.form.append(('action', dict(attrs).get('action')))
@@ -32,6 +86,7 @@ class FormParser(HTMLParser):
             self.times = []
             self.weeks = []
         elif(tag == 'textarea'):
+            # We're starting a text area.
             self.text_area_name = dict(attrs).get('name')
             self.text_area = True
             self.text_area_value = ''
@@ -41,6 +96,7 @@ class FormParser(HTMLParser):
             self.select_name = dict(attrs).get('name')
             self.select_options = []
         elif(tag == 'option'):
+            # It's part of a select field.
             self.select_options.append(dict(attrs).get('value'))
         elif(tag == 'input'):
             input_type = dict(attrs).get('type')
@@ -122,17 +178,8 @@ class FormParser(HTMLParser):
             self.text_areas[self.text_area_name] = self.text_area_value
             self.text_area_name = ''
         elif(tag == 'select'):
-            # We're finishing a selection.
+            # Closing out a selection.
             self.dropdowns[self.select_name] = self.select_options
             self.select_name = ''
             self.select_options = []
             self.selecting = False
-
-
-data = open('form.html').read()
-parser = FormParser()
-parser.feed(data)
-
-for form in parser.forms:
-    form_data = dict(form)
-    print(form_data)

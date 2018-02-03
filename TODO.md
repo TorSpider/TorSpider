@@ -1,7 +1,6 @@
 # To Do
 
 ## High Priority
-* Export parser class definitions to a separate library.
 
 ## Medium Priority
 * Include [sshtunnel](https://github.com/pahaz/sshtunnel) to enable access to remote servers. You can set up the server like [so](https://unix.stackexchange.com/questions/235040/how-do-i-create-a-ssh-user-that-can-only-access-mysql) to prevent the public account from having any additional rights in the system.
@@ -16,5 +15,6 @@
 
 ## In Process
 * Detect forms in the HTML, save the action= and the input fields to the pages table.
+* Export parser class definitions to a separate library.
 
 ## Complete

@@ -20,9 +20,9 @@ import requests              # |  place for the squeamish or the faint  | #
 import configparser          # |    of heart. Here there be dragons!    | #
 import psycopg2 as sql       # +----------------------------------------+ #
 from hashlib import sha1
+from libs.parsers import *
 import multiprocessing as mp
 from datetime import datetime
-from html.parser import HTMLParser
 from urllib.parse import urlsplit, urlunsplit
 
 '''---[ GLOBAL VARIABLES ]---'''
@@ -35,32 +35,6 @@ requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += \
                                               ':ECDHE-ECDSA-AES128-GCM-SHA256'
 
 '''---[ CLASS DEFINITIONS ]---'''
-
-
-class ParseLinks(HTMLParser):
-    # Parse given HTML for all a.href links.
-    def __init__(self):
-        HTMLParser.__init__(self)
-        self.output_list = []
-
-    def handle_starttag(self, tag, attrs):
-        if tag == 'a':
-            self.output_list.append(dict(attrs).get('href'))
-
-
-class ParseTitle(HTMLParser):
-    def __init__(self):
-        HTMLParser.__init__(self)
-        self.match = False
-        self.title = ''
-
-    def handle_starttag(self, tag, attributes):
-        self.match = True if tag == 'title' else False
-
-    def handle_data(self, data):
-        if self.match:
-            self.title = data
-            self.match = False
 
 
 class Spider():
