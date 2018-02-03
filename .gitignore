@@ -90,5 +90,6 @@ ENV/
 
 # TorSpider-specific files
 *.cfg
+*.cfg*
 *.log
 sleep
