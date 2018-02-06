@@ -513,17 +513,18 @@ class Spider():
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         netloc = self.defrag_domain(netloc)
         url = urlunsplit((scheme, netloc, path, query, fragment))
-        url = url.replace('\x00','')
-        return url
+        return url.replace('\x00','')
 
     def get_domain(self, url):
         # Get the defragmented domain of the given url.
-        domain = self.defrag_domain(urlsplit(url).netloc)
-        # Let's omit subdomains. Rather than having separate records for urls
+        # Omit subdomains. Rather than having separate records for urls
         # like sub1.onionpage.onion and sub2.onionpage.onion, just keep them
         # all under onionpage.onion.
-        domain = '.'.join(domain.split('.')[-2:])
-        return domain
+        return '.'.join(
+                self.defrag_domain(
+                        urlsplit(url).netloc
+                ).split('.')[-2:]
+        )
 
     def get_hash(self, data):
         # Get the sha1 hash of the provided data. Data must be binary-encoded.
@@ -593,12 +594,10 @@ class Spider():
 
     def get_type(self, headers):
         # What's the content type of the page we're checking?
-        content_type = None
         try:
-            content_type = headers['Content-Type'].split('/')[0]
+            return headers['Content-Type'].split('/')[0]
         except Exception as e:
-            pass
-        return content_type
+            return None
 
     def is_http(self, url):
         # Determine whether the link is an http/https scheme or not.
@@ -624,14 +623,13 @@ class Spider():
         return urlunsplit((us, un, np, nq, nf))  # Join them and return.
 
     def set_fault(self, url, fault):
-        # Update the url's fault.
-        self.db('UPDATE urls SET fault = %s WHERE url = %s;', (fault, url))
-        # Then, update the page's fault.
+        # Update the url and page faults.
         page = self.get_page(url)
         domain = self.get_domain(url)
-        self.db('UPDATE pages SET fault = %s WHERE url = %s AND domain = \
+        self.db('UPDATE urls SET fault = %s WHERE url = %s; \
+                UPDATE pages SET fault = %s WHERE url = %s AND domain = \
                 (SELECT id FROM onions WHERE domain = %s);',
-                (fault, page, domain))
+                (fault, url, fault, page, domain))
 
 
 '''---[ FUNCTIONS ]---'''
