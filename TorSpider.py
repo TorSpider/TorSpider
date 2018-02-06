@@ -136,15 +136,17 @@ class Spider():
                 time_to_sleep = True
             else:
                 # Query the database for a random link that hasn't been
-                # scanned in 7 days or whose domain was last scanned more
-                # than a day ago.
-                query = self.db("SELECT domain, url FROM urls \
-                                WHERE fault = 'none' \
-                                AND (date < (CURRENT_DATE - INTERVAL \
-                                '7 days') OR domain IN (SELECT id FROM \
-                                onions WHERE online = '0' AND \
-                                date < (CURRENT_DATE - INTERVAL \
-                                '1 day'))) ORDER BY RANDOM() LIMIT 1;")
+                # scanned in 7 days, or whose domain was last scanned more
+                # than a day ago, or whose domain was found offline by a
+                # different node but hasn't been marked offline yet.
+                query = self.db("SELECT domain, url FROM urls WHERE \
+                                fault = 'none' AND (date < \
+                                (CURRENT_DATE - INTERVAL '7 days') OR \
+                                domain IN (SELECT id FROM onions \
+                                WHERE (online = '0' AND date < \
+                                (CURRENT_DATE - INTERVAL '1 day')) OR \
+                                (online = '1' AND tries != '0')) \
+                                ORDER BY RANDOM() LIMIT 1;")
                 try:
                     (domain_id, url) = query[0]
                     url = self.fix_url(url)
@@ -153,12 +155,29 @@ class Spider():
                     time.sleep(5)
                     continue
 
+                # See if this onion has been scanned offline by another node.
+                query = self.db("SELECT tries, last_node FROM onions \
+                                WHERE id = %s;", [domain_id])
+                try:
+                    (tries, last_node) = query[0]
+                except Exception as e:
+                    tries = 0
+                    last_node = 'none'
+
+                if(last_node == node_name and tries > 0):
+                    # This was scanned by this node last. Let's avoid this.
+                    log('I scanned this as offline already. Skipping.')
+                    continue
+                elif(tries > 0):
+                    log('This node was scanned offline before. Scanning...')
+
                 # Update the scan date for this page and domain.
                 self.db("UPDATE urls SET date = CURRENT_DATE \
                         WHERE url = %s AND domain \
                         = %s;", (url, domain_id))
-                self.db("UPDATE onions SET date = CURRENT_DATE \
-                        WHERE id = %s;", (domain_id, ))
+                self.db("UPDATE onions SET date = CURRENT_DATE, \
+                        last_node = %s WHERE id = %s;", (
+                                node_name, domain_id, ))
 
                 # Check to see if it's an http/https link.
                 if(not self.is_http(url)):
@@ -167,7 +186,6 @@ class Spider():
                     continue
 
                 keep_trying = True
-                tries = 0
                 while(keep_trying):
                     keep_trying = False
                     try:
@@ -228,8 +246,8 @@ class Spider():
                             continue
 
                         # Update the last_online date.
-                        self.db('UPDATE onions SET last_online = CURRENT_DATE \
-                                WHERE id = %s;', (domain_id, ))
+                        self.db('UPDATE onions SET last_online = CURRENT_DATE, \
+                                tries = '0' WHERE id = %s;', (domain_id, ))
                         # Reset the offline_scans number to zero.
                         self.db("UPDATE onions SET offline_scans = '0' \
                                 WHERE id = %s;", (domain_id, ))
@@ -362,8 +380,9 @@ class Spider():
                             if(tries == 3):
                                 # We've failed three times.
                                 # Set the domain to offline.
-                                self.db("UPDATE onions SET online = '0' \
-                                        WHERE id = %s;", (domain_id, ))
+                                self.db("UPDATE onions SET online = '0', \
+                                        tries = '0' WHERE id = %s;", (
+                                                domain_id, ))
                                 # In order to reduce the frequency of scans for
                                 # offline pages, set the scan date ahead by the
                                 # number of times the page has been scanned
@@ -395,6 +414,9 @@ class Spider():
                                         WHERE id = %s;", (
                                                 interval, domain_id, ))
                             else:
+                                self.db('UPDATE onions SET last_online = \
+                                        CURRENT_DATE, tries = %s \
+                                        WHERE id = %s;', (tries, domain_id, ))
                                 keep_trying = True
                         except Exception as e:
                             # We aren't connected to Tor for some reason.
@@ -410,6 +432,9 @@ class Spider():
                         tries += 1
                         if(tries < 3):
                             # Try three times, then give up.
+                            self.db('UPDATE onions SET last_online = \
+                                    CURRENT_DATE, tries = %s \
+                                    WHERE id = %s;', (tries, domain_id, ))
                             keep_trying = True
 
                     except requests.exceptions.TooManyRedirects as e:
@@ -651,6 +676,8 @@ def check_db():
             - online:        Whether the domain was online in the last scan.
             - last_online:   The last date the page was seen online.
             - date:          The date of the last scan.
+            - last_node:     The last node to scan this domain.
+            - tries:         How many attempts have been made to connect?
             - offline_scans: How many times the onion has scanned offline.
         '''
         cursor.execute("CREATE TABLE IF NOT EXISTS onions ( \
@@ -659,6 +686,8 @@ def check_db():
                         online INTEGER DEFAULT '1', \
                         last_online DATE DEFAULT '1900-01-01', \
                         date DATE DEFAULT '1900-01-01', \
+                        last_node TEXT DEFAULT 'none', \
+                        tries INTEGER DEFAULT '0', \
                         offline_scans INTEGER DEFAULT '0', \
                         CONSTRAINT unique_domain UNIQUE(domain));")
 
@@ -865,7 +894,8 @@ if __name__ == '__main__':
         default_config.optionxform = lambda option: option
         default_config['TorSpider'] = {
                 'LogToConsole': 'True',
-                'Daemonize': 'False'
+                'Daemonize': 'False',
+                'NodeName': 'REPLACE_ME'
         }
         default_config['PostgreSQL'] = {
                 'Username': 'username',
@@ -885,6 +915,7 @@ if __name__ == '__main__':
         config.read('spider.cfg')
         log_to_console = config['TorSpider'].getboolean('LogToConsole')
         daemonize = config['TorSpider'].getboolean('Daemonize')
+        node_name = config['TorSpider'].get('NodeName')
         postgre_user = config['PostgreSQL'].get('Username')
         postgre_pass = config['PostgreSQL'].get('Password')
         postgre_host = config['PostgreSQL'].get('Hostname')
