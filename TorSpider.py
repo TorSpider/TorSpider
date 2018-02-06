@@ -360,7 +360,6 @@ class Spider():
                             # If we've reached this point, Tor is working.
                             tries += 1
                             if(tries == 3):
-                                log('Offline: {}'.format(url))
                                 # We've failed three times.
                                 # Set the domain to offline.
                                 self.db("UPDATE onions SET online = '0' \
@@ -412,8 +411,6 @@ class Spider():
                         if(tries < 3):
                             # Try three times, then give up.
                             keep_trying = True
-                        else:
-                            log('Timed out: {}'.format(url))
 
                     except requests.exceptions.TooManyRedirects as e:
                         # Redirected too many times. Let's not keep trying.
