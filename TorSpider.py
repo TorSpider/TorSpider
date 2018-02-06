@@ -150,7 +150,7 @@ class Spider():
                     url = self.fix_url(url)
                 except Exception as e:
                     # No links to process. This should be rare...
-                    time.sleep(10)
+                    time.sleep(5)
                     continue
 
                 # Update the scan date for this page and domain.
@@ -442,10 +442,6 @@ class Spider():
                     except Exception as e:
                         log('Unknown exception: {}'.format(e))
                         raise
-
-                # Take a nap for a little while, to give Voltaire some time
-                # to catch up.
-                time.sleep(5)
         log("Going to sleep!")
 
     def db(self, query, args=[]):
@@ -469,12 +465,12 @@ class Spider():
                 connection.close()
                 return output
             except sql.extensions.TransactionRollbackError:
-                time.sleep(0.5)
+                time.sleep(0.1)
             except sql.OperationalError:
                 # The connection to the database failed. Wait a while
                 # and try again.
                 connection.close()
-                time.sleep(0.5)
+                time.sleep(0.1)
                 connection = sql.connect(
                         "dbname='{}' user='{}' host='{}' \
                         password='{}'".format(
@@ -493,7 +489,7 @@ class Spider():
                     return None
                 else:
                     # Let's see if the database frees up.
-                    time.sleep(0.5)
+                    time.sleep(0.1)
 
     def defrag_domain(self, domain):
         # Defragment the given domain.
