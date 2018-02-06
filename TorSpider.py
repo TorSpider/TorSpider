@@ -169,7 +169,6 @@ class Spider():
                 keep_trying = True
                 tries = 0
                 while(keep_trying):
-                    log('Try #{}: {}'.format(tries + 1, url))
                     keep_trying = False
                     try:
                         # Retrieve the page's headers.
