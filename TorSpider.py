@@ -51,28 +51,20 @@ class Spider():
             # We don't want to add a link to a non-onion domain.
             return
         try:
-            # Insert the new domain into the onions table.
-            self.db("INSERT INTO onions \
-                    (domain) VALUES (%s) ON CONFLICT DO NOTHING;",
-                    (link_domain, ))
-            # Insert the new link into the urls table.
-            self.db("INSERT INTO urls \
-                    (domain, url) VALUES ( \
-                    (SELECT id FROM onions WHERE \
-                    domain = %s), %s) ON CONFLICT DO NOTHING;",
-                    (link_domain, link_url))
-            # Insert the new page into the pages table.
-            self.db("INSERT INTO pages \
-                    (domain, url) VALUES ( \
-                    (SELECT id FROM onions WHERE \
-                    domain = %s), %s) ON CONFLICT DO NOTHING;",
-                    (link_domain, link_page))
-            # Insert the new connection between domains.
-            self.db("INSERT INTO links \
-                    (domain, link) \
-                    VALUES (%s, (SELECT id FROM onions \
-                    WHERE domain = %s)) ON CONFLICT DO NOTHING;",
-                    (domain_id, link_domain))
+            # Insert the new url into its various tables.
+            self.db("INSERT INTO onions (domain) VALUES (%s) \
+                    ON CONFLICT DO NOTHING; \
+                    INSERT INTO urls (domain, url) VALUES \
+                    ((SELECT id FROM onions WHERE domain = %s), %s) \
+                    ON CONFLICT DO NOTHING; \
+                    INSERT INTO pages (domain, url) VALUES \
+                    ((SELECT id FROM onions WHERE domain = %s), %s) \
+                    ON CONFLICT DO NOTHING; \
+                    INSERT INTO links (domain, link) VALUES \
+                    (%s, (SELECT id FROM onions WHERE domain = %s)) \
+                    ON CONFLICT DO NOTHING;",
+                    (link_domain, link_domain, link_url, link_domain,
+                     link_page, domain_id, link_domain))
             # Process and add any discovered form data.
             for item in link_query:
                 if(item == ['']):
@@ -166,10 +158,7 @@ class Spider():
 
                 if(last_node == node_name and tries > 0):
                     # This was scanned by this node last. Let's avoid this.
-                    log('I scanned this as offline already. Skipping.')
                     continue
-                elif(tries > 0):
-                    log('This node was scanned offline before. Scanning...')
 
                 # Update the scan date for this domain.
                 self.db("UPDATE onions SET date = CURRENT_DATE, \
@@ -239,17 +228,16 @@ class Spider():
                                 head.status_code, url))
                         continue
 
-                    # Mark that we've scanned this url today.
+                    # Update the database to show that we've scanned this url
+                    # today, to set the last_online date, and to reset the
+                    # offline_scans to zero.
                     self.db("UPDATE urls SET date = CURRENT_DATE \
-                            WHERE url = %s AND domain \
-                            = %s;", (url, domain_id))
-                    # Update the last_online date.
-                    self.db('UPDATE onions SET last_online = \
-                            CURRENT_DATE, tries = 0 WHERE id = %s;',
-                            (domain_id, ))
-                    # Reset the offline_scans number to zero.
-                    self.db("UPDATE onions SET offline_scans = '0' \
-                            WHERE id = %s;", (domain_id, ))
+                            WHERE url = %s AND domain = %s; \
+                            UPDATE onions SET last_online = CURRENT_DATE, \
+                            tries = 0 WHERE id = %s; \
+                            UPDATE onions SET offline_scans = '0' \
+                            WHERE id = %s;",
+                            (url, domain_id, domain_id, domain_id))
 
                     content_type = self.get_type(head.headers)
                     # We only want to scan text for links. But if we don't
@@ -406,12 +394,10 @@ class Spider():
                             # Then update the urls and onions scan dates.
                             self.db("UPDATE urls SET date = \
                                     (CURRENT_DATE + INTERVAL %s) \
-                                    WHERE domain = %s;",
-                                    (interval, domain_id, ))
-                            self.db("UPDATE onions SET date = \
-                                    (CURRENT_DATE + INTERVAL %s) \
-                                    WHERE id = %s;", (
-                                            interval, domain_id, ))
+                                    WHERE domain = %s; UPDATE onions \
+                                    SET date = (CURRENT_DATE + INTERVAL %s) \
+                                    WHERE id = %s;",
+                                    (interval, domain_id, interval, domain_id))
                         else:
                             self.db('UPDATE onions SET tries = %s \
                                     WHERE id = %s;', (tries, domain_id, ))

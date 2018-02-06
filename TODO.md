@@ -1,7 +1,6 @@
 # To Do
 
 ## High Priority
-* Consolidate concurrent database queries into single queries rather than making multiple calls.
 
 ## Medium Priority
 * Detect forms in the HTML, save the action= and the input fields to the pages table.
@@ -16,8 +15,9 @@
 * Take note of important header information, such as server type.
 
 ## In Process
-* Rather than having the same spider retry connections, allow other spiders to retry the connection. Three failed attempts means the site is marked offline. Spread it among the spiders though, so that it's not always the same node that's making the attempt. Perhaps include the name of the last node that made the attempt, so that it is forced to try different nodes, rather than being able to try again with the same node. This would require storing the node name in the database and in the configuration file.
 
 ## Complete
 * Have spiders retry connections if they seem to be offline.
 * Export parser class definitions to a separate library.
+* Rather than having the same spider retry connections, allow other spiders to retry the connection. Three failed attempts means the site is marked offline. Spread it among the spiders though, so that it's not always the same node that's making the attempt. Perhaps include the name of the last node that made the attempt, so that it is forced to try different nodes, rather than being able to try again with the same node. This would require storing the node name in the database and in the configuration file.
+* Consolidate concurrent database queries into single queries rather than making multiple calls.
