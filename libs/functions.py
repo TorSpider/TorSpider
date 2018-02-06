@@ -1,6 +1,6 @@
 import requests
 import psycopg2 as sql
-
+from datetime import datetime
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
