@@ -423,7 +423,6 @@ class Spider():
                             # It might be a temporary outage, so let's wait
                             # for a little while and see if it fixes itself.
                             time.sleep(5)
-                            keep_trying = True
                             continue
 
                     except requests.exceptions.Timeout:
