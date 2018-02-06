@@ -182,284 +182,281 @@ class Spider():
                     self.set_fault(url, 'non-http')
                     continue
 
-                keep_trying = True
-                while(keep_trying):
-                    keep_trying = False
-                    try:
-                        # Retrieve the page's headers.
-                        head = self.session.head(url, timeout=30)
+                try:
+                    # Retrieve the page's headers.
+                    head = self.session.head(url, timeout=30)
 
-                        # Redirect codes: These status codes redirect to other
-                        # pages, so grab those other pages and scan them
-                        # instead.
-                        redirect_codes = [301, 302, 303, 307, 308]
+                    # Redirect codes: These status codes redirect to other
+                    # pages, so grab those other pages and scan them
+                    # instead.
+                    redirect_codes = [301, 302, 303, 307, 308]
 
-                        # Fault codes: These status codes imply that there was
-                        # something wrong with the page being requested, such as
-                        # being non-existent. Don't rescan pages with these
-                        # codes.
-                        fault_codes = [400, 401, 403, 404, 405, 406, 410,
-                                       413, 414, 444, 451, 495, 496,
-                                       500, 501, 502, 505, 508, 511]
+                    # Fault codes: These status codes imply that there was
+                    # something wrong with the page being requested, such as
+                    # being non-existent. Don't rescan pages with these
+                    # codes.
+                    fault_codes = [400, 401, 403, 404, 405, 406, 410,
+                                   413, 414, 444, 451, 495, 496,
+                                   500, 501, 502, 505, 508, 511]
 
-                        # No-Fault codes: These imply that something temporarily
-                        # went wrong, but it's possible that it might work in
-                        # the future. Just skip to the next url.
-                        no_fault_codes = [408, 421, 423, 429, 503, 504]
+                    # No-Fault codes: These imply that something temporarily
+                    # went wrong, but it's possible that it might work in
+                    # the future. Just skip to the next url.
+                    no_fault_codes = [408, 421, 423, 429, 503, 504]
 
-                        # Good codes: These are the codes we want to see when we
-                        # are accessing a web service.
-                        good_codes = [200, 201]
+                    # Good codes: These are the codes we want to see when we
+                    # are accessing a web service.
+                    good_codes = [200, 201]
 
-                        # Did we get the page successfully?
-                        if(head.status_code in redirect_codes):
-                            # The url results in a redirection.
-                            self.set_fault(url, str(head.status_code))
-                            try:
-                                # Let's grab the redirected url and add it to
-                                # the database.
-                                location = head.headers['location']
-                                new_url = self.merge_urls(location, url)
-                                # Add the new url to the database.
-                                self.add_url(new_url, domain_id)
-                                continue
-                            except Exception as e:
-                                log("{}: couldn't find redirect. ({})".format(
-                                        str(head.status_code), url))
-                                continue
-                        elif(head.status_code in fault_codes):
-                            # The url results in a fault.
-                            self.set_fault(url, str(head.status_code))
+                    # Did we get the page successfully?
+                    if(head.status_code in redirect_codes):
+                        # The url results in a redirection.
+                        self.set_fault(url, str(head.status_code))
+                        try:
+                            # Let's grab the redirected url and add it to
+                            # the database.
+                            location = head.headers['location']
+                            new_url = self.merge_urls(location, url)
+                            # Add the new url to the database.
+                            self.add_url(new_url, domain_id)
                             continue
-                        elif(head.status_code in no_fault_codes):
-                            # The url results in a problem, but not a fault.
+                        except Exception as e:
+                            log("{}: couldn't find redirect. ({})".format(
+                                    str(head.status_code), url))
                             continue
-                        elif(head.status_code not in good_codes):
-                            # Unknown status. I'll add more status_code options
-                            # as they arise.
-                            self.set_fault(url, str(head.status_code))
-                            log("Unknown status code {}: {}".format(
-                                    head.status_code, url))
-                            continue
+                    elif(head.status_code in fault_codes):
+                        # The url results in a fault.
+                        self.set_fault(url, str(head.status_code))
+                        continue
+                    elif(head.status_code in no_fault_codes):
+                        # The url results in a problem, but not a fault.
+                        continue
+                    elif(head.status_code not in good_codes):
+                        # Unknown status. I'll add more status_code options
+                        # as they arise.
+                        self.set_fault(url, str(head.status_code))
+                        log("Unknown status code {}: {}".format(
+                                head.status_code, url))
+                        continue
 
-                        # Mark that we've scanned this url today.
-                        self.db("UPDATE urls SET date = CURRENT_DATE \
-                                WHERE url = %s AND domain \
-                                = %s;", (url, domain_id))
-                        # Update the last_online date.
-                        self.db('UPDATE onions SET last_online = \
-                                CURRENT_DATE, tries = 0 WHERE id = %s;',
-                                (domain_id, ))
-                        # Reset the offline_scans number to zero.
-                        self.db("UPDATE onions SET offline_scans = '0' \
-                                WHERE id = %s;", (domain_id, ))
+                    # Mark that we've scanned this url today.
+                    self.db("UPDATE urls SET date = CURRENT_DATE \
+                            WHERE url = %s AND domain \
+                            = %s;", (url, domain_id))
+                    # Update the last_online date.
+                    self.db('UPDATE onions SET last_online = \
+                            CURRENT_DATE, tries = 0 WHERE id = %s;',
+                            (domain_id, ))
+                    # Reset the offline_scans number to zero.
+                    self.db("UPDATE onions SET offline_scans = '0' \
+                            WHERE id = %s;", (domain_id, ))
 
-                        content_type = self.get_type(head.headers)
-                        # We only want to scan text for links. But if we don't
-                        # know what the content type is, that might result
-                        # from a redirection, so we'll scan it just in case.
-                        if(content_type != 'text' and content_type is not None):
-                            # Otherwise, if we know what it is, and it's not
-                            # text, don't scan it.
+                    content_type = self.get_type(head.headers)
+                    # We only want to scan text for links. But if we don't
+                    # know what the content type is, that might result
+                    # from a redirection, so we'll scan it just in case.
+                    if(content_type != 'text' and content_type is not None):
+                        # Otherwise, if we know what it is, and it's not
+                        # text, don't scan it.
+                        self.set_fault(url, 'type: {}'.format(
+                                content_type))
+                        continue
+
+                    request = self.session.get(url, timeout=30)
+                    if(content_type is None):
+                        # We're going to process the request in the same
+                        # way, because we couldn't get a content type from
+                        # the head.
+                        content_type = self.get_type(request.headers)
+                        if(content_type != 'text'
+                           and content_type is not None):
                             self.set_fault(url, 'type: {}'.format(
                                     content_type))
                             continue
 
-                        request = self.session.get(url, timeout=30)
-                        if(content_type is None):
-                            # We're going to process the request in the same
-                            # way, because we couldn't get a content type from
-                            # the head.
-                            content_type = self.get_type(request.headers)
-                            if(content_type != 'text'
-                               and content_type is not None):
-                                self.set_fault(url, 'type: {}'.format(
-                                        content_type))
-                                continue
+                    # We've got the site's data. Let's see if it's
+                    # changed...
+                    try:
+                        # Get the page's sha1 hash.
+                        page_hash = self.get_hash(request.content)
 
-                        # We've got the site's data. Let's see if it's
-                        # changed...
-                        try:
-                            # Get the page's sha1 hash.
-                            page_hash = self.get_hash(request.content)
+                        # Retrieve the page's last hash.
+                        query = self.db("SELECT hash FROM urls WHERE \
+                                        domain = %s AND url = %s;",
+                                        (domain_id, url))
+                        last_hash = query[0][0]
 
-                            # Retrieve the page's last hash.
-                            query = self.db("SELECT hash FROM urls WHERE \
-                                            domain = %s AND url = %s;",
-                                            (domain_id, url))
-                            last_hash = query[0][0]
-
-                            # If the hash hasn't changed, don't process the
-                            # page.
-                            if(last_hash == page_hash):
-                                continue
-
-                            # Update the page's hash in the database.
-                            self.db('UPDATE urls SET hash = %s \
-                                    WHERE domain = %s AND url = %s;',
-                                    (page_hash, domain_id, url))
-
-                        except Exception as e:
-                            log("Couldn't retrieve previous hash: {}".format(
-                                    url))
+                        # If the hash hasn't changed, don't process the
+                        # page.
+                        if(last_hash == page_hash):
                             continue
 
-                        # The page's HTML changed since our last scan; let's
-                        # process it.
-                        page_text = request.text
-
-                        # Get the title of the page.
-                        try:
-                            page_title = self.get_title(page_text)
-                        except Exception as e:
-                            log('Bad title: {}'.format(url))
-                            self.set_fault(url, 'bad title')
-                            continue
-                        # Set the title of the url.
-                        self.db('UPDATE urls SET title = %s \
-                                WHERE url = %s;', (page_title, url))
-
-                        # Update the title of the page.
-                        new_title = str(page_title)
-                        # First, get the old title.
-                        curr_title = self.db('SELECT title FROM pages WHERE \
-                                             url = %s AND domain = %s;',
-                                             (self.get_page(url),
-                                              domain_id))[0][0]
-                        if(curr_title == 'Unknown'):
-                            curr_title = 'none'
-
-                        # Now, if the title is 'none' then just save
-                        # page_title. But if it's something else, we'll need to
-                        # make a hybrid title based on the current title and
-                        # the title of the newly-scraped page.
-                        if(curr_title != 'none'):
-                            new_title = self.merge_titles(curr_title,
-                                                          page_title)
-                        new_title = ' '.join(new_title.split())
-                        # If the title is now empty, just set it to Unknown.
-                        new_title = 'Unknown' if new_title == '' else new_title
-                        # Now, save the new title to the database, but only if
-                        # the title has changed.
-                        if(new_title != curr_title):
-                            self.db('UPDATE pages SET title = %s \
-                                    WHERE url = %s AND domain = %s;',
-                                    (new_title, self.get_page(url), domain_id))
-
-                        # Get the page's links.
-                        page_links = self.get_links(page_text, url)
-
-                        # Add the links to the database.
-                        for link_url in page_links:
-                            # Get the link domain.
-                            self.add_url(link_url, domain_id)
-                        # Parsing is complete for this page!
-                    except requests.exceptions.InvalidURL:
-                        # The url provided was invalid.
-                        log("Invalid url: {}".format(url))
-                        self.set_fault(url, 'invalid url')
-
-                    except requests.exceptions.InvalidSchema:
-                        # We got an invalid schema.
-                        (s, n, p, q, f) = urlsplit(url)
-                        if('http' in s):
-                            # The scheme was likely misspelled. Add it with http
-                            # and https, just in case.
-                            for scheme in ['http', 'https']:
-                                s = scheme
-                                new_url = urlunsplit((s, n, p, q, f))
-                                self.add_url(new_url, domain_id)
-                        self.set_fault(url, 'invalid schema')
-
-                    except requests.exceptions.ConnectionError:
-                        # We had trouble connecting to the url.
-                        # First let's make sure we're still online.
-                        try:
-                            tor_ip = self.session.get(
-                                    'http://api.ipify.org/').text
-                            # If we've reached this point, Tor is working.
-                            tries += 1
-                            if(tries == 3):
-                                # We've failed three times.
-                                # Set the domain to offline.
-                                self.db("UPDATE onions SET online = '0', \
-                                        tries = 0 WHERE id = %s;", (
-                                                domain_id, ))
-                                # In order to reduce the frequency of scans for
-                                # offline pages, set the scan date ahead by the
-                                # number of times the page has been scanned
-                                # offline. To do this, first retrieve the
-                                # number of times the page has been scanned
-                                # offline.
-                                offline_scans = self.db(
-                                        'SELECT offline_scans FROM onions \
-                                        WHERE id = %s;', (domain_id, )
-                                )[0][0]
-                                # Next, increment the scans by one.
-                                offline_scans += 1
-                                # Save the new value to the database.
-                                self.db("UPDATE onions SET offline_scans = %s \
-                                        WHERE id = %s;", (
-                                                offline_scans, domain_id))
-                                # Now, set the interval we'll be using for the
-                                # date.
-                                interval = ('1 day' if offline_scans == 1
-                                            else '{} days'.format(
-                                                    offline_scans))
-                                # Then update the urls and onions scan dates.
-                                self.db("UPDATE urls SET date = \
-                                        (CURRENT_DATE + INTERVAL %s) \
-                                        WHERE domain = %s;",
-                                        (interval, domain_id, ))
-                                self.db("UPDATE onions SET date = \
-                                        (CURRENT_DATE + INTERVAL %s) \
-                                        WHERE id = %s;", (
-                                                interval, domain_id, ))
-                            else:
-                                self.db('UPDATE onions SET tries = %s \
-                                        WHERE id = %s;', (tries, domain_id, ))
-                        except Exception as e:
-                            # We aren't connected to Tor for some reason.
-                            # It might be a temporary outage, so let's wait
-                            # for a little while and see if it fixes itself.
-                            time.sleep(5)
-                            continue
-
-                    except requests.exceptions.Timeout:
-                        # It took too long to load this page. Let's not drop the
-                        # page from the database, but let's also not update it.
-                        tries += 1
-                        if(tries < 3):
-                            # Try three times, then give up.
-                            self.db('UPDATE onions SET tries = %s \
-                                    WHERE id = %s;', (tries, domain_id, ))
-
-                    except requests.exceptions.TooManyRedirects as e:
-                        # Redirected too many times. Let's not keep trying.
-                        self.set_fault(url, 'redirect')
-
-                    except requests.exceptions.ChunkedEncodingError as e:
-                        # Server gave bad chunk. This might not be a permanent
-                        # problem, so let's just roll with it.
-                        continue
-
-                    except requests.exceptions.SSLError as e:
-                        # There was a problem with the site's SSL certificate.
-                        log("SSL Error at {}: {}".format(url, e))
-                        self.set_fault(url, 'Bad SSL')
-
-                    except MemoryError as e:
-                        # Whatever it is, it's way too big.
-                        log('Ran out of memory: {}'.format(url))
-                        self.set_fault(url, 'memory error')
-
-                    except NotImplementedError as e:
-                        log("I don't know what this means: {} - {}".format(
-                                e, url))
+                        # Update the page's hash in the database.
+                        self.db('UPDATE urls SET hash = %s \
+                                WHERE domain = %s AND url = %s;',
+                                (page_hash, domain_id, url))
 
                     except Exception as e:
-                        log('Unknown exception: {}'.format(e))
-                        raise
+                        log("Couldn't retrieve previous hash: {}".format(
+                                url))
+                        continue
+
+                    # The page's HTML changed since our last scan; let's
+                    # process it.
+                    page_text = request.text
+
+                    # Get the title of the page.
+                    try:
+                        page_title = self.get_title(page_text)
+                    except Exception as e:
+                        log('Bad title: {}'.format(url))
+                        self.set_fault(url, 'bad title')
+                        continue
+                    # Set the title of the url.
+                    self.db('UPDATE urls SET title = %s \
+                            WHERE url = %s;', (page_title, url))
+
+                    # Update the title of the page.
+                    new_title = str(page_title)
+                    # First, get the old title.
+                    curr_title = self.db('SELECT title FROM pages WHERE \
+                                         url = %s AND domain = %s;',
+                                         (self.get_page(url),
+                                          domain_id))[0][0]
+                    if(curr_title == 'Unknown'):
+                        curr_title = 'none'
+
+                    # Now, if the title is 'none' then just save
+                    # page_title. But if it's something else, we'll need to
+                    # make a hybrid title based on the current title and
+                    # the title of the newly-scraped page.
+                    if(curr_title != 'none'):
+                        new_title = self.merge_titles(curr_title,
+                                                      page_title)
+                    new_title = ' '.join(new_title.split())
+                    # If the title is now empty, just set it to Unknown.
+                    new_title = 'Unknown' if new_title == '' else new_title
+                    # Now, save the new title to the database, but only if
+                    # the title has changed.
+                    if(new_title != curr_title):
+                        self.db('UPDATE pages SET title = %s \
+                                WHERE url = %s AND domain = %s;',
+                                (new_title, self.get_page(url), domain_id))
+
+                    # Get the page's links.
+                    page_links = self.get_links(page_text, url)
+
+                    # Add the links to the database.
+                    for link_url in page_links:
+                        # Get the link domain.
+                        self.add_url(link_url, domain_id)
+                    # Parsing is complete for this page!
+                except requests.exceptions.InvalidURL:
+                    # The url provided was invalid.
+                    log("Invalid url: {}".format(url))
+                    self.set_fault(url, 'invalid url')
+
+                except requests.exceptions.InvalidSchema:
+                    # We got an invalid schema.
+                    (s, n, p, q, f) = urlsplit(url)
+                    if('http' in s):
+                        # The scheme was likely misspelled. Add it with http
+                        # and https, just in case.
+                        for scheme in ['http', 'https']:
+                            s = scheme
+                            new_url = urlunsplit((s, n, p, q, f))
+                            self.add_url(new_url, domain_id)
+                    self.set_fault(url, 'invalid schema')
+
+                except requests.exceptions.ConnectionError:
+                    # We had trouble connecting to the url.
+                    # First let's make sure we're still online.
+                    try:
+                        tor_ip = self.session.get(
+                                'http://api.ipify.org/').text
+                        # If we've reached this point, Tor is working.
+                        tries += 1
+                        if(tries == 3):
+                            # We've failed three times.
+                            # Set the domain to offline.
+                            self.db("UPDATE onions SET online = '0', \
+                                    tries = 0 WHERE id = %s;", (
+                                            domain_id, ))
+                            # In order to reduce the frequency of scans for
+                            # offline pages, set the scan date ahead by the
+                            # number of times the page has been scanned
+                            # offline. To do this, first retrieve the
+                            # number of times the page has been scanned
+                            # offline.
+                            offline_scans = self.db(
+                                    'SELECT offline_scans FROM onions \
+                                    WHERE id = %s;', (domain_id, )
+                            )[0][0]
+                            # Next, increment the scans by one.
+                            offline_scans += 1
+                            # Save the new value to the database.
+                            self.db("UPDATE onions SET offline_scans = %s \
+                                    WHERE id = %s;", (
+                                            offline_scans, domain_id))
+                            # Now, set the interval we'll be using for the
+                            # date.
+                            interval = ('1 day' if offline_scans == 1
+                                        else '{} days'.format(
+                                                offline_scans))
+                            # Then update the urls and onions scan dates.
+                            self.db("UPDATE urls SET date = \
+                                    (CURRENT_DATE + INTERVAL %s) \
+                                    WHERE domain = %s;",
+                                    (interval, domain_id, ))
+                            self.db("UPDATE onions SET date = \
+                                    (CURRENT_DATE + INTERVAL %s) \
+                                    WHERE id = %s;", (
+                                            interval, domain_id, ))
+                        else:
+                            self.db('UPDATE onions SET tries = %s \
+                                    WHERE id = %s;', (tries, domain_id, ))
+                    except Exception as e:
+                        # We aren't connected to Tor for some reason.
+                        # It might be a temporary outage, so let's wait
+                        # for a little while and see if it fixes itself.
+                        time.sleep(5)
+                        continue
+
+                except requests.exceptions.Timeout:
+                    # It took too long to load this page. Let's not drop the
+                    # page from the database, but let's also not update it.
+                    tries += 1
+                    if(tries < 3):
+                        # Try three times, then give up.
+                        self.db('UPDATE onions SET tries = %s \
+                                WHERE id = %s;', (tries, domain_id, ))
+
+                except requests.exceptions.TooManyRedirects as e:
+                    # Redirected too many times. Let's not keep trying.
+                    self.set_fault(url, 'redirect')
+
+                except requests.exceptions.ChunkedEncodingError as e:
+                    # Server gave bad chunk. This might not be a permanent
+                    # problem, so let's just roll with it.
+                    continue
+
+                except requests.exceptions.SSLError as e:
+                    # There was a problem with the site's SSL certificate.
+                    log("SSL Error at {}: {}".format(url, e))
+                    self.set_fault(url, 'Bad SSL')
+
+                except MemoryError as e:
+                    # Whatever it is, it's way too big.
+                    log('Ran out of memory: {}'.format(url))
+                    self.set_fault(url, 'memory error')
+
+                except NotImplementedError as e:
+                    log("I don't know what this means: {} - {}".format(
+                            e, url))
+
+                except Exception as e:
+                    log('Unknown exception: {}'.format(e))
+                    raise
         log("Going to sleep!")
 
     def db(self, query, args=[]):
