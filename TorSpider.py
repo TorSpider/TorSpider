@@ -171,10 +171,7 @@ class Spider():
                 elif(tries > 0):
                     log('This node was scanned offline before. Scanning...')
 
-                # Update the scan date for this page and domain.
-                self.db("UPDATE urls SET date = CURRENT_DATE \
-                        WHERE url = %s AND domain \
-                        = %s;", (url, domain_id))
+                # Update the scan date for this domain.
                 self.db("UPDATE onions SET date = CURRENT_DATE, \
                         last_node = %s WHERE id = %s;", (
                                 node_name, domain_id, ))
@@ -245,6 +242,10 @@ class Spider():
                                     head.status_code, url))
                             continue
 
+                        # Mark that we've scanned this url today.
+                        self.db("UPDATE urls SET date = CURRENT_DATE \
+                                WHERE url = %s AND domain \
+                                = %s;", (url, domain_id))
                         # Update the last_online date.
                         self.db('UPDATE onions SET last_online = \
                                 CURRENT_DATE, tries = 0 WHERE id = %s;',
@@ -415,10 +416,8 @@ class Spider():
                                         WHERE id = %s;", (
                                                 interval, domain_id, ))
                             else:
-                                self.db('UPDATE onions SET last_online = \
-                                        CURRENT_DATE, tries = %s \
+                                self.db('UPDATE onions SET tries = %s \
                                         WHERE id = %s;', (tries, domain_id, ))
-                                keep_trying = True
                         except Exception as e:
                             # We aren't connected to Tor for some reason.
                             # It might be a temporary outage, so let's wait
@@ -433,10 +432,8 @@ class Spider():
                         tries += 1
                         if(tries < 3):
                             # Try three times, then give up.
-                            self.db('UPDATE onions SET last_online = \
-                                    CURRENT_DATE, tries = %s \
+                            self.db('UPDATE onions SET tries = %s \
                                     WHERE id = %s;', (tries, domain_id, ))
-                            keep_trying = True
 
                     except requests.exceptions.TooManyRedirects as e:
                         # Redirected too many times. Let's not keep trying.

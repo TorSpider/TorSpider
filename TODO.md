@@ -1,6 +1,7 @@
 # To Do
 
 ## High Priority
+* Consolidate concurrent database queries into single queries rather than making multiple calls.
 
 ## Medium Priority
 * Detect forms in the HTML, save the action= and the input fields to the pages table.
