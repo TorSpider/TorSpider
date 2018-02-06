@@ -246,8 +246,9 @@ class Spider():
                             continue
 
                         # Update the last_online date.
-                        self.db('UPDATE onions SET last_online = CURRENT_DATE, \
-                                tries = '0' WHERE id = %s;', (domain_id, ))
+                        self.db('UPDATE onions SET last_online = \
+                                CURRENT_DATE, tries = 0 WHERE id = %s;',
+                                (domain_id, ))
                         # Reset the offline_scans number to zero.
                         self.db("UPDATE onions SET offline_scans = '0' \
                                 WHERE id = %s;", (domain_id, ))
@@ -381,7 +382,7 @@ class Spider():
                                 # We've failed three times.
                                 # Set the domain to offline.
                                 self.db("UPDATE onions SET online = '0', \
-                                        tries = '0' WHERE id = %s;", (
+                                        tries = 0 WHERE id = %s;", (
                                                 domain_id, ))
                                 # In order to reduce the frequency of scans for
                                 # offline pages, set the scan date ahead by the
