@@ -139,7 +139,7 @@ class Spider():
                                 (CURRENT_DATE - INTERVAL '1 day')) OR \
                                 (online = '1' AND tries != '0'))) \
                                 ORDER BY RANDOM() LIMIT 1;")
-                try:
+                url_offline = False
                     (domain_id, url) = query[0]
                     url = self.fix_url(url)
                 except Exception as e:
@@ -171,6 +171,7 @@ class Spider():
                     self.set_fault(url, 'non-http')
                     continue
 
+                url_offline = False
                 try:
                     # Retrieve the page's headers.
                     head = self.session.head(url, timeout=30)
@@ -365,39 +366,8 @@ class Spider():
                         # If we've reached this point, Tor is working.
                         tries += 1
                         if(tries == 3):
-                            # We've failed three times.
-                            # Set the domain to offline.
-                            self.db("UPDATE onions SET online = '0', \
-                                    tries = 0 WHERE id = %s;", (
-                                            domain_id, ))
-                            # In order to reduce the frequency of scans for
-                            # offline pages, set the scan date ahead by the
-                            # number of times the page has been scanned
-                            # offline. To do this, first retrieve the
-                            # number of times the page has been scanned
-                            # offline.
-                            offline_scans = self.db(
-                                    'SELECT offline_scans FROM onions \
-                                    WHERE id = %s;', (domain_id, )
-                            )[0][0]
-                            # Next, increment the scans by one.
-                            offline_scans += 1
-                            # Save the new value to the database.
-                            self.db("UPDATE onions SET offline_scans = %s \
-                                    WHERE id = %s;", (
-                                            offline_scans, domain_id))
-                            # Now, set the interval we'll be using for the
-                            # date.
-                            interval = ('1 day' if offline_scans == 1
-                                        else '{} days'.format(
-                                                offline_scans))
-                            # Then update the urls and onions scan dates.
-                            self.db("UPDATE urls SET date = \
-                                    (CURRENT_DATE + INTERVAL %s) \
-                                    WHERE domain = %s; UPDATE onions \
-                                    SET date = (CURRENT_DATE + INTERVAL %s) \
-                                    WHERE id = %s;",
-                                    (interval, domain_id, interval, domain_id))
+                            # We've failed three times. Time to quit.
+                            url_offline = True
                         else:
                             self.db('UPDATE onions SET tries = %s \
                                     WHERE id = %s;', (tries, domain_id, ))
@@ -409,11 +379,12 @@ class Spider():
                         continue
 
                 except requests.exceptions.Timeout:
-                    # It took too long to load this page. Let's not drop the
-                    # page from the database, but let's also not update it.
+                    # It took too long to load this page.
                     tries += 1
-                    if(tries < 3):
-                        # Try three times, then give up.
+                    if(tries == 3):
+                        # We've failed three times. Time to quit.
+                        url_offline = True
+                    else:
                         self.db('UPDATE onions SET tries = %s \
                                 WHERE id = %s;', (tries, domain_id, ))
 
@@ -443,6 +414,40 @@ class Spider():
                 except Exception as e:
                     log('Unknown exception: {}'.format(e))
                     raise
+
+                if(url_offline == True):
+                    # Set the domain to offline.
+                    self.db("UPDATE onions SET online = '0', \
+                            tries = 0 WHERE id = %s;", (
+                                    domain_id, ))
+                    # In order to reduce the frequency of scans for
+                    # offline pages, set the scan date ahead by the
+                    # number of times the page has been scanned
+                    # offline. To do this, first retrieve the
+                    # number of times the page has been scanned
+                    # offline.
+                    offline_scans = self.db(
+                            'SELECT offline_scans FROM onions \
+                            WHERE id = %s;', (domain_id, )
+                    )[0][0]
+                    # Next, increment the scans by one.
+                    offline_scans += 1
+                    # Save the new value to the database.
+                    self.db("UPDATE onions SET offline_scans = %s \
+                            WHERE id = %s;", (
+                                    offline_scans, domain_id))
+                    # Now, set the interval we'll be using for the
+                    # date.
+                    interval = ('1 day' if offline_scans == 1
+                                else '{} days'.format(
+                                        offline_scans))
+                    # Then update the urls and onions scan dates.
+                    self.db("UPDATE urls SET date = \
+                            (CURRENT_DATE + INTERVAL %s) \
+                            WHERE domain = %s; UPDATE onions \
+                            SET date = (CURRENT_DATE + INTERVAL %s) \
+                            WHERE id = %s;",
+                            (interval, domain_id, interval, domain_id))
         log("Going to sleep!")
 
     def db(self, query, args=[]):
