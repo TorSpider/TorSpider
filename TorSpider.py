@@ -139,7 +139,7 @@ class Spider():
                                 (CURRENT_DATE - INTERVAL '1 day')) OR \
                                 (online = '1' AND tries != '0'))) \
                                 ORDER BY RANDOM() LIMIT 1;")
-                url_offline = False
+                try:
                     (domain_id, url) = query[0]
                     url = self.fix_url(url)
                 except Exception as e:
