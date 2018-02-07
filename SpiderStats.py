@@ -29,7 +29,7 @@ cursor = connection.cursor()
 
 cursor.execute("SELECT EXISTS (SELECT 1 FROM pg_tables \
                WHERE tablename = 'links');")
-if(cursor.fetchall()[0][0] == False):
+if(cursor.fetchall()[0][0] is False):
     print('Database not yet initialized. No results to show.\n')
     sys.exit(0)
 
@@ -80,8 +80,8 @@ print('Results:')
 messages = [
         'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
         'discovered. Of the scanned sites, {:,} are known to be active,',
-        'comprising {:,} pages, {:,} forms and {:,} form fields. TorSpider has',
-        'found {:,} direct links between these sites.'
+        'comprising {:,} pages, {:,} forms and {:,} form fields. TorSpider',
+        'has found {:,} direct links between these sites.'
 ]
 
 message = ' '.join(messages)
