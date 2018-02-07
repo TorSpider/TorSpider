@@ -418,7 +418,7 @@ class Spider():
                     log('Unknown exception: {}'.format(e))
                     raise
 
-                if(url_offline == True):
+                if(url_offline is True):
                     # Set the domain to offline.
                     self.db("UPDATE onions SET online = '0', \
                             tries = 0 WHERE id = %s;", (
@@ -516,7 +516,7 @@ class Spider():
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         netloc = self.defrag_domain(netloc)
         url = urlunsplit((scheme, netloc, path, query, fragment))
-        return url.replace('\x00','')
+        return url.replace('\x00', '')
 
     def get_domain(self, url):
         # Get the defragmented domain of the given url.
@@ -653,7 +653,7 @@ def check_db():
     # Check to see if the db exists.
     cursor.execute("SELECT EXISTS (SELECT 1 FROM pg_tables \
                    WHERE tablename = 'links');")
-    if(cursor.fetchall()[0][0] == False):
+    if(cursor.fetchall()[0][0] is False):
         log('Initializing new database...')
 
         ''' Onions: Information about each individual onion domain.
@@ -855,7 +855,7 @@ def log(line):
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             mp.current_process().name,
             line)
-    message = ' '.join(message.split()) # Remove unnecessary whitespace.
+    message = ' '.join(message.split())  # Remove unnecessary whitespace.
     if(log_to_console):
         # Print to the screen if log_to_console is enabled.
         print(message)

@@ -5,10 +5,12 @@
     crafts a visible render of the Invisible Web as we presently know it.
 '''
 
-import sys, os
+import os
+import sys
 import configparser
 import cherrypy as web
 import psycopg2 as sql
+
 
 class VisibleWeb:
     def __init__(self):
@@ -43,7 +45,7 @@ class VisibleWeb:
         # Retrieve link information, then build visual representation.
         result = self.db_get("SELECT EXISTS (SELECT 1 FROM pg_tables \
                        WHERE tablename = 'links');")
-        if(result[0][0] != False):
+        if(result[0][0] is not False):
             # Get the list of domains.
             domain_list = self.db_get("SELECT id, domain FROM onions \
                                       WHERE online = 1 AND \
@@ -88,25 +90,26 @@ class VisibleWeb:
             output_list.append('var renderer = \
                                Viva.Graph.View.renderer(graph);')
             # Create HTML.
-            output = open('web/head.html','r').read()
+            output = open('web/head.html', 'r').read()
             for item in output_list:
                 stripped = ' '.join(item.split())
                 output += '            {}\n'.format(stripped)
-            output += open('web/foot.html','r').read()
+            output += open('web/foot.html', 'r').read()
             return output
     index.exposed = True
 
+
 if __name__ == '__main__':
-    conf = { # server configuration
-        '/':{'tools.staticdir.root': os.getcwd()},
-        '/web':{
+    conf = {  # server configuration
+        '/': {'tools.staticdir.root': os.getcwd()},
+        '/web': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': './web'
         },
-        'global':{
-            'server.environment':'production',
-            'server.socket_host':'0.0.0.0',
-            'server.socket_port':8080
+        'global': {
+            'server.environment': 'production',
+            'server.socket_host': '0.0.0.0',
+            'server.socket_port': 8080
         }
     }
     web.quickstart(VisibleWeb(), config=conf)
