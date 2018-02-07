@@ -66,16 +66,21 @@ class VisibleWeb:
                 domains[domain_id] = domain_name
             # Compile the link list.
             links = []
+            linked_domains = []
             for link in link_list:
                 (link_from, link_to) = link
                 if(link_from != link_to):
                     # We only want links that don't refer to themselves.
+                    linked_domains.append(link_from)
+                    linked_domains.append(link_to)
                     links.append([link_from, link_to])
+            linked_domains = list(set(linked_domains))
             # Design output.
             output_list = []
             for domain in domains.keys():
-                output_list.append("graph.addNode({}, '{}');".format(
-                        domain, domains[domain]))
+                if(domain in linked_domains):
+                    output_list.append("graph.addNode({}, '{}');".format(
+                            domain, domains[domain]))
             for link in links:
                 [link_from, link_to] = link
                 output_list.append("graph.addLink({}, {});".format(

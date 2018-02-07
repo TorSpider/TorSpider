@@ -24,7 +24,7 @@ sudo apt install python3-pip libpq-dev
 Once pip3 has installed, you can install the other remaining requirements for TorSpider with the following commands:
 
 ```
-sudo pip3 install pysocks requests cherrypy psycopg2
+sudo pip3 install pysocks requests cherrypy psycopg2 networkx
 ```
 
 ## Install and configure PostgreSQL.
