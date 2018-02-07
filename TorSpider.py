@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.3--^-----+                   |
+   |                   +-----^--TorSpider-v0.4--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -26,6 +26,9 @@ from datetime import datetime
 from urllib.parse import urlsplit, urlunsplit
 
 '''---[ GLOBAL VARIABLES ]---'''
+
+# The current release version.
+version = '0.4'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -908,7 +911,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     log('-' * 40)
-    log('TorSpider v0.3 Initializing...')
+    log('TorSpider v{} Initializing...'.format(version))
 
     # Create a Tor session and check if it's working.
     log("Establishing Tor connection...")
