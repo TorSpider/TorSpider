@@ -1145,8 +1145,7 @@ if __name__ == '__main__':
              'Chester', 'Maude', 'Denny', 'Hank',
              'Bruce', 'Uma', 'Lizzy', 'Dizzy']
 
-    # We'll start two processes for every processor, less one to account for
-    # the scribe process.
+    # We'll start two processes for every processor.
     count = (mp.cpu_count() * 2)
     for x in range(count):
         spider = Spider()
