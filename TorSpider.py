@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.4--^-----+                   |
+   |                   +-----^--TorSpider-v0.5--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -28,7 +28,7 @@ from urllib.parse import urlsplit, urlunsplit
 '''---[ GLOBAL VARIABLES ]---'''
 
 # The current release version.
-version = '0.4'
+version = '0.5'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -54,20 +54,22 @@ class Spider():
             # We don't want to add a link to a non-onion domain.
             return
         try:
-            # Insert the new url into its various tables.
+            # Insert the new domain.
             self.db("INSERT INTO onions (domain) VALUES (%s) \
-                    ON CONFLICT DO NOTHING; \
-                    INSERT INTO urls (domain, url) VALUES \
-                    ((SELECT id FROM onions WHERE domain = %s), %s) \
-                    ON CONFLICT DO NOTHING; \
+                    ON CONFLICT DO NOTHING;", (link_domain, ))
+            # We'll need the domain id of the new link.
+            link_domain_id = self.db(
+                    "SELECT id FROM onions WHERE domain = %s;",
+                    (link_domain, ))[0][0]
+            # Insert the url into its various tables.
+            self.db("INSERT INTO urls (domain, url) VALUES \
+                    (%s, %s) ON CONFLICT DO NOTHING; \
                     INSERT INTO pages (domain, url) VALUES \
-                    ((SELECT id FROM onions WHERE domain = %s), %s) \
-                    ON CONFLICT DO NOTHING; \
+                    (%s, %s) ON CONFLICT DO NOTHING; \
                     INSERT INTO links (domain, link) VALUES \
-                    (%s, (SELECT id FROM onions WHERE domain = %s)) \
-                    ON CONFLICT DO NOTHING;",
-                    (link_domain, link_domain, link_url, link_domain,
-                     link_page, domain_id, link_domain))
+                    (%s, %s) ON CONFLICT DO NOTHING;",
+                    (link_domain_id, link_url, link_domain_id,
+                     link_page, domain_id, link_domain_id))
             # Process and add any discovered form data.
             for item in link_query:
                 if(item == ['']):
@@ -89,7 +91,7 @@ class Spider():
                         (SELECT id FROM pages WHERE \
                         url = %s AND domain = %s), %s) \
                         ON CONFLICT DO NOTHING;',
-                        (link_page, domain_id, field))
+                        (link_page, link_domain_id, field))
 
                 # Next, determine what examples already exist in the database.
                 # Only do this if we have a value to add.
@@ -100,7 +102,7 @@ class Spider():
                                  WHERE page = (SELECT id FROM pages \
                                  WHERE url = %s AND domain = %s) \
                                  AND field = %s;',
-                                 (link_page, domain_id, field))
+                                 (link_page, link_domain_id, field))
                 if(result == [] or result[0][0] == 'none'):
                     # We don't have any current values.
                     examples = value
@@ -114,7 +116,7 @@ class Spider():
                 self.db('UPDATE forms SET examples = %s WHERE \
                         page = (SELECT id FROM pages WHERE \
                         url = %s AND domain = %s) AND field = %s;',
-                        (examples, link_page, domain_id, field))
+                        (examples, link_page, link_domain_id, field))
 
         except Exception as e:
             # There was an error saving the link to the
@@ -362,11 +364,13 @@ class Spider():
                         # Get the form's action, and add it to the database.
                         action = self.merge_action(form_dict['action'], url)
                         self.add_url(action, domain_id)
+                        link_domain_id = self.db(
+                                "SELECT id FROM onions WHERE \
+                                domain = %s;",
+                                (self.get_domain(action), ))[0][0]
 
                         # Get the action's page.
-                        form_page = urlsplit(action)[2]
-
-                        print("URL: {}\nForm Action: {}".format(url, action))
+                        form_page = self.get_page(action)
 
                         # Now we'll need to add each input field and its
                         # possible default values.
@@ -434,12 +438,43 @@ class Spider():
                         # Process the retrieved fields and add them to the
                         # database.
                         for key in fields.keys():
-                            # Add the key to the database if they aren't
-                            # already there, then add their default values
-                            # if possible.
-                            key = 'None' if key is None else key
-                            print('{}: {}'.format(key, fields[key]))
-                        print('')
+                            value = fields[key]
+                            if(key is None or key == ''):
+                                key = 'None'
+                            if(value is None or value == ''):
+                                value = 'None'
+                            # Add the key to the database if it isn't there.
+                            self.db('INSERT INTO forms \
+                                    (page, field) VALUES ( \
+                                    (SELECT id FROM pages WHERE \
+                                    url = %s AND domain = %s), %s) \
+                                    ON CONFLICT DO NOTHING;',
+                                    (form_page, link_domain_id, key))
+                            if(value == 'None'):
+                                continue
+
+                            # Retrieve the current list of examples for this
+                            # particular form field.
+                            examples = ''
+                            result = self.db('SELECT examples FROM forms \
+                                             WHERE page = (SELECT id FROM \
+                                             pages WHERE url = %s AND \
+                                             domain = %s) AND field = %s;',
+                                             (form_page, link_domain_id, key))
+                            if(result == [] or result[0][0] == 'none'):
+                                # We have no current values.
+                                examples = value
+                            else:
+                                # Merge with the returned examples.
+                                example_list = result[0][0].split(',')
+                                example_list.append(value)
+                                examples = ','.join(unique(example_list))
+
+                            # Update the examples in the database.
+                            self.db('UPDATE forms SET examples = %s WHERE \
+                                    page = (SELECT id FROM pages WHERE \
+                                    url = %s AND domain = %s) AND field = %s;',
+                                    (examples, form_page, link_domain_id, key))
 
                     # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
