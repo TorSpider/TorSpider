@@ -362,8 +362,84 @@ class Spider():
                         # Get the form's action, and add it to the database.
                         action = self.merge_action(form_dict['action'], url)
                         self.add_url(action, domain_id)
+
+                        # Get the action's page.
+                        form_page = urlsplit(action)[2]
+
                         print("URL: {}\nForm Action: {}".format(url, action))
-                        print("{}\n".format(form))
+
+                        # Now we'll need to add each input field and its
+                        # possible default values.
+                        fields = {}
+
+                        # Process text fields.
+                        text_fields = form_dict['text_fields']
+                        for key in text_fields.keys():
+                            fields[key] = text_fields[key]
+
+                        # Process radio buttons.
+                        radio_buttons = form_dict['radio_buttons']
+                        for key in radio_buttons.keys():
+                            rb_values = radio_buttons[key]
+                            rb_values = prune_exact(rb_values, ['', None])
+                            fields[key] = ','.join(rb_values)
+
+                        # Process checkboxes.
+                        checkboxes = form_dict['checkboxes']
+                        for key in checkboxes.keys():
+                            cb_values = checkboxes[key]
+                            cb_values = prune_exact(cb_values, ['', None])
+                            fields[key] = ','.join(cb_values)
+
+                        # Process dropdowns.
+                        dropdowns = form_dict['dropdowns']
+                        for key in dropdowns.keys():
+                            dd_values = dropdowns[key]
+                            dd_values = prune_exact(dd_values, ['', None])
+                            fields[key] = ','.join(dd_values)
+
+                        # Process text areas.
+                        text_areas = form_dict['text_areas']
+                        for key in text_areas.keys():
+                            fields[key] = text_areas[key]
+
+                        # Process dates.
+                        for d in form_dict['dates']:
+                            fields[d] = ''
+
+                        # Process datetimes.
+                        for dt in form_dict['datetimes']:
+                            fields[dt] = ''
+
+                        # Process months.
+                        for month in form_dict['months']:
+                            fields[month] = ''
+
+                        # Process numbers.
+                        for number in form_dict['numbers']:
+                            fields[number] = ''
+
+                        # Process ranges.
+                        for r in form_dict['ranges']:
+                            fields[r] = ''
+
+                        # Process times.
+                        for t in form_dict['times']:
+                            fields[t] = ''
+
+                        # Process weeks.
+                        for week in form_dict['weeks']:
+                            fields[week] = ''
+
+                        # Process the retrieved fields and add them to the
+                        # database.
+                        for key in fields.keys():
+                            # Add the key to the database if they aren't
+                            # already there, then add their default values
+                            # if possible.
+                            key = 'None' if key is None else key
+                            print('{}: {}'.format(key, fields[key]))
+                        print('')
 
                     # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
@@ -940,6 +1016,12 @@ def log(line):
     f = open('run.log', 'a')
     f.write('{}\n'.format(message))
     f.close()
+
+
+def prune_exact(items, scan_list):
+    # Return all items from items list that match no items in scan_list.
+    return [item for item in items
+            if not any(scan == item for scan in scan_list)]
 
 
 def unique(items):
