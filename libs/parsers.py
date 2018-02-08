@@ -64,27 +64,15 @@ class FormParser(HTMLParser):
         self.forms = []
         self.text_area = False
         self.selecting = False
+        self.reset_fields()
 
     def handle_starttag(self, tag, attrs):
         if(tag == 'form'):
             # We're starting a fresh form.
-            self.found = True
-            self.form = []
+            self.reset_fields()
             self.form.append(('action', dict(attrs).get('action')))
             self.form.append(('method', dict(attrs).get('method')))
             self.form.append(('target', dict(attrs).get('target')))
-            self.text_fields = {}
-            self.radio_buttons = {}
-            self.checkboxes = {}
-            self.dropdowns = {}
-            self.text_areas = {}
-            self.dates = []
-            self.datetimes = []
-            self.months = []
-            self.numbers = []
-            self.ranges = []
-            self.times = []
-            self.weeks = []
         elif(tag == 'textarea'):
             # We're starting a text area.
             self.text_area_name = dict(attrs).get('name')
@@ -183,3 +171,19 @@ class FormParser(HTMLParser):
             self.select_name = ''
             self.select_options = []
             self.selecting = False
+
+    def reset_fields(self):
+        self.found = True
+        self.form = []
+        self.text_fields = {}
+        self.radio_buttons = {}
+        self.checkboxes = {}
+        self.dropdowns = {}
+        self.text_areas = {}
+        self.dates = []
+        self.datetimes = []
+        self.months = []
+        self.numbers = []
+        self.ranges = []
+        self.times = []
+        self.weeks = []

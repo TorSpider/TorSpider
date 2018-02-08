@@ -342,6 +342,29 @@ class Spider():
                     for link_url in page_links:
                         # Get the link domain.
                         self.add_url(link_url, domain_id)
+
+                    # Parse any forms on the page.
+                    page_forms = self.get_forms(page_text)
+
+                    # Add the forms to the database.
+                    for form in page_forms:
+                        # Process the form's information.
+                        form_dict = dict(form)
+
+                        # Make sure the necessary fields exist.
+                        if('action' not in form_dict.keys()):
+                            form_dict['action'] = ''
+                        if('method' not in form_dict.keys()):
+                            form_dict['method'] = ''
+                        if('target' not in form_dict.keys()):
+                            form_dict['target'] = ''
+
+                        # Get the form's action, and add it to the database.
+                        action = self.merge_action(form_dict['action'], url)
+                        self.add_url(action, domain_id)
+                        print("URL: {}\nForm Action: {}".format(url, action))
+                        print("{}\n".format(form))
+
                     # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
@@ -529,6 +552,12 @@ class Spider():
                 ).split('.')[-2:]
         )
 
+    def get_forms(self, data):
+        # Get the data from all forms on the page.
+        parse = FormParser()
+        parse.feed(data)
+        return parse.forms
+
     def get_hash(self, data):
         # Get the sha1 hash of the provided data. Data must be binary-encoded.
         return sha1(data).hexdigest()
@@ -540,33 +569,37 @@ class Spider():
         links = []
         domain = urlsplit(url)[1]
         for link in parse.output_list:
-            if(link is None):
-                # Skip empty links.
-                continue
-            # Remove any references to the current directory. ('./')
-            while('./' in link):
-                link = link.replace('./', '')
-            # Split the link into its component parts.
-            (scheme, netloc, path, query, fragment) = urlsplit(link)
-            # Fill in empty schemes.
-            scheme = 'http' if scheme is '' else scheme
-            # Fill in empty paths.
-            path = '/' if path is '' else path
-            if(netloc is '' and '.onion' in path.split('/')[0]):
-                # The urlparser mistook the domain as part of the path.
-                netloc = path.split('/')[0]
-                try:
-                    path = '/'.join(path.split('/')[1:])
-                except Exception as e:
-                    path = '/'
-            # Fill in empty domains.
-            netloc = domain if netloc is '' else netloc
-            fragment = ''
-            if('.onion' not in netloc or '.onion.' in netloc):
-                # We are only interested in links to other .onion domains,
-                # and we don't want to include links to onion redirectors.
-                continue
-            links.append(urlunsplit((scheme, netloc, path, query, fragment)))
+            try:
+                if(link is None):
+                    # Skip empty links.
+                    continue
+                # Remove any references to the current directory. ('./')
+                while('./' in link):
+                    link = link.replace('./', '')
+                # Split the link into its component parts.
+                (scheme, netloc, path, query, fragment) = urlsplit(link)
+                # Fill in empty schemes.
+                scheme = 'http' if scheme is '' else scheme
+                # Fill in empty paths.
+                path = '/' if path is '' else path
+                if(netloc is '' and '.onion' in path.split('/')[0]):
+                    # The urlparser mistook the domain as part of the path.
+                    netloc = path.split('/')[0]
+                    try:
+                        path = '/'.join(path.split('/')[1:])
+                    except Exception as e:
+                        path = '/'
+                # Fill in empty domains.
+                netloc = domain if netloc is '' else netloc
+                fragment = ''
+                if('.onion' not in netloc or '.onion.' in netloc):
+                    # We are only interested in links to other .onion domains,
+                    # and we don't want to include links to onion redirectors.
+                    continue
+                links.append(urlunsplit(
+                        (scheme, netloc, path, query, fragment)))
+            except Exception as e:
+                log('Link exception: {} -- {}'.format(e, link))
         # Make sure we don't return any duplicates!
         return unique(links)
 
@@ -606,6 +639,50 @@ class Spider():
         # Determine whether the link is an http/https scheme or not.
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         return True if 'http' in scheme else False
+
+    def merge_action(self, action, url):
+        action = '' if action is None else action
+        # Split up the action and url into their component parts.
+        (ascheme, anetloc, apath, aquery, afragment) = urlsplit(action)
+        (uscheme, unetloc, upath, uquery, ufragment) = urlsplit(url)
+        scheme = ascheme if ascheme is not '' else uscheme
+        netloc = anetloc if anetloc is not '' else unetloc
+        newpath = ''
+        try:
+            if(apath[0] == '/'):
+                # The path starts at root.
+                newpath = apath
+            elif(apath[0] == '.'):
+                # The path starts in either the current directory or a
+                # higher directory.
+                short = upath[:upath.rindex('/') + 1]
+                split_apath = apath.split('/')
+                apath = '/'.join(split_apath[1:])
+                if(split_apath[0] == '.'):
+                    # Targeting the current directory.
+                    short = '/'.join(short.split('/')[:-1])
+                elif(split_apath[0] == '..'):
+                    # Targeting the previous directory.
+                    traverse = -2
+                    while(apath[0:3] == '../'):
+                        split_apath = apath.split('/')
+                        apath = '/'.join(split_apath[1:])
+                        traverse -= 1
+                    try:
+                        short = '/'.join(short.split('/')[:traverse])
+                    except:
+                        short = '/'
+                newpath = '/'.join([short, apath])
+            else:
+                # The path is just a page name.
+                short = upath[:upath.rindex('/')]
+                newpath = '/'.join([short, apath])
+        except Exception as e:
+            newpath = upath
+        query = aquery
+        fragment = ''
+        link = urlunsplit((scheme, netloc, newpath, query, fragment))
+        return(link)
 
     def merge_titles(self, title1, title2):
         title1_parts = title1.split()
