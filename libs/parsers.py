@@ -175,6 +175,7 @@ class FormParser(HTMLParser):
     def reset_fields(self):
         self.found = True
         self.form = []
+        self.select_options = []
         self.text_fields = {}
         self.radio_buttons = {}
         self.checkboxes = {}
