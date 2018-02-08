@@ -364,10 +364,16 @@ class Spider():
                         # Get the form's action, and add it to the database.
                         action = self.merge_action(form_dict['action'], url)
                         self.add_url(action, domain_id)
-                        link_domain_id = self.db(
-                                "SELECT id FROM onions WHERE \
-                                domain = %s;",
-                                (self.get_domain(action), ))[0][0]
+                        try:
+                            link_domain_id = self.db(
+                                    "SELECT id FROM onions WHERE \
+                                    domain = %s;",
+                                    (self.get_domain(action), ))[0][0]
+                        except Exception as e:
+                            log("No link domain id with {}: {}".format(
+                                    action, e))
+                            raise
+                            continue
 
                         # Get the action's page.
                         form_page = self.get_page(action)
