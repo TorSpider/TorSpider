@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.4--^-----+                   |
+   |                   +-----^--TorSpider-v0.5--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -28,7 +28,7 @@ from urllib.parse import urlsplit, urlunsplit
 '''---[ GLOBAL VARIABLES ]---'''
 
 # The current release version.
-version = '0.4'
+version = '0.5'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -54,20 +54,22 @@ class Spider():
             # We don't want to add a link to a non-onion domain.
             return
         try:
-            # Insert the new url into its various tables.
+            # Insert the new domain.
             self.db("INSERT INTO onions (domain) VALUES (%s) \
-                    ON CONFLICT DO NOTHING; \
-                    INSERT INTO urls (domain, url) VALUES \
-                    ((SELECT id FROM onions WHERE domain = %s), %s) \
-                    ON CONFLICT DO NOTHING; \
+                    ON CONFLICT DO NOTHING;", (link_domain, ))
+            # We'll need the domain id of the new link.
+            link_domain_id = self.db(
+                    "SELECT id FROM onions WHERE domain = %s;",
+                    (link_domain, ))[0][0]
+            # Insert the url into its various tables.
+            self.db("INSERT INTO urls (domain, url) VALUES \
+                    (%s, %s) ON CONFLICT DO NOTHING; \
                     INSERT INTO pages (domain, url) VALUES \
-                    ((SELECT id FROM onions WHERE domain = %s), %s) \
-                    ON CONFLICT DO NOTHING; \
+                    (%s, %s) ON CONFLICT DO NOTHING; \
                     INSERT INTO links (domain, link) VALUES \
-                    (%s, (SELECT id FROM onions WHERE domain = %s)) \
-                    ON CONFLICT DO NOTHING;",
-                    (link_domain, link_domain, link_url, link_domain,
-                     link_page, domain_id, link_domain))
+                    (%s, %s) ON CONFLICT DO NOTHING;",
+                    (link_domain_id, link_url, link_domain_id,
+                     link_page, domain_id, link_domain_id))
             # Process and add any discovered form data.
             for item in link_query:
                 if(item == ['']):
@@ -89,7 +91,7 @@ class Spider():
                         (SELECT id FROM pages WHERE \
                         url = %s AND domain = %s), %s) \
                         ON CONFLICT DO NOTHING;',
-                        (link_page, domain_id, field))
+                        (link_page, link_domain_id, field))
 
                 # Next, determine what examples already exist in the database.
                 # Only do this if we have a value to add.
@@ -100,7 +102,7 @@ class Spider():
                                  WHERE page = (SELECT id FROM pages \
                                  WHERE url = %s AND domain = %s) \
                                  AND field = %s;',
-                                 (link_page, domain_id, field))
+                                 (link_page, link_domain_id, field))
                 if(result == [] or result[0][0] == 'none'):
                     # We don't have any current values.
                     examples = value
@@ -114,7 +116,7 @@ class Spider():
                 self.db('UPDATE forms SET examples = %s WHERE \
                         page = (SELECT id FROM pages WHERE \
                         url = %s AND domain = %s) AND field = %s;',
-                        (examples, link_page, domain_id, field))
+                        (examples, link_page, link_domain_id, field))
 
         except Exception as e:
             # There was an error saving the link to the
@@ -342,6 +344,141 @@ class Spider():
                     for link_url in page_links:
                         # Get the link domain.
                         self.add_url(link_url, domain_id)
+
+                    # Parse any forms on the page.
+                    page_forms = self.get_forms(page_text)
+
+                    # Add the forms to the database.
+                    for form in page_forms:
+                        # Process the form's information.
+                        form_dict = dict(form)
+
+                        # Make sure the necessary fields exist.
+                        if('action' not in form_dict.keys()):
+                            form_dict['action'] = ''
+                        if('method' not in form_dict.keys()):
+                            form_dict['method'] = ''
+                        if('target' not in form_dict.keys()):
+                            form_dict['target'] = ''
+
+                        # Get the form's action, and add it to the database.
+                        action = self.merge_action(form_dict['action'], url)
+                        if('.onion' not in action or '.onion.' in action):
+                            # Ignore any non-onion domain.
+                            continue
+                        self.add_url(action, domain_id)
+                        link_domain_id = self.db(
+                                "SELECT id FROM onions WHERE \
+                                domain = %s;",
+                                (self.get_domain(action), ))[0][0]
+
+                        # Get the action's page.
+                        form_page = self.get_page(action)
+
+                        # Now we'll need to add each input field and its
+                        # possible default values.
+                        fields = {}
+
+                        # Process text fields.
+                        text_fields = form_dict['text_fields']
+                        for key in text_fields.keys():
+                            fields[key] = text_fields[key]
+
+                        # Process radio buttons.
+                        radio_buttons = form_dict['radio_buttons']
+                        for key in radio_buttons.keys():
+                            rb_values = radio_buttons[key]
+                            rb_values = prune_exact(rb_values, ['', None])
+                            fields[key] = ','.join(rb_values)
+
+                        # Process checkboxes.
+                        checkboxes = form_dict['checkboxes']
+                        for key in checkboxes.keys():
+                            cb_values = checkboxes[key]
+                            cb_values = prune_exact(cb_values, ['', None])
+                            fields[key] = ','.join(cb_values)
+
+                        # Process dropdowns.
+                        dropdowns = form_dict['dropdowns']
+                        for key in dropdowns.keys():
+                            dd_values = dropdowns[key]
+                            dd_values = prune_exact(dd_values, ['', None])
+                            fields[key] = ','.join(dd_values)
+
+                        # Process text areas.
+                        text_areas = form_dict['text_areas']
+                        for key in text_areas.keys():
+                            fields[key] = text_areas[key]
+
+                        # Process dates.
+                        for d in form_dict['dates']:
+                            fields[d] = ''
+
+                        # Process datetimes.
+                        for dt in form_dict['datetimes']:
+                            fields[dt] = ''
+
+                        # Process months.
+                        for month in form_dict['months']:
+                            fields[month] = ''
+
+                        # Process numbers.
+                        for number in form_dict['numbers']:
+                            fields[number] = ''
+
+                        # Process ranges.
+                        for r in form_dict['ranges']:
+                            fields[r] = ''
+
+                        # Process times.
+                        for t in form_dict['times']:
+                            fields[t] = ''
+
+                        # Process weeks.
+                        for week in form_dict['weeks']:
+                            fields[week] = ''
+
+                        # Process the retrieved fields and add them to the
+                        # database.
+                        for key in fields.keys():
+                            value = fields[key]
+                            if(key is None or key == ''):
+                                key = 'None'
+                            if(value is None or value == ''):
+                                value = 'None'
+                            # Add the key to the database if it isn't there.
+                            self.db('INSERT INTO forms \
+                                    (page, field) VALUES ( \
+                                    (SELECT id FROM pages WHERE \
+                                    url = %s AND domain = %s), %s) \
+                                    ON CONFLICT DO NOTHING;',
+                                    (form_page, link_domain_id, key))
+                            if(value == 'None'):
+                                continue
+
+                            # Retrieve the current list of examples for this
+                            # particular form field.
+                            examples = ''
+                            result = self.db('SELECT examples FROM forms \
+                                             WHERE page = (SELECT id FROM \
+                                             pages WHERE url = %s AND \
+                                             domain = %s) AND field = %s;',
+                                             (form_page, link_domain_id, key))
+                            if(result == [] or result[0][0] == 'none'):
+                                # We have no current values.
+                                examples = value
+                            else:
+                                # Merge with the returned examples.
+                                example_list = result[0][0].split(',')
+                                example_list.append(value)
+                                examples = ','.join(unique(example_list))
+
+                            # Update the examples in the database.
+                            self.db('UPDATE forms SET examples = %s WHERE \
+                                    page = (SELECT id FROM pages WHERE \
+                                    url = %s AND domain = %s) AND field = %s;',
+                                    (examples, form_page, link_domain_id, key))
+
                     # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
@@ -529,6 +666,12 @@ class Spider():
                 ).split('.')[-2:]
         )
 
+    def get_forms(self, data):
+        # Get the data from all forms on the page.
+        parse = FormParser()
+        parse.feed(data)
+        return parse.forms
+
     def get_hash(self, data):
         # Get the sha1 hash of the provided data. Data must be binary-encoded.
         return sha1(data).hexdigest()
@@ -540,33 +683,37 @@ class Spider():
         links = []
         domain = urlsplit(url)[1]
         for link in parse.output_list:
-            if(link is None):
-                # Skip empty links.
-                continue
-            # Remove any references to the current directory. ('./')
-            while('./' in link):
-                link = link.replace('./', '')
-            # Split the link into its component parts.
-            (scheme, netloc, path, query, fragment) = urlsplit(link)
-            # Fill in empty schemes.
-            scheme = 'http' if scheme is '' else scheme
-            # Fill in empty paths.
-            path = '/' if path is '' else path
-            if(netloc is '' and '.onion' in path.split('/')[0]):
-                # The urlparser mistook the domain as part of the path.
-                netloc = path.split('/')[0]
-                try:
-                    path = '/'.join(path.split('/')[1:])
-                except Exception as e:
-                    path = '/'
-            # Fill in empty domains.
-            netloc = domain if netloc is '' else netloc
-            fragment = ''
-            if('.onion' not in netloc or '.onion.' in netloc):
-                # We are only interested in links to other .onion domains,
-                # and we don't want to include links to onion redirectors.
-                continue
-            links.append(urlunsplit((scheme, netloc, path, query, fragment)))
+            try:
+                if(link is None):
+                    # Skip empty links.
+                    continue
+                # Remove any references to the current directory. ('./')
+                while('./' in link):
+                    link = link.replace('./', '')
+                # Split the link into its component parts.
+                (scheme, netloc, path, query, fragment) = urlsplit(link)
+                # Fill in empty schemes.
+                scheme = 'http' if scheme is '' else scheme
+                # Fill in empty paths.
+                path = '/' if path is '' else path
+                if(netloc is '' and '.onion' in path.split('/')[0]):
+                    # The urlparser mistook the domain as part of the path.
+                    netloc = path.split('/')[0]
+                    try:
+                        path = '/'.join(path.split('/')[1:])
+                    except Exception as e:
+                        path = '/'
+                # Fill in empty domains.
+                netloc = domain if netloc is '' else netloc
+                fragment = ''
+                if('.onion' not in netloc or '.onion.' in netloc):
+                    # We are only interested in links to other .onion domains,
+                    # and we don't want to include links to onion redirectors.
+                    continue
+                links.append(urlunsplit(
+                        (scheme, netloc, path, query, fragment)))
+            except Exception as e:
+                log('Link exception: {} -- {}'.format(e, link))
         # Make sure we don't return any duplicates!
         return unique(links)
 
@@ -606,6 +753,50 @@ class Spider():
         # Determine whether the link is an http/https scheme or not.
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         return True if 'http' in scheme else False
+
+    def merge_action(self, action, url):
+        action = '' if action is None else action
+        # Split up the action and url into their component parts.
+        (ascheme, anetloc, apath, aquery, afragment) = urlsplit(action)
+        (uscheme, unetloc, upath, uquery, ufragment) = urlsplit(url)
+        scheme = ascheme if ascheme is not '' else uscheme
+        netloc = anetloc if anetloc is not '' else unetloc
+        newpath = ''
+        try:
+            if(apath[0] == '/'):
+                # The path starts at root.
+                newpath = apath
+            elif(apath[0] == '.'):
+                # The path starts in either the current directory or a
+                # higher directory.
+                short = upath[:upath.rindex('/') + 1]
+                split_apath = apath.split('/')
+                apath = '/'.join(split_apath[1:])
+                if(split_apath[0] == '.'):
+                    # Targeting the current directory.
+                    short = '/'.join(short.split('/')[:-1])
+                elif(split_apath[0] == '..'):
+                    # Targeting the previous directory.
+                    traverse = -2
+                    while(apath[0:3] == '../'):
+                        split_apath = apath.split('/')
+                        apath = '/'.join(split_apath[1:])
+                        traverse -= 1
+                    try:
+                        short = '/'.join(short.split('/')[:traverse])
+                    except:
+                        short = '/'
+                newpath = '/'.join([short, apath])
+            else:
+                # The path is just a page name.
+                short = upath[:upath.rindex('/')]
+                newpath = '/'.join([short, apath])
+        except Exception as e:
+            newpath = upath
+        query = aquery
+        fragment = ''
+        link = urlunsplit((scheme, netloc, newpath, query, fragment))
+        return(link)
 
     def merge_titles(self, title1, title2):
         title1_parts = title1.split()
@@ -863,6 +1054,12 @@ def log(line):
     f = open('run.log', 'a')
     f.write('{}\n'.format(message))
     f.close()
+
+
+def prune_exact(items, scan_list):
+    # Return all items from items list that match no items in scan_list.
+    return [item for item in items
+            if not any(scan == item for scan in scan_list)]
 
 
 def unique(items):
