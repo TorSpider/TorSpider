@@ -1,6 +1,9 @@
 # To Do
 
 ## High Priority
+* Update the script to use ORM and Flask.
+* Separate the backend code from the spider code.
+* Optimize the process top to bottom.
 
 ## Medium Priority
 * Include [sshtunnel](https://github.com/pahaz/sshtunnel) to enable access to remote servers. You can set up the server like [so](https://unix.stackexchange.com/questions/235040/how-do-i-create-a-ssh-user-that-can-only-access-mysql) to prevent the public account from having any additional rights in the system.
@@ -14,7 +17,5 @@
 * Take note of important header information, such as server type.
 
 ## In Process
-* Bug-Test the v0.5 release.
 
 ## Complete
-* Detect forms in the HTML, save the action= and the input fields to the pages table.
