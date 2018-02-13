@@ -121,8 +121,7 @@ class Spider():
         except Exception as e:
             # There was an error saving the link to the
             # database.
-            log("Couldn't add link to database: {}".format(
-                    e))
+            log("Couldn't add link to database: {}".format(e))
             raise
 
     def crawl(self):
