@@ -64,6 +64,9 @@ This is the function used by default to add all newly-discovered urls to the dat
 4. Process the link for any request data, then add that information to the `forms` table.
 
 #### Possible Improvements:
+* When we check to see if the scheme is non-http, we're just looking for 'http' in the scheme, and ignoring the URL if it's not http. This makes sense for a web scraper, but these links might be interesting to someone.
+
+#### Improvements Made:
 * To start with, the add_url function automatically adds information to the `pages` and `forms` tables as if the link itself is assumed valid. This data should not be added to the database until the url has been successfully loaded and proves itself to be legitimate. By doing it this way, we can avoid storing lots of useless page and form data in the database for things that are invalid or offline. This would also reduce the number of database queries that must be performed.
 * In step 7 of the scanning process, don't skip an entire page just because it has no title.
 * In step 9 of the scanning process, rather than creating a new variable, just use page_title.

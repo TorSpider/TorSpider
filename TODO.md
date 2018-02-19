@@ -1,12 +1,14 @@
 # To Do
 
+## Bugs
+* SpiderStats reveals that there are more online sites than we've even scanned so far: `So far, TorSpider has scanned 43 (1.27%) of the 3,394 urls it has discovered. Of the scanned sites, 53 are known to be active. TorSpider has found 25 direct links between these sites.` Why is this happening?
+
 ## High Priority
 * Update the script to use ORM and Flask.
 * Separate the backend code from the spider code.
-* Optimize the process top to bottom.
 
 ## Medium Priority
-* Include [sshtunnel](https://github.com/pahaz/sshtunnel) to enable access to remote servers. You can set up the server like [so](https://unix.stackexchange.com/questions/235040/how-do-i-create-a-ssh-user-that-can-only-access-mysql) to prevent the public account from having any additional rights in the system.
+* Find a secure way to allow access to remote spiders.
 * Improve the VisualWeb.py map by adjusting colors and line lengths, and by including the name of the site above its dot.
 
 ## Low Priority
@@ -17,5 +19,6 @@
 * Take note of important header information, such as server type.
 
 ## In Process
+* Optimize the process top to bottom.
 
 ## Complete
