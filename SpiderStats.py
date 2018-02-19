@@ -47,26 +47,6 @@ cursor.execute("SELECT count(id) FROM onions WHERE online = 1 AND \
                date != '1900-01-01';")
 onion_count = cursor.fetchall()[0][0]
 
-print('Pages...')
-cursor.execute("SELECT count(id) FROM pages WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1 AND \
-               date != '1900-01-01');")
-page_count = cursor.fetchall()[0][0]
-
-print('Unique forms...')
-cursor.execute("SELECT count(DISTINCT page) FROM forms WHERE page IN \
-               (SELECT id FROM pages WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1 AND \
-               date != '1900-01-01'));")
-form_page_count = cursor.fetchall()[0][0]
-
-print('Form fields...')
-cursor.execute("SELECT count(id) FROM forms WHERE page IN \
-               (SELECT id FROM pages WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1 AND \
-               date != '1900-01-01'));")
-form_field_count = cursor.fetchall()[0][0]
-
 print('Links...')
 cursor.execute("SELECT count(domain) FROM links WHERE domain IN \
                (SELECT id FROM onions WHERE online = 1 AND \
@@ -79,15 +59,13 @@ print('–' * 70)
 print('Results:')
 messages = [
         'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
-        'discovered. Of the scanned sites, {:,} are known to be active,',
-        'comprising {:,} pages, {:,} forms and {:,} form fields. TorSpider',
-        'has found {:,} direct links between these sites.'
+        'discovered. Of the scanned sites, {:,} are known to be active.',
+        'TorSpider has found {:,} direct links between these sites.'
 ]
 
 message = ' '.join(messages)
 message = message.format(url_count_scanned, url_count_percentage, url_count,
-                         onion_count, page_count, form_page_count,
-                         form_field_count, link_count)
+                         onion_count, link_count)
 message = textwrap.fill(message)
 print(message)
 

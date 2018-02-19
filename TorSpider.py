@@ -44,10 +44,9 @@ class Spider():
     def __init__(self):
         self.session = get_tor_session()
 
-    def add_url(self, link_url, domain_id):
+    def add_to_queue(self, link_url):
+        # Add a URL to be scanned.
         link_url = self.fix_url(link_url)
-        link_page = self.get_page(link_url)
-        link_query = self.get_query(link_url)
         link_domain = self.get_domain(link_url)
         if('.onion' not in link_domain
            or '.onion.' in link_domain):
@@ -61,67 +60,13 @@ class Spider():
             link_domain_id = self.db(
                     "SELECT id FROM onions WHERE domain = %s;",
                     (link_domain, ))[0][0]
-            # Insert the url into its various tables.
+            # Insert the url into the urls table.
             self.db("INSERT INTO urls (domain, url) VALUES \
-                    (%s, %s) ON CONFLICT DO NOTHING; \
-                    INSERT INTO pages (domain, url) VALUES \
-                    (%s, %s) ON CONFLICT DO NOTHING; \
-                    INSERT INTO links (domain, link) VALUES \
                     (%s, %s) ON CONFLICT DO NOTHING;",
-                    (link_domain_id, link_url, link_domain_id,
-                     link_page, domain_id, link_domain_id))
-            # Process and add any discovered form data.
-            for item in link_query:
-                if(item == ['']):
-                    # Ignore empty form data.
-                    continue
-                try:
-                    [field, value] = item
-                except Exception as e:
-                    # Sometimes they have a field without a query.
-                    # e.g. /index.php?do=
-                    [field] = item
-                    value = 'none'
-                # We don't need to process it if the field is empty.
-                if(field == ''):
-                    continue
-                # First, make sure this field is in the forms table.
-                self.db('INSERT INTO forms \
-                        (page, field) VALUES ( \
-                        (SELECT id FROM pages WHERE \
-                        url = %s AND domain = %s), %s) \
-                        ON CONFLICT DO NOTHING;',
-                        (link_page, link_domain_id, field))
-
-                # Next, determine what examples already exist in the database.
-                # Only do this if we have a value to add.
-                if(value == '' or value == 'none'):
-                    continue
-                examples = ''
-                result = self.db('SELECT examples FROM forms \
-                                 WHERE page = (SELECT id FROM pages \
-                                 WHERE url = %s AND domain = %s) \
-                                 AND field = %s;',
-                                 (link_page, link_domain_id, field))
-                if(result == [] or result[0][0] == 'none'):
-                    # We don't have any current values.
-                    examples = value
-                else:
-                    # Merge with the returned examples.
-                    example_list = result[0][0].split(',')
-                    example_list.append(value)
-                    examples = ','.join(unique(example_list))
-
-                # Finally, update the examples in the database.
-                self.db('UPDATE forms SET examples = %s WHERE \
-                        page = (SELECT id FROM pages WHERE \
-                        url = %s AND domain = %s) AND field = %s;',
-                        (examples, link_page, link_domain_id, field))
-
+                    (link_domain_id, link_url))
         except Exception as e:
-            # There was an error saving the link to the
-            # database.
-            log("Couldn't add link to database: {}".format(e))
+            # There was an error saving the url to the queue.
+            log("Couldn't add url to queue: {}".format(e))
             raise
 
     def crawl(self):
@@ -171,7 +116,7 @@ class Spider():
 
                 # Check to see if it's an http/https link.
                 if(not self.is_http(url)):
-                    # It's not.
+                    # It's not. Skip it.
                     self.set_fault(url, 'non-http')
                     continue
 
@@ -212,7 +157,7 @@ class Spider():
                             location = head.headers['location']
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
-                            self.add_url(new_url, domain_id)
+                            self.add_to_queue(new_url)
                             continue
                         except Exception as e:
                             log("{}: couldn't find redirect. ({})".format(
@@ -267,8 +212,11 @@ class Spider():
                                     content_type))
                             continue
 
-                    # We've got the site's data. Let's see if it's
-                    # changed...
+                    # We've got the site's data. This page is live, so let's
+                    # process the url's data.
+                    self.process_url(url, domain_id)
+                    
+                    # Let's see if the page has changed...
                     try:
                         # Get the page's sha1 hash.
                         page_hash = self.get_hash(request.content)
@@ -302,16 +250,12 @@ class Spider():
                     try:
                         page_title = self.get_title(page_text)
                     except Exception as e:
-                        log('Bad title: {}'.format(url))
-                        self.set_fault(url, 'bad title')
-                        continue
+                        page_title = 'Unknown'
                     # Set the title of the url.
                     self.db('UPDATE urls SET title = %s \
                             WHERE url = %s;', (page_title, url))
 
-                    # Update the title of the page.
-                    new_title = str(page_title)
-                    # First, get the old title.
+                    # Update the page's title. First, get the old title.
                     curr_title = self.db('SELECT title FROM pages WHERE \
                                          url = %s AND domain = %s;',
                                          (self.get_page(url),
@@ -324,17 +268,17 @@ class Spider():
                     # make a hybrid title based on the current title and
                     # the title of the newly-scraped page.
                     if(curr_title != 'none'):
-                        new_title = self.merge_titles(curr_title,
+                        page_title = self.merge_titles(curr_title,
                                                       page_title)
-                    new_title = ' '.join(new_title.split())
+                    page_title = ' '.join(page_title.split())
                     # If the title is now empty, just set it to Unknown.
-                    new_title = 'Unknown' if new_title == '' else new_title
+                    page_title = 'Unknown' if page_title == '' else page_title
                     # Now, save the new title to the database, but only if
                     # the title has changed.
-                    if(new_title != curr_title):
+                    if(page_title != curr_title):
                         self.db('UPDATE pages SET title = %s \
                                 WHERE url = %s AND domain = %s;',
-                                (new_title, self.get_page(url), domain_id))
+                                (page_title, self.get_page(url), domain_id))
 
                     # Get the page's links.
                     page_links = self.get_links(page_text, url)
@@ -342,7 +286,7 @@ class Spider():
                     # Add the links to the database.
                     for link_url in page_links:
                         # Get the link domain.
-                        self.add_url(link_url, domain_id)
+                        self.add_to_queue(link_url)
 
                     # Parse any forms on the page.
                     page_forms = self.get_forms(page_text)
@@ -365,7 +309,7 @@ class Spider():
                         if('.onion' not in action or '.onion.' in action):
                             # Ignore any non-onion domain.
                             continue
-                        self.add_url(action, domain_id)
+                        self.add_to_queue(action)
                         link_domain_id = self.db(
                                 "SELECT id FROM onions WHERE \
                                 domain = %s;",
@@ -487,13 +431,10 @@ class Spider():
                 except requests.exceptions.InvalidSchema:
                     # We got an invalid schema.
                     (s, n, p, q, f) = urlsplit(url)
-                    if('http' in s):
-                        # The scheme was likely misspelled. Add it with http
-                        # and https, just in case.
-                        for scheme in ['http', 'https']:
-                            s = scheme
-                            new_url = urlunsplit((s, n, p, q, f))
-                            self.add_url(new_url, domain_id)
+                    for scheme in ['http', 'https']:
+                        s = scheme
+                        new_url = urlunsplit((s, n, p, q, f))
+                        self.add_to_queue(new_url)
                     self.set_fault(url, 'invalid schema')
 
                 except requests.exceptions.ConnectionError:
@@ -814,6 +755,77 @@ class Spider():
         us = us if ns == '' else ns  # Try to use the new url's scheme.
         un = un if nn == '' else nn  # Try to use the new url's netloc.
         return urlunsplit((us, un, np, nq, nf))  # Join them and return.
+
+    def process_url(self, link_url, domain_id):
+        # When a URL shows up valid, add its information to the database.
+        link_url = self.fix_url(link_url)
+        link_page = self.get_page(link_url)
+        link_query = self.get_query(link_url)
+        link_domain = self.get_domain(link_url)
+        try:
+            # We'll need the domain id of the link.
+            link_domain_id = self.db(
+                    "SELECT id FROM onions WHERE domain = %s;",
+                    (link_domain, ))[0][0]
+            # Insert the url into its various tables.
+            self.db("INSERT INTO pages (domain, url) VALUES \
+                    (%s, %s) ON CONFLICT DO NOTHING; \
+                    INSERT INTO links (domain, link) VALUES \
+                    (%s, %s) ON CONFLICT DO NOTHING;",
+                    (link_domain_id,
+                     link_page, domain_id, link_domain_id))
+            # Process and add any discovered form data.
+            for item in link_query:
+                if(item == ['']):
+                    # Ignore empty form data.
+                    continue
+                try:
+                    [field, value] = item
+                except Exception as e:
+                    # Sometimes they have a field without a query.
+                    # e.g. /index.php?do=
+                    [field] = item
+                    value = 'none'
+                # We don't need to process it if the field is empty.
+                if(field == ''):
+                    continue
+                # First, make sure this field is in the forms table.
+                self.db('INSERT INTO forms \
+                        (page, field) VALUES ( \
+                        (SELECT id FROM pages WHERE \
+                        url = %s AND domain = %s), %s) \
+                        ON CONFLICT DO NOTHING;',
+                        (link_page, link_domain_id, field))
+
+                # Next, determine what examples already exist in the database.
+                # Only do this if we have a value to add.
+                if(value == '' or value == 'none'):
+                    continue
+                examples = ''
+                result = self.db('SELECT examples FROM forms \
+                                 WHERE page = (SELECT id FROM pages \
+                                 WHERE url = %s AND domain = %s) \
+                                 AND field = %s;',
+                                 (link_page, link_domain_id, field))
+                if(result == [] or result[0][0] == 'none'):
+                    # We don't have any current values.
+                    examples = value
+                else:
+                    # Merge with the returned examples.
+                    example_list = result[0][0].split(',')
+                    example_list.append(value)
+                    examples = ','.join(unique(example_list))
+
+                # Finally, update the examples in the database.
+                self.db('UPDATE forms SET examples = %s WHERE \
+                        page = (SELECT id FROM pages WHERE \
+                        url = %s AND domain = %s) AND field = %s;',
+                        (examples, link_page, link_domain_id, field))
+
+        except Exception as e:
+            # There was an error saving the link to the database.
+            log("Couldn't add link to database: {}".format(e))
+            raise
 
     def set_fault(self, url, fault):
         # Update the url and page faults.
