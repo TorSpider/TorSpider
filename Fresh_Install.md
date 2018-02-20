@@ -1,5 +1,7 @@
 # Process of installation from fresh raspbian-lite installation.
 
+*Installing on other platforms should be similar.*
+
 ## Initial setup of Raspberry Pi
 
 1. Install raspbian.
@@ -24,7 +26,7 @@ sudo apt install python3-pip libpq-dev
 Once pip3 has installed, you can install the other remaining requirements for TorSpider with the following commands:
 
 ```
-sudo pip3 install pysocks requests cherrypy psycopg2-binary networkx
+sudo pip3 install pysocks requests psycopg2-binary networkx
 ```
 
 ## Install and configure PostgreSQL.
@@ -49,17 +51,17 @@ At this point, everything should be ready to go. Start up a new screen instance 
 
 ```
 bash $ ./TorSpider.py
-2018-01-24 19:13:44| MainProcess: ----------------------------------------
-2018-01-24 19:13:44| MainProcess: TorSpider v2 Initializing...
-2018-01-24 19:13:44| MainProcess: Establishing Tor connection...
-2018-01-24 19:13:46| MainProcess: Tor connection established.
-2018-01-24 19:13:46| MainProcess: Waking the Scribe...
-2018-01-24 19:13:46| Voltaire: I'm awake! Checking my database.
-2018-01-24 19:13:46| Voltaire: Initializing new database...
-2018-01-24 19:13:46| Voltaire: Database initialized.
-2018-01-24 19:13:46| Voltaire: Okay, I'm ready.
-2018-01-24 19:13:47| MainProcess: Waking the Spiders...
-2018-01-24 19:13:47| Chester: Ready to explore!
+2018-02-20 02:24:13| MainProcess: ----------------------------------------
+2018-02-20 02:24:13| MainProcess: TorSpider v0.5 Initializing...
+2018-02-20 02:24:13| MainProcess: Establishing Tor connection...
+2018-02-20 02:24:14| MainProcess: Tor connection established.
+2018-02-20 02:24:14| MainProcess: Checking the database...
+2018-02-20 02:24:15| MainProcess: Database loaded.
+2018-02-20 02:24:15| MainProcess: Waking the Spiders...
+2018-02-20 02:24:15| Harry: Ready to explore!
+2018-02-20 02:24:16| Itsy: Ready to explore!
+2018-02-20 02:24:17| Dizzy: Ready to explore!
+2018-02-20 02:24:18| Aunt Tula: Ready to explore!
 ```
 
 Once the script is running, you can ctrl-a, ctrl-d to leave the screen running in the background. If you want to stop TorSpider, just `cd` to the TorSpider directory and `touch sleep`. Then you can `screen -R TorSpider` again to watch as the program goes to sleep. (This can take some time, so be patient.)

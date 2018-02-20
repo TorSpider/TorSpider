@@ -215,7 +215,7 @@ class Spider():
                     # We've got the site's data. This page is live, so let's
                     # process the url's data.
                     self.process_url(url, domain_id)
-                    
+
                     # Let's see if the page has changed...
                     try:
                         # Get the page's sha1 hash.

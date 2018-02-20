@@ -9,14 +9,13 @@
 
 ## Medium Priority
 * Find a secure way to allow access to remote spiders.
-* Improve the VisualWeb.py map by adjusting colors and line lengths, and by including the name of the site above its dot.
+* Create a force-directed graph map of the known darknet.
 
 ## Low Priority
 * Enable the script to become daemonized.
 * Try to determine the title of the domain based on the titles of its pages.
 * Begin work on WebCrawler site front-end. (Requires database redesign to be complete.)
 * Enable notes to be stored regarding interesting information for pages and onions.
-* Take note of important header information, such as server type.
 
 ## In Process
 * Optimize the process top to bottom.
