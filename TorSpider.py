@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.5--^-----+                   |
+   |                   +-----^--TorSpider-v0.6--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -28,7 +28,7 @@ from urllib.parse import urlsplit, urlunsplit
 '''---[ GLOBAL VARIABLES ]---'''
 
 # The current release version.
-version = '0.5'
+version = '0.6'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'

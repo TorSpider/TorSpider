@@ -19,4 +19,3 @@
 ## In Process
 
 ## Complete
-* Optimize the process top to bottom.
