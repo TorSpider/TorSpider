@@ -50,9 +50,9 @@ onion_count = cursor.fetchall()[0][0]
 print('Links...')
 cursor.execute("SELECT count(domain) FROM links WHERE domain IN \
                (SELECT id FROM onions WHERE online = 1 AND \
-               date != '1900-01-01') AND link IN \
+               last_online != '1900-01-01') AND link IN \
                (SELECT id FROM onions WHERE online = 1 AND \
-               date != '1900-01-01');")
+               last_online != '1900-01-01');")
 link_count = cursor.fetchall()[0][0]
 
 print('–' * 70)
