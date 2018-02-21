@@ -163,7 +163,10 @@ class FormParser(HTMLParser):
         elif(tag == 'textarea'):
             # Closing out a text area.
             self.text_area = False
-            self.text_areas[self.text_area_name] = self.text_area_value
+            try:
+                self.text_areas[self.text_area_name] = self.text_area_value
+            except Exception as e:
+                pass
             self.text_area_name = ''
         elif(tag == 'select'):
             # Closing out a selection.
