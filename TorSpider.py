@@ -482,6 +482,10 @@ class Spider():
                     log("SSL Error at {}: {}".format(url, e))
                     self.set_fault(url, 'Bad SSL')
 
+                except psycopg2.InternalError as e:
+                    log("Psycopg2 error with {}: {}".format(url, e))
+                    raise
+
                 except MemoryError as e:
                     # Whatever it is, it's way too big.
                     log('Ran out of memory: {}'.format(url))
@@ -542,7 +546,11 @@ class Spider():
         cursor = connection.cursor()
         while(True):
             try:
-                cursor.execute(query, args)
+                try:
+                    cursor.execute(query, args)
+                except Exception as e:
+                    log("Failed to execute SQL: {} % {}".format(query, args))
+                    raise
                 try:
                     output = cursor.fetchall()
                 except Exception as e:

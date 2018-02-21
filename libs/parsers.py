@@ -177,6 +177,7 @@ class FormParser(HTMLParser):
         self.form = []
         self.select_options = []
         self.text_fields = {}
+        self.text_area_value = ''
         self.radio_buttons = {}
         self.checkboxes = {}
         self.dropdowns = {}
