@@ -529,7 +529,7 @@ class Spider():
                     self.db("UPDATE onions SET date = ( \
                             CURRENT_DATE + INTERVAL %s) \
                             WHERE id = %s;",
-                            (interval, domain_id, interval, domain_id))
+                            (interval, domain_id))
         log("Going to sleep!")
 
     def db(self, query, args=[]):
@@ -544,11 +544,7 @@ class Spider():
         cursor = connection.cursor()
         while(True):
             try:
-                try:
-                    cursor.execute(query, args)
-                except Exception as e:
-                    log("Failed to execute SQL: {} % {}".format(query, args))
-                    raise
+                cursor.execute(query, args)
                 try:
                     output = cursor.fetchall()
                 except Exception as e:
