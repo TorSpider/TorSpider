@@ -525,11 +525,9 @@ class Spider():
                     interval = ('1 day' if offline_scans == 1
                                 else '{} days'.format(
                                         offline_scans))
-                    # Then update the urls and onions scan dates.
-                    self.db("UPDATE urls SET date = \
-                            (CURRENT_DATE + INTERVAL %s) \
-                            WHERE domain = %s; UPDATE onions \
-                            SET date = (CURRENT_DATE + INTERVAL %s) \
+                    # Then update the onions scan dates.
+                    self.db("UPDATE onions SET date = ( \
+                            CURRENT_DATE + INTERVAL %s) \
                             WHERE id = %s;",
                             (interval, domain_id, interval, domain_id))
         log("Going to sleep!")

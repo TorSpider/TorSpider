@@ -31,7 +31,10 @@ UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE on
 UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('7 days', 163, '7 days', 163)
 UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('2 days', 163, '2 days', 163)
 UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('10 days', 163, '10 days', 163)
-SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('1 day', 163, '1 day', 163)
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL '1 day') WHERE domain = 163; UPDATE onions SET date = (CURRENT_DATE + INTERVAL '1 day') WHERE id = 163; | Args: ('1 day', 163, '1 day', 163)
+
+Infinite pause with UPDATE urls SET date = (CURRENT_DATE + INTERVAL '1 day') WHERE domain = 163;
+
 UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('9 days', 163, '9 days', 163)
 SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('14 days', 163, '14 days', 163)
 SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('12 days', 163, '12 days', 163)
