@@ -3,7 +3,7 @@
 
 ''' ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.5--^-----+                   |
+   |                   +-----^--TorSpider-v0.6--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +----------------by CMSteffen--+                   |
    |                                                                      |
@@ -28,7 +28,7 @@ from urllib.parse import urlsplit, urlunsplit
 '''---[ GLOBAL VARIABLES ]---'''
 
 # The current release version.
-version = '0.5'
+version = '0.6'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -529,7 +529,7 @@ class Spider():
                     self.db("UPDATE onions SET date = ( \
                             CURRENT_DATE + INTERVAL %s) \
                             WHERE id = %s;",
-                            (interval, domain_id, interval, domain_id))
+                            (interval, domain_id))
         log("Going to sleep!")
 
     def db(self, query, args=[]):
@@ -544,11 +544,7 @@ class Spider():
         cursor = connection.cursor()
         while(True):
             try:
-                try:
-                    cursor.execute(query, args)
-                except Exception as e:
-                    log("Failed to execute SQL: {} % {}".format(query, args))
-                    raise
+                cursor.execute(query, args)
                 try:
                     output = cursor.fetchall()
                 except Exception as e:

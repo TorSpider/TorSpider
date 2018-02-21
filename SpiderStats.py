@@ -47,25 +47,16 @@ cursor.execute("SELECT count(id) FROM onions WHERE online = 1 AND \
                last_online != '1900-01-01';")
 onion_count = cursor.fetchall()[0][0]
 
-print('Links...')
-cursor.execute("SELECT count(domain) FROM links WHERE domain IN \
-               (SELECT id FROM onions WHERE online = 1 AND \
-               last_online != '1900-01-01') AND link IN \
-               (SELECT id FROM onions WHERE online = 1 AND \
-               last_online != '1900-01-01');")
-link_count = cursor.fetchall()[0][0]
-
 print('–' * 70)
 print('Results:')
 messages = [
         'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
-        'discovered. Of the scanned sites, {:,} are known to be active.',
-        'TorSpider has found {:,} direct links between these sites.'
+        'discovered. Of the scanned sites, {:,} are known to be active.'
 ]
 
 message = ' '.join(messages)
-message = message.format(url_count_scanned, url_count_percentage, url_count,
-                         onion_count, link_count)
+message = message.format(url_count_scanned, url_count_percentage,
+                         url_count, onion_count)
 message = textwrap.fill(message)
 print(message)
 
