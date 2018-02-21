@@ -44,7 +44,7 @@ url_count_percentage = (url_count_scanned / url_count)
 
 print('Onions...')
 cursor.execute("SELECT count(id) FROM onions WHERE online = 1 AND \
-               date != '1900-01-01';")
+               last_online != '1900-01-01';")
 onion_count = cursor.fetchall()[0][0]
 
 print('Links...')
