@@ -22,6 +22,20 @@ Traceback (most recent call last):
   File "/home/pi/TorSpider/libs/parsers.py", line 166, in handle_endtag
     self.text_areas[self.text_area_name] = self.text_area_value
 AttributeError: 'FormParser' object has no attribute 'text_area_value'
+
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('1 day', 163, '1 day', 163)
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('3 days', 163, '3 days', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('13 days', 163, '13 days', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('5 days', 163, '5 days', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('8 days', 163, '8 days', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('7 days', 163, '7 days', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('2 days', 163, '2 days', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('10 days', 163, '10 days', 163)
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('1 day', 163, '1 day', 163)
+UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('9 days', 163, '9 days', 163)
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('14 days', 163, '14 days', 163)
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('12 days', 163, '12 days', 163)
+SQL Error: Message: UPDATE urls SET date = (CURRENT_DATE + INTERVAL %s) WHERE domain = %s; UPDATE onions SET date = (CURRENT_DATE + INTERVAL %s) WHERE id = %s; | Args: ('6 days', 163, '6 days', 163)
 ```
 
 ## High Priority

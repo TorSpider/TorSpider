@@ -482,7 +482,7 @@ class Spider():
                     log("SSL Error at {}: {}".format(url, e))
                     self.set_fault(url, 'Bad SSL')
 
-                except psycopg2.InternalError as e:
+                except sql.InternalError as e:
                     log("Psycopg2 error with {}: {}".format(url, e))
                     raise
 
