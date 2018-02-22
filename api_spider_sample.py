@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-""" 
+"""
     ______________________________________________________________________
    |                         |                  |                         |
    |                   +-----^--TorSpider-v0.5--^-----+                   |
@@ -18,7 +18,7 @@
     # |  place for the squeamish or the faint  | #
     # |    of heart. Here there be dragons!    | #
     # +----------------------------------------+ #
-    
+
 """
 
 import os
@@ -254,7 +254,7 @@ class Spider:
         else:
             return {}
 
-    def add_to_queue(self, link_url):
+    def add_to_queue(self, link_url, origin_domain):
         # Add a URL to be scanned.
         link_url = self.fix_url(link_url)
         link_domain = self.get_domain(link_url)
@@ -264,6 +264,7 @@ class Spider:
         # Add the new onion
         self.__add_onion(link_domain)
         self.__add_url(link_domain, link_url)
+        self.__add_link(origin_domain, link_domain)
 
     def crawl(self):
         log("Ready to explore!")
@@ -339,7 +340,7 @@ class Spider:
                             location = head.headers['location']
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
-                            self.add_to_queue(new_url)
+                            self.add_to_queue(new_url, domain)
                             continue
                         except Exception as e:
                             log("{}: couldn't find redirect. ({})".format(str(head.status_code), url))
@@ -486,7 +487,7 @@ class Spider:
                     # Add the links to the database.
                     for link_url in page_links:
                         # Get the link domain.
-                        self.add_to_queue(link_url)
+                        self.add_to_queue(link_url, domain)
 
                     # Parse any forms on the page.
                     page_forms = self.get_forms(page_text)
@@ -510,7 +511,7 @@ class Spider:
                         if '.onion' not in action_url or '.onion.' in action_url:
                             # Ignore any non-onion domain.
                             continue
-                        self.add_to_queue(action_url)
+                        self.add_to_queue(action_url, domain)
                         link_domain = self.get_domain(action_url)
 
                         # Now we'll need to add each input field and its
@@ -632,7 +633,7 @@ class Spider:
                     for scheme in ['http', 'https']:
                         s = scheme
                         new_url = urlunsplit((s, n, p, q, f))
-                        self.add_to_queue(new_url)
+                        self.add_to_queue(new_url, domain)
                     self.set_fault(url, 'invalid schema')
 
                 except requests.exceptions.SSLError as e:
@@ -915,8 +916,6 @@ class Spider:
         try:
             # Insert the url into its various tables.
             self.__add_page(link_domain, link_url)
-            # TODO: Understand why it seems we are adding a link to the table from/to the same domain.
-            self.__add_link(link_domain, link_domain)
             # Process and add any discovered form data.
             for item in link_query:
                 if item == ['']:
