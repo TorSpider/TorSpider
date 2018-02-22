@@ -93,3 +93,7 @@ ENV/
 *.cfg*
 *.log
 sleep
+
+
+#Pycharm
+.idea
