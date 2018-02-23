@@ -210,7 +210,7 @@ class Spider:
     def __add_form(self, url, field):
         log('Adding Form Field: {} Url: {}'.format(field, url), 'debug')
         data = {
-            "url": url,
+            "page": url,
             "field": field
         }
         r = requests.post(
