@@ -4,7 +4,6 @@
     doing.
 '''
 
-import textwrap
 import requests
 import json
 import urllib.parse
