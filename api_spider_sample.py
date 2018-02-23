@@ -1110,12 +1110,13 @@ class Spider:
                         }
                     ]}
                 result = self.__get_query('forms', example_query)
-                if not result:
+                result_examples = result.get('examples')
+                if not result_examples:
                     # We don't have any current values.
                     examples = value
                 else:
                     # Merge with the returned examples.
-                    example_list = result[0].get('examples').split(',')
+                    example_list = result_examples.split(',')
                     example_list.append(value)
                     examples = ','.join(unique(example_list))
 
