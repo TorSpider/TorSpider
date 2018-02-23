@@ -61,79 +61,6 @@ class Spider:
         self.headers = {"Content-Type": "application/json"}
         self.session = get_tor_session()
 
-    def __get_next_url(self):
-        log('Getting next URL', 'debug')
-        week_ago = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
-        day_ago = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-        # TODO: I am going to offload this request to the server as it is
-        # not something the spider should handle.
-        # TODO: server-side queueing will allow us to more easily control
-        # what will be scanned next also.
-        query = {
-            "filters": [
-                {"or": [
-                    {"and":
-                        [{
-                            "op": "is_null",
-                            "name": "fault"
-                        },
-                            {
-                                "op": "lt",
-                                "name": "date",
-                                "val": week_ago
-                            }]},
-                    {"and": [{
-                        "op": "has",
-                        "name": "domain_info",
-                        "val":
-                            {
-                                "op": "eq",
-                                "name": "online",
-                                "val": "true"
-                            }
-                    },
-                        {
-                            "op": "has",
-                            "name": "domain_info",
-                            "val": {
-                                "op": "ne",
-                                "name": "tries",
-                                "val": 0
-                            }}]},
-                    {"and": [{
-                        "op": "has",
-                        "name": "domain_info",
-                        "val": {
-                            "op": "eq",
-                            "name": "online",
-                            "val": "false"
-                        }},
-                        {
-                            "op": "has",
-                            "name": "domain_info",
-                            "val": {
-                                "op": "lt",
-                                "name": "scan_date",
-                                "val": day_ago
-                            }
-                        }]}]}]}
-
-        r = requests.get(
-            self.api_url + 'urls?q=' + json.dumps(query),
-            headers=self.headers,
-            verify=False)
-        if r.status_code == 200:
-            try:
-                d = json.loads(r.text)
-                # return a random item from the list of retrieved matches
-                return random.choice(d['objects'])
-            except Exception as e:
-                log('No urls in queue.', 'debug')
-                return {}
-        else:
-            log('Failed to get next url.', 'debug')
-            return {}
-
     def __add_onion(self, domain):
         log('Adding onion: {}'.format(domain), 'debug')
         data = {
@@ -363,12 +290,16 @@ class Spider:
             if os.path.exists('sleep'):
                 time_to_sleep = True
             else:
-                next_url_info = self.__get_next_url()
-                log('Found next url: {}'.format(
-                    next_url_info.get('domain')), 'debug')
+                next_url_info = self.__get_query('next', {"node_name": node_name})
+                if not next_url_info:
+                    log('We found no urls to check, sleeping for 5 seconds.',
+                        'debug')
+                    time.sleep(5)
+                    continue
                 if 'domain' in next_url_info.keys() \
                         and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
+                    log('Found next url: {}'.format(next_url_info.get('domain')), 'debug')
                     domain = next_url_info['domain']
                     domain_info = next_url_info['domain_info']
                     url = self.fix_url(next_url_info['url'])
