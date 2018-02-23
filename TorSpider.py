@@ -44,7 +44,7 @@ class Spider():
     def __init__(self):
         self.session = get_tor_session()
 
-    def add_to_queue(self, link_url):
+    def add_to_queue(self, link_url, domain_id):
         # Add a URL to be scanned.
         link_url = self.fix_url(link_url)
         link_domain = self.get_domain(link_url)
@@ -62,8 +62,11 @@ class Spider():
                     (link_domain, ))[0][0]
             # Insert the url into the urls table.
             self.db("INSERT INTO urls (domain, url) VALUES \
+                    (%s, %s) ON CONFLICT DO NOTHING; \
+                    INSERT INTO links (domain, link) VALUES \
                     (%s, %s) ON CONFLICT DO NOTHING;",
-                    (link_domain_id, link_url))
+                    (link_domain_id, link_url,
+                     domain_id, link_domain_id))
         except Exception as e:
             # There was an error saving the url to the queue.
             log("Couldn't add url to queue: {}".format(e))
@@ -157,7 +160,7 @@ class Spider():
                             location = head.headers['location']
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
-                            self.add_to_queue(new_url)
+                            self.add_to_queue(new_url, domain_id)
                             continue
                         except Exception as e:
                             log("{}: couldn't find redirect. ({})".format(
@@ -286,7 +289,7 @@ class Spider():
                     # Add the links to the database.
                     for link_url in page_links:
                         # Get the link domain.
-                        self.add_to_queue(link_url)
+                        self.add_to_queue(link_url, domain_id)
 
                     # Parse any forms on the page.
                     page_forms = self.get_forms(page_text)
@@ -309,7 +312,7 @@ class Spider():
                         if('.onion' not in action or '.onion.' in action):
                             # Ignore any non-onion domain.
                             continue
-                        self.add_to_queue(action)
+                        self.add_to_queue(action, domain_id)
                         link_domain_id = self.db(
                                 "SELECT id FROM onions WHERE \
                                 domain = %s;",
@@ -434,7 +437,7 @@ class Spider():
                     for scheme in ['http', 'https']:
                         s = scheme
                         new_url = urlunsplit((s, n, p, q, f))
-                        self.add_to_queue(new_url)
+                        self.add_to_queue(new_url, domain_id)
                     self.set_fault(url, 'invalid schema')
 
                 except requests.exceptions.ConnectionError:
@@ -771,11 +774,8 @@ class Spider():
                     (link_domain, ))[0][0]
             # Insert the url into its various tables.
             self.db("INSERT INTO pages (domain, url) VALUES \
-                    (%s, %s) ON CONFLICT DO NOTHING; \
-                    INSERT INTO links (domain, link) VALUES \
                     (%s, %s) ON CONFLICT DO NOTHING;",
-                    (link_domain_id,
-                     link_page, domain_id, link_domain_id))
+                    (link_domain_id, link_page))
             # Process and add any discovered form data.
             for item in link_query:
                 if(item == ['']):
