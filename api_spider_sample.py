@@ -336,7 +336,7 @@ class Spider:
         else:
             return {}
 
-    def add_to_queue(self, link_url):
+    def add_to_queue(self, link_url, origin_domain):
         log("Attempting to add a onion url to the queue: {}".format(link_url),
             'debug')
         # Add a URL to be scanned.
