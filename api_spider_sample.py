@@ -29,6 +29,8 @@ import requests
 import configparser
 import names
 import json
+import logging
+from logging.handlers import TimedRotatingFileHandler
 from hashlib import sha1
 from libs.parsers import *
 import multiprocessing as mp
@@ -47,6 +49,9 @@ agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
 # Just to prevent some SSL errors.
 requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += \
     ':ECDHE-ECDSA-AES128-GCM-SHA256'
+
+script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+
 '''---[ CLASS DEFINITIONS ]---'''
 
 
@@ -56,8 +61,8 @@ class Spider:
         self.headers = {"Content-Type": "application/json"}
         self.session = get_tor_session()
 
-
     def __get_next_url(self):
+        log('Getting next URL', 'debug')
         week_ago = (date.today() - timedelta(days=7)).strftime('%Y-%m-%d')
         day_ago = (date.today() - timedelta(days=1)).strftime('%Y-%m-%d')
         # TODO: I am going to offload this request to the server as it is not something the spider should handle.
@@ -118,11 +123,14 @@ class Spider:
                 # return a random item from the list of retrieved matches
                 return random.choice(d['objects'])
             except:
+                log('No urls in queue.', 'debug')
                 return {}
         else:
+            log('Failed to get next url.', 'debug')
             return {}
 
     def __add_onion(self, domain):
+        log('Adding onion: {}'.format(domain), 'debug')
         data = {
             "domain": domain,
             "last_node": node_name
@@ -130,11 +138,13 @@ class Spider:
         r = requests.post(self.api_url + 'onions', headers=self.headers, data=json.dumps(data), verify=False)
         if r.status_code == 201:
             # If created then it returns the object data
+            log('Added successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
         else:
             return {}
 
     def __add_url(self, domain, url):
+        log('Adding url: {}'.format(url), 'debug')
         data = {
             "domain": domain,
             "url": url
@@ -142,11 +152,13 @@ class Spider:
         r = requests.post(self.api_url + 'urls', headers=self.headers, data=json.dumps(data), verify=False)
         if r.status_code == 201:
             # If created then it returns the object data
+            log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         else:
             return {}
 
     def __add_page(self, domain, url):
+        log('Adding page: {}'.format(url), 'debug')
         data = {
             "domain": domain,
             "url": url
@@ -154,11 +166,13 @@ class Spider:
         r = requests.post(self.api_url + 'pages', headers=self.headers, data=json.dumps(data), verify=False)
         if r.status_code == 201:
             # If created then it returns the object data
+            log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         else:
             return {}
 
     def __add_link(self, domain_from, domain_to):
+        log('Adding link: {}->{}'.format(domain_from, domain_to), 'debug')
         data = {
             "domain_from": domain_from,
             "domain_to": domain_to
@@ -166,11 +180,13 @@ class Spider:
         r = requests.post(self.api_url + 'links', headers=self.headers, data=json.dumps(data), verify=False)
         if r.status_code == 201:
             # If created then it returns the object data
+            log('Added successfully: {}->{}'.format(domain_from, domain_to), 'debug')
             return json.loads(r.text)
         else:
             return {}
 
     def __add_form(self, url, field):
+        log('Adding Form Field: {} Url: {}'.format(field, url), 'debug')
         data = {
             "url": url,
             "field": field
@@ -178,56 +194,70 @@ class Spider:
         r = requests.post(self.api_url + 'forms', headers=self.headers, data=json.dumps(data), verify=False)
         if r.status_code == 201:
             # If created then it returns the object data
+            log('Added successfully: Field: {}, Url: {}'.format(field, url), 'debug')
             return json.loads(r.text)
         else:
             return {}
 
     def __update_onions(self, domain, data):
+        log("Updating onion: {} data: {}".format(domain, json.dumps(data)), 'debug')
         query = {"filters": [
             {
                 "op": "eq",
                 "name": "domain",
                 "val": domain
             }]}
-        r = requests.patch(self.api_url + 'onions?q=' + json.dumps(query), headers=self.headers, data=json.dumps(data),
+        data['q'] = query
+        r = requests.patch(self.api_url + 'onions', headers=self.headers, data=json.dumps(data),
                            verify=False)
         if r.status_code == 200:
             # if updated it returns the object data
+            log('Updated successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
         else:
+            log('Update failed: {}'.format(domain), 'debug')
             return {}
 
     def __update_urls(self, url, data):
+        log("Updating url: {} data: {}".format(url, json.dumps(data)), 'debug')
         query = {"filters": [
             {
                 "op": "eq",
                 "name": "url",
                 "val": url
             }]}
-        r = requests.patch(self.api_url + 'urls?q=' + json.dumps(query), headers=self.headers, data=json.dumps(data),
+        data['q'] = query
+        r = requests.patch(self.api_url + 'urls', headers=self.headers, data=json.dumps(data),
                            verify=False)
         if r.status_code == 200:
             # if updated it returns the object data
+            log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         else:
+            log('Update failed: {}'.format(url), 'debug')
             return {}
 
     def __update_pages(self, url, data):
+        log("Updating page: {} data: {}".format(url, json.dumps(data)), 'debug')
         query = {"filters": [
             {
                 "op": "eq",
                 "name": "url",
                 "val": url
             }]}
-        r = requests.patch(self.api_url + 'pages?q=' + json.dumps(query), headers=self.headers, data=json.dumps(data),
+        data['q'] = query
+        r = requests.patch(self.api_url + 'pages', headers=self.headers, data=json.dumps(data),
                            verify=False)
         if r.status_code == 200:
             # if updated it returns the object data
+            log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         else:
+            log('Update failed: {}'.format(url), 'debug')
             return {}
 
     def __update_forms(self, url, field, data):
+        log("Updating form: Field: {} Url: {} data: {}".format(field, url, json.dumps(data)), 'debug')
         query = {"filters": [
             {
                 "op": "eq",
@@ -238,28 +268,37 @@ class Spider:
                 "name": "field",
                 "val": field
             }]}
-        r = requests.patch(self.api_url + 'forms?q=' + json.dumps(query), headers=self.headers, data=json.dumps(data),
+        data['q'] = query
+        r = requests.patch(self.api_url + 'forms', headers=self.headers, data=json.dumps(data),
                            verify=False)
         if r.status_code == 200:
             # if updated it returns the object data
+            log('Updated successfully: Field: {} Url: {}'.format(field, url), 'debug')
             return json.loads(r.text)
         else:
+            log('Updated failed: Field: {} Url: {}'.format(field, url), 'debug')
             return {}
 
     def __get_query(self, endpoint, query):
+        log("Running GET Query on endpoint: {}".format(endpoint), 'debug')
         r = requests.get(self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(json.dumps(query)), verify=False)
         if r.status_code == 200:
             # If created then it returns the object data
+            log('GET Query successful for endpoint: {}'.format(endpoint), 'debug')
             return json.loads(r.text).get('objects')
         else:
             return {}
 
-    def add_to_queue(self, link_url, origin_domain):
+    def add_to_queue(self, link_url):
+        log("Attempting to add a onion url to the queue: {}".format(link_url), 'debug')
         # Add a URL to be scanned.
         link_url = self.fix_url(link_url)
+        log("Fixed url is: {}".format(link_url), 'debug')
         link_domain = self.get_domain(link_url)
+        log("Link domain is: {}".format(link_domain), 'debug')
         if '.onion' not in link_domain or '.onion.' in link_domain:
             # We don't want to add a link to a non-onion domain.
+            log("Link domain: {} is not an onion site, ignoring.".format(link_domain), 'debug')
             return
         # Add the new onion
         self.__add_onion(link_domain)
@@ -267,13 +306,14 @@ class Spider:
         self.__add_link(origin_domain, link_domain)
 
     def crawl(self):
-        log("Ready to explore!")
+        log("Ready to explore!", 'info')
         time_to_sleep = False
         while not time_to_sleep:
             if os.path.exists('sleep'):
                 time_to_sleep = True
             else:
                 next_url_info = self.__get_next_url()
+                log('Found next url: {}'.format(next_url_info.get('domain')), 'debug')
                 if 'domain' in next_url_info.keys() and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
                     domain = next_url_info['domain']
@@ -281,12 +321,14 @@ class Spider:
                     url = self.fix_url(next_url_info['url'])
                 else:
                     # No links to process. This should be rare...
+                    log('We found no urls to check, sleeping for 5 seconds.', 'debug')
                     time.sleep(5)
                     continue
                 tries = domain_info.get('tries', 0)
                 last_node = domain_info.get('last_node', 'none')
 
                 if last_node == node_name and tries > 0:
+                    log('I was the last node to scan this url, skipping.', 'debug')
                     # This was scanned by this node last. Let's avoid this.
                     continue
 
@@ -300,12 +342,14 @@ class Spider:
                 # Check to see if it's an http/https link.
                 if not self.is_http(url):
                     # It's not. Skip it.
+                    log('Skipping non-http site.', 'debug')
                     self.set_fault(url, 'non-http')
                     continue
 
                 url_offline = False
                 try:
                     # Retrieve the page's headers.
+                    log('Getting head of url: {}'.format(url), 'debug')
                     head = self.session.head(url, timeout=30)
 
                     # Redirect codes: These status codes redirect to other
@@ -333,30 +377,35 @@ class Spider:
                     # Did we get the page successfully?
                     if head.status_code in redirect_codes:
                         # The url results in a redirection.
+                        log('Found a redirection url: {} code: {}'.format(url, head.status_code), 'debug')
                         self.set_fault(url, str(head.status_code))
                         try:
                             # Let's grab the redirected url and add it to
                             # the database.
                             location = head.headers['location']
+                            log('Found redirection url: {}'.format(location), 'debug')
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
                             self.add_to_queue(new_url, domain)
                             continue
                         except Exception as e:
-                            log("{}: couldn't find redirect. ({})".format(str(head.status_code), url))
+                            log("{}: couldn't find redirect. ({})".format(str(head.status_code), url), 'error')
                             continue
                     elif head.status_code in fault_codes:
                         # The url results in a fault.
+                        log('Found a fault url: {} code: {}'.format(url, head.status_code), 'debug')
                         self.set_fault(url, str(head.status_code))
                         continue
                     elif head.status_code in no_fault_codes:
+                        log('Found a problem url: {} code: {}'.format(url, head.status_code), 'debug')
                         # The url results in a problem, but not a fault.
                         continue
                     elif head.status_code not in good_codes:
+                        log('Found a unknown status url: {} code: {}'.format(url, head.status_code), 'debug')
                         # Unknown status. I'll add more status_code options
                         # as they arise.
                         self.set_fault(url, str(head.status_code))
-                        log("Unknown status code {}: {}".format(head.status_code, url))
+                        log("Unknown status code {}: {}".format(head.status_code, url), 'error')
                         continue
 
                     # Update the database to show that we've scanned this url
@@ -369,7 +418,7 @@ class Spider:
                     data = {
                         "last_online": date.today().strftime('%Y-%m-%d'),
                         "tries": 0,
-                        "offline_scan": 0
+                        "offline_scans": 0
                     }
                     self.__update_onions(domain, data)
 
@@ -377,6 +426,7 @@ class Spider:
                     # We only want to scan text for links. But if we don't
                     # know what the content type is, that might result
                     # from a redirection, so we'll scan it just in case.
+                    log("Found content type of url: {} as: {}".format(url, content_type), 'debug')
                     if content_type != 'text' and content_type is not None:
                         # Otherwise, if we know what it is, and it's not
                         # text, don't scan it.
@@ -389,6 +439,7 @@ class Spider:
                         # way, because we couldn't get a content type from
                         # the head.
                         content_type = self.get_type(request.headers)
+                        log("Found content type of url: {} as: {}".format(url, content_type), 'debug')
                         if content_type != 'text' and content_type is not None:
                             self.set_fault(url, 'type: {0}'.format(content_type))
                             continue
@@ -401,6 +452,7 @@ class Spider:
                     try:
                         # Get the page's sha1 hash.
                         page_hash = self.get_hash(request.content)
+                        log('Page hash of url: {} is: {}'.format(url, page_hash), 'debug')
 
                         # Retrieve the page's last hash.
                         hash_query = {
@@ -416,20 +468,22 @@ class Spider:
                             last_hash = url_info[0].get('hash')
                         else:
                             last_hash = ''
-
+                        log('Last page hash of url: {} is: {}'.format(url, last_hash), 'debug')
                         # If the hash hasn't changed, don't process the
                         # page.
                         if last_hash == page_hash:
+                            log('The hashes matched, nothing has changed.', 'debug')
                             continue
 
                         # Update the page's hash in the database.
                         data = {
                             "hash": page_hash
                         }
+                        log('Update hash for url: {} to: {}'.format(url, page_hash), 'debug')
                         self.__update_urls(url, data)
 
                     except Exception as e:
-                        log("Couldn't retrieve previous hash: {0}".format(url))
+                        log("Couldn't retrieve previous hash: {0}".format(url), 'error')
                         continue
 
                     # The page's HTML changed since our last scan; let's
@@ -441,6 +495,7 @@ class Spider:
                         page_title = self.get_title(page_text)
                     except Exception as e:
                         page_title = 'Unknown'
+                    log('Page title for url: {} is: {}'.format(url, page_title), 'debug')
                     # Set the title of the url.
                     data = {
                         "title": page_title
@@ -463,7 +518,7 @@ class Spider:
                         curr_title = ''
                     if curr_title == 'Unknown':
                         curr_title = 'none'
-
+                    log('Previous page title for url: {} was: {}'.format(url, curr_title), 'debug')
                     # Now, if the title is 'none' then just save
                     # page_title. But if it's something else, we'll need to
                     # make a hybrid title based on the current title and
@@ -476,6 +531,7 @@ class Spider:
                     # Now, save the new title to the database, but only if
                     # the title has changed.
                     if page_title != curr_title:
+                        log('Page title has changed to: {}'.format(page_title), 'debug')
                         data = {
                             "title": page_title
                         }
@@ -490,6 +546,7 @@ class Spider:
                         self.add_to_queue(link_url, domain)
 
                     # Parse any forms on the page.
+                    log('Parsing forms on url: {}'.format(url), 'debug')
                     page_forms = self.get_forms(page_text)
 
                     # Add the forms to the database.
@@ -624,7 +681,7 @@ class Spider:
                 # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
-                    log("Invalid url: {}".format(url))
+                    log("Invalid url: {}".format(url), 'error')
                     self.set_fault(url, 'invalid url')
 
                 except requests.exceptions.InvalidSchema:
@@ -638,12 +695,13 @@ class Spider:
 
                 except requests.exceptions.SSLError as e:
                     # There was a problem with the site's SSL certificate.
-                    log("SSL Error at {}: {}".format(url, e))
+                    log("SSL Error at {}: {}".format(url, e), 'error')
                     self.set_fault(url, 'Bad SSL')
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.
                     # First let's make sure we're still online.
+                    log("Connection error to url: {}".format(url), 'debug')
                     try:
                         tor_ip = get_my_ip(self.session)
                         if tor_ip:
@@ -651,6 +709,7 @@ class Spider:
                             tries += 1
                             if tries == 3:
                                 # We've failed three times. Time to quit.
+                                log('Url is offline: {}'.format(url), 'debug')
                                 url_offline = True
                             else:
                                 data = {
@@ -661,14 +720,17 @@ class Spider:
                         # We aren't connected to Tor for some reason.
                         # It might be a temporary outage, so let's wait
                         # for a little while and see if it fixes itself.
+                        log('We seem to not be connected to Tor', 'debug')
                         time.sleep(5)
                         continue
 
                 except requests.exceptions.Timeout:
                     # It took too long to load this page.
+                    log('Request timed out: {}'.format(url), 'debug')
                     tries += 1
                     if tries == 3:
                         # We've failed three times. Time to quit.
+                        log('Url is offline: {}'.format(url), 'debug')
                         url_offline = True
                     else:
                         data = {
@@ -688,18 +750,19 @@ class Spider:
 
                 except MemoryError as e:
                     # Whatever it is, it's way too big.
-                    log('Ran out of memory: {}'.format(url))
+                    log('Ran out of memory: {}'.format(url), 'error')
                     self.set_fault(url, 'memory error')
 
                 except NotImplementedError as e:
-                    log("I don't know what this means: {} - {}".format(e, url))
+                    log("I don't know what this means: {} - {}".format(e, url), 'error')
 
                 except Exception as e:
-                    log('Unknown exception: {}'.format(e))
+                    log('Unknown exception: {}'.format(e), 'error')
                     raise
 
                 if url_offline:
                     # Set the domain to offline.
+                    log('Setting url as offline: {}'.format(url), 'debug')
                     data = {
                         "online": False,
                         "tries": 0
@@ -735,7 +798,7 @@ class Spider:
                         "scan_date": new_date
                     }
                     self.__update_onions(domain, data)
-        log("Going to sleep!")
+        log("Going to sleep!", 'info')
 
     def defrag_domain(self, domain):
         # Defragment the given domain.
@@ -773,6 +836,7 @@ class Spider:
         return sha1(data).hexdigest()
 
     def get_links(self, data, url):
+        log("Getting links for url: {}".format(url), 'debug')
         # Given HTML input, return a list of all unique links.
         parse = ParseLinks()
         parse.feed(data)
@@ -809,9 +873,11 @@ class Spider:
                 links.append(urlunsplit(
                     (scheme, netloc, path, query, fragment)))
             except Exception as e:
-                log('Link exception: {} -- {}'.format(e, link))
+                log('Link exception: {} -- {}'.format(e, link), 'error')
         # Make sure we don't return any duplicates!
-        return unique(links)
+        unique_links = unique(links)
+        log("Found {} links in url: {}".format(len(unique_links), url), 'debug')
+        return unique_links
 
     def get_query(self, url):
         # Get the query information from the url.
@@ -891,30 +957,40 @@ class Spider:
         return link
 
     def merge_titles(self, title1, title2):
+        log('Merging titles: {} and {}'.format(title1, title2), 'debug')
         title1_parts = title1.split()
         title2_parts = title2.split()
         new_title_parts = extract_exact(title1_parts, title2_parts)
-        return ' '.join(new_title_parts)
+        new_title = ' '.join(new_title_parts)
+        log('New title: {}'.format(new_title), 'debug')
+        return new_title
 
     def merge_lists(self, list1, list2):
         # Merge two lists together without duplicates.
         return list(set(list1 + list2))
 
     def merge_urls(self, url1, url2):
+        log('Merging url: {} and url: {}'.format(url1, url2), 'debug')
         # TODO: Understand what is going on here.
         # Merge the new url (url1) into the original url (url2).
         (ns, nn, np, nq, nf) = urlsplit(url1)  # Split first url into parts.
         (us, un, up, uq, uf) = urlsplit(url2)  # Split second url into parts.
         us = us if ns == '' else ns  # Try to use the new url's scheme.
         un = un if nn == '' else nn  # Try to use the new url's netloc.
-        return urlunsplit((us, un, np, nq, nf))  # Join them and return.
+        final_url = urlunsplit((us, un, np, nq, nf))  # Join them and return.
+        log('Merged url: {}'.format(final_url), 'debug')
+        return final_url
 
     def process_url(self, link_url, link_domain):
         # When a URL shows up valid, add its information to the database.
+        log('Processing url: {}'.format(link_url), 'debug')
         link_url = self.fix_url(link_url)
+        log('Fixed link url: {}'.format(link_url), 'debug')
         link_query = self.get_query(link_url)
+        log('Link query: {}'.format(link_query), 'debug')
         try:
             # Insert the url into its various tables.
+            log('Add url: {} domain: {} into page table.'.format(link_domain, link_url), 'debug')
             self.__add_page(link_domain, link_url)
             # Process and add any discovered form data.
             for item in link_query:
@@ -969,10 +1045,11 @@ class Spider:
 
         except Exception as e:
             # There was an error saving the link to the database.
-            log("Couldn't add link to database: {0}".format(e))
+            log("Couldn't add link to database: {0}".format(e), 'error')
             raise
 
     def set_fault(self, url, fault):
+        log('Setting fault status for url: {} fault: {}'.format(url, fault), 'debug')
         # Update the url and page faults.
         data = {
             "fault": fault
@@ -1004,19 +1081,38 @@ def get_tor_session():
     return session
 
 
-def log(line):
-    message = '{}| {}: {}'.format(
-        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+def setup_logger(loglevel):
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    my_logger = logging.getLogger()
+    os.makedirs(os.path.join(script_dir, 'logs'), exist_ok=True)
+    filehandler = TimedRotatingFileHandler(os.path.join(script_dir, 'logs', 'TorSpider.log'), when='midnight',
+                                           interval=1)
+    filehandler.setFormatter(formatter)
+    my_logger.addHandler(filehandler)
+    if log_to_console:
+        consolehandler = logging.StreamHandler()
+        consolehandler.setFormatter(formatter)
+        my_logger.addHandler(consolehandler)
+    my_logger.setLevel(logging.getLevelName(loglevel))
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    return my_logger
+
+
+def log(line, level):
+    message = '{}: {}'.format(
         mp.current_process().name,
         line)
     message = ' '.join(message.split())  # Remove unnecessary whitespace.
-    if log_to_console:
-        # Print to the screen if log_to_console is enabled.
-        print(message)
-    # Append the message to the logfile.
-    f = open('run.log', 'a')
-    f.write('{}\n'.format(message))
-    f.close()
+    if level.lower() == 'debug':
+        logger.debug(message)
+    elif level.lower() == 'info':
+        logger.info(message)
+    elif level.lower() == 'warning':
+        logger.warning(message)
+    elif level.lower() == 'error':
+        logger.error(message)
+    elif level.lower() == 'critical`':
+        logger.critical(message)
 
 
 def prune_exact(items, scan_list):
@@ -1071,6 +1167,9 @@ if __name__ == '__main__':
         default_config['API'] = {
             'api_url': 'http://127.0.0.1/api/'
         }
+        default_config['LOGGING'] = {
+            'loglevel': 'INFO'
+        }
         with open('spider.cfg', 'w') as config_file:
             default_config.write(config_file)
         print('Default configuration stored in spider.cfg.')
@@ -1085,41 +1184,42 @@ if __name__ == '__main__':
         daemonize = config['TorSpider'].getboolean('Daemonize')
         node_name = config['TorSpider'].get('NodeName')
         api_url = config['API'].get('api_url')
+        log_level = config['LOGGING'].get('loglevel')
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
         sys.exit(0)
-
-    log('-' * 40)
-    log('TorSpider v{} Initializing...'.format(version))
+    logger = setup_logger(log_level)
+    log('-' * 40, 'info')
+    log('TorSpider v{} Initializing...'.format(version), 'info')
 
     # Create a Tor session and check if it's working.
-    log("Establishing Tor connection...")
+    log("Establishing Tor connection...", 'info')
     session = get_tor_session()
     try:
         local_ip = get_my_ip(None)
         if not local_ip:
-            log("Cannot determine local IP address.")
+            log("Cannot determine local IP address.", 'error')
             sys.exit(0)
         tor_ip = get_my_ip(session)
         if not tor_ip:
-            log("Cannot determine tor IP address.")
+            log("Cannot determine tor IP address.", 'error')
             sys.exit(0)
         if local_ip == tor_ip:
-            log("Tor connection failed: IPs match.")
-            log('-' * 40)
+            log("Tor connection failed: IPs match.", 'error')
+            log('-' * 40, 'info')
             sys.exit(0)
         else:
-            log("Tor connection established.")
+            log("Tor connection established.", 'info')
     except Exception as e:
-        log("Tor connection failed: {}".format(e))
-        log('-' * 40)
+        log("Tor connection failed: {}".format(e), 'error')
+        log('-' * 40, 'info')
         sys.exit(0)
 
     # Awaken the spiders!
     Spiders = []
     Spider_Procs = []
 
-    log('Waking the Spiders...')
+    log('Waking the Spiders...', 'info')
     # There are enough names here for a 32-core processor.
     my_names = []
 
@@ -1128,6 +1228,7 @@ if __name__ == '__main__':
     for x in range(count):
         spider = Spider()
         spider_proc = mp.Process(target=spider.crawl)
+        spider_proc.name = names.get_first_name()
         while spider_proc.name in my_names:
             spider_proc.name = names.get_first_name()
         my_names.append(spider_proc.name)
@@ -1145,5 +1246,5 @@ if __name__ == '__main__':
         os.unlink('sleep')
     except Exception as e:
         pass
-    log('The Spiders have gone to sleep. ZzZzz...')
-    log('-' * 40)
+    log('The Spiders have gone to sleep. ZzZzz...', 'info')
+    log('-' * 40, 'info')
