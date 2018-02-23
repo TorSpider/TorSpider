@@ -4,9 +4,9 @@
 """
     ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.5--^-----+                   |
+   |                   +-----^--TorSpider-v0.7--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
-   |                   +----------------by CMSteffen--+                   |
+   |                   +------------------------------+                   |
    |                                                                      |
    | TorSpider employs an army of spiders to explore Tor hidden services, |
    | seeking to uncover and catalogue the deepest reaches of the darknet. |
@@ -23,25 +23,25 @@
 
 import os
 import sys
+import json
 import time
+import names
 import random
+import logging
 import requests
 import configparser
-import names
-import json
-import logging
-from logging.handlers import TimedRotatingFileHandler
+import urllib.parse
 from hashlib import sha1
 from libs.parsers import *
 import multiprocessing as mp
-from datetime import datetime, date, timedelta
 from urllib.parse import urlsplit, urlunsplit
-import urllib.parse
+from datetime import datetime, date, timedelta
+from logging.handlers import TimedRotatingFileHandler
 
 '''---[ GLOBAL VARIABLES ]---'''
 
 # The current release version.
-version = '1.0'
+version = '0.7'
 
 # Let's use the default Tor Browser Bundle UA:
 agent = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0'
@@ -1052,7 +1052,6 @@ class Spider:
 
     def merge_urls(self, url1, url2):
         log('Merging url: {} and url: {}'.format(url1, url2), 'debug')
-        # TODO: Understand what is going on here.
         # Merge the new url (url1) into the original url (url2).
         (ns, nn, np, nq, nf) = urlsplit(url1)  # Split first url into parts.
         (us, un, up, uq, uf) = urlsplit(url2)  # Split second url into parts.
