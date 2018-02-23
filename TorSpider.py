@@ -671,8 +671,10 @@ class Spider:
                                     }
                                 ]}
                             result = self.__get_query('forms', example_query)
-                            log("Result from examples query: {}".format(result), 'debug')
-                            result_examples = result[0].get('examples')
+                            if len(result):
+                                result_examples = result[0].get('examples')
+                            else:
+                                result_examples = None
                             if not result_examples:
                                 # We have no current values.
                                 examples = value
@@ -1041,7 +1043,10 @@ class Spider:
                         }
                     ]}
                 result = self.__get_query('forms', example_query)
-                result_examples = result[0].get('examples')
+                if len(result):
+                    result_examples = result[0].get('examples')
+                else:
+                    result_examples = None
                 if not result_examples:
                     # We don't have any current values.
                     examples = value
