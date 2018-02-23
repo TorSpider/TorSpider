@@ -8,10 +8,10 @@
 ```
 
 ## High Priority
-* Replace `merge_urls` with `merge_action`, since it does the same thing but better. Rename `merge_action` to `merge_urls`.
+* Find a secure way to allow access to the remote API.
 
 ## Medium Priority
-* Find a secure way to allow access to remote spiders.
+* Replace `merge_urls` with `merge_action`, since it does the same thing but better. Rename `merge_action` to `merge_urls`.
 * Create a force-directed graph map of the known darknet.
 * Enable the script to become daemonized.
 

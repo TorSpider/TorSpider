@@ -12,18 +12,25 @@ TorSpider scans Tor hidden services, harvesting important information from each 
 
 ### Prerequisites:
 
-TorSpider is written in `Python 3`.
+TorSpider is written in `Python 3`, and requires libraries that are available using the `pip` tool.
 
-TorSpider requires the `requests`, `psycopg2` and `pysocks` libraries in order to scrape pages through Tor.
+TorSpider requires [Tor](https://www.torproject.org/) to be installed and running with the SOCKS proxy port set to 9095.
 
-TorSpider requires **Tor** to be installed and running with the SOCKS proxy port set to 9095.
+TorSpider requires the [TorSpider-Backend](https://github.com/TorSpider/TorSpider-Backend) to be running.
+
+In order to view and interact with the data from TorSpider, you'll need the [TorSpider-Frontend](https://github.com/TorSpider/TorSpider-Frontend) to be installed and functional.
 
 ### Installation:
 
-Check out the `Fresh_Install.md` file to see how to set up a new TorSpider node. To create the backend database, read the file `PGSQL_Install.md`.
+1. Clone the TorSpider repository.
+2. Enter the TorSpider directory.
+3. Create a virtual environment, if you wish. (This is advised.)
+4. Execute the command `pip3 install -r requirements.txt` to install the required libraries.
+5. Run the `TorSpider.py` script. The first time this is run, it will generate a configuration file called `spider.cfg`.
+6. Edit the `spider.cfg`, giving the node a name and directing it at the correct URL for the TorSpider-Backend API.
 
-### Running the Scripts:
+### Running TorSpider:
 
-The first time you run TorSpider, it will create a configuration file. This file will need to be edited with the appropriate information for connecting to the TorSpider database. Once this is done, you can run TorSpider again and it will populate the database with initial values.
+*It is adviseable to run TorSpider within a virtual environment, and to run it using the `screen` command, so that you can exit the terminal without stopping the script.*
 
-Once the database is initialized, it is safe to stop and start the TorSpider process as necessary. To cleanly stop the TorSpider script, simply create a file called 'sleep' in the TorSpider directory. In the *nix command-line, this can be achieved with the `touch sleep` command. After creating this file, each spider will finish its current task and then deactivate. Once the sleep file has been deleted by the TorSpider script, the process has ended and the script has stopped.
+Once you've properly set up the `spider.cfg` file, you can run TorSpider and it will begin the spidering process. To cleanly stop the TorSpider script, simply create a file called 'sleep' in the TorSpider directory. In the *nix command-line, this can be achieved by using the `touch sleep` command within the directory where the `TorSpider.py` script is stored. After creating this file, each spider will finish its current tasks then deactivate. Once the sleep file has been deleted by the TorSpider script, the process has ended and the script has stopped. (Stopping the script might take some time, as the spiders might still be adding information to the database.)
