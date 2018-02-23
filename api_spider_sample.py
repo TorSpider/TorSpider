@@ -1145,10 +1145,6 @@ class Spider:
 '''---[ FUNCTIONS ]---'''
 
 
-def combine(message, args=()):
-    return 'Message: {}\t| Args: {}'.format(message, args)
-
-
 def extract_exact(list1, list2):
     # Return the common items from both lists.
     return [item for item in list1 if any(scan == item for scan in list2)]
