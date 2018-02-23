@@ -13,13 +13,24 @@ import os
 
 
 def count_field(endpoint, query):
-    r = requests.get(api_url + endpoint + '?results_per_page=1&q=' + urllib.parse.quote_plus(json.dumps(query)),
-                     verify=False)
-    if r.status_code == 200:
-        # If correct then it returns the object data
-        return json.loads(r.text).get('num_results')
-    else:
-        return {}
+    try:
+        r = requests.get(api_url + endpoint + '?results_per_page=1&q=' + urllib.parse.quote_plus(json.dumps(query)),
+                         verify=False)
+        if r.status_code == 200:
+            # If correct then it returns the object data
+            return json.loads(r.text).get('num_results')
+        else:
+            print("Expected code 200, received {}.  Bailing!".format(r.status_code))
+            sys.exit(0)
+    except requests.exceptions.ConnectionError:
+        print('Connection error.  Bailing!')
+        sys.exit(0)
+    except requests.exceptions.Timeout:
+        print('Connection Timed Out.  Bailing!')
+        sys.exit(0)
+    except Exception as error:
+        print("Encountered an error: {}".format(error))
+        sys.exit(0)
 
 
 if __name__ == '__main__':
