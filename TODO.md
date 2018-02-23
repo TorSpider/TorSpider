@@ -1,6 +1,11 @@
 # To Do
 
 ## Bugs
+* Malformed HTML resulted in the following error:
+```
+2018-02-23 03:41:10,094 - DEBUG - Michelle: Attempting to add a onion url to the queue: http://wikilink77h7lrbi.onion/</a> â see âPolitical Advocacyâ</li> </ul> <dl> <dd>running on: unknown, ports:: plaintext: 6667 ssl: 9999</dd> </dl> <ul> <li><a href=
+2018-02-23 03:41:10,097 - DEBUG - Michelle: Fixed url is: http://wikilink77h7lrbi.onion/</a> â see âPolitical Advocacyâ</li> </ul> <dl> <dd>running on: unknown, ports:: plaintext: 6667 ssl: 9999</dd> </dl> <ul> <li><a href=
+```
 
 ## High Priority
 * Replace `merge_urls` with `merge_action`, since it does the same thing but better. Rename `merge_action` to `merge_urls`.
