@@ -4,7 +4,7 @@ Description=torspider-spider
 [Service]
 User=torspider
 WorkingDirectory=/home/torspider/TorSpider
-ExecStart=/bin/bash -c '/usr/bin/python3 /home/torspider/TorSpider/TorSpider.py 2>&1'
+ExecStart=/bin/bash -c '/usr/bin/python3 /home/torspider/TorSpider/TorSpider.py > /dev/null 2>&1'
 Restart=always
 
 [Install]
