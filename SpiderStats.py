@@ -14,13 +14,15 @@ import os
 
 def count_field(endpoint, query):
     try:
-        r = requests.get(api_url + endpoint + '?results_per_page=1&q=' + urllib.parse.quote_plus(json.dumps(query)),
+        r = requests.get(api_url + endpoint + '?results_per_page=1&q=' +
+                         urllib.parse.quote_plus(json.dumps(query)),
                          verify=False)
         if r.status_code == 200:
             # If correct then it returns the object data
             return json.loads(r.text).get('num_results')
         else:
-            print("Expected code 200, received {}.  Bailing!".format(r.status_code))
+            print("Expected code 200, received {}. Bailing!".format(
+                    r.status_code))
             sys.exit(0)
     except requests.exceptions.ConnectionError:
         print('Connection error.  Bailing!')
@@ -57,7 +59,8 @@ if __name__ == '__main__':
                 "val": "1900-01-01"
             }
         ]}
-    date_query = {"filters": [{"op": "ne", "name": "date", "val": "1900-01-01"}]}
+    date_query = {"filters": [
+            {"op": "ne", "name": "date", "val": "1900-01-01"}]}
     url_count_scanned = count_field('urls', date_query)
     url_count_percentage = (url_count_scanned / url_count)
 
@@ -88,7 +91,8 @@ if __name__ == '__main__':
     print('Results:')
     messages = [
         'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
-        'discovered. Of the scanned sites, {:,} are known to be active.' + os.linesep,
+        'discovered. Of the scanned sites, {:,} are known to be active.' +
+        os.linesep,
         'Table Stats:' + os.linesep,
         'Total Onions: {:}' + os.linesep,
         'Total Urls: {:}' + os.linesep,
@@ -99,6 +103,8 @@ if __name__ == '__main__':
 
     message = ' '.join(messages)
     message = message.format(url_count_scanned, url_count_percentage,
-                             url_count, onion_count, total_onions, total_urls, total_pages, total_forms, total_links)
+                             url_count, onion_count, total_onions,
+                             total_urls, total_pages, total_forms,
+                             total_links)
 
     print(message)

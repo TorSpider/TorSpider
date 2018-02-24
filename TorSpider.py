@@ -290,7 +290,8 @@ class Spider:
             if os.path.exists('sleep'):
                 time_to_sleep = True
             else:
-                next_url_info = self.__get_query('next', {"node_name": node_name})
+                next_url_info = self.__get_query('next',
+                                                 {"node_name": node_name})
                 if not next_url_info:
                     log('We found no urls to check, sleeping for 5 seconds.',
                         'debug')
@@ -299,7 +300,8 @@ class Spider:
                 if 'domain' in next_url_info.keys() \
                         and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
-                    log('Found next url: {}'.format(next_url_info.get('domain')), 'debug')
+                    log('Found next url: {}'.format(
+                            next_url_info.get('domain')), 'debug')
                     domain = next_url_info['domain']
                     domain_info = next_url_info['domain_info']
                     url = self.fix_url(next_url_info['url'])
