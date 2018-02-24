@@ -227,7 +227,7 @@ class Spider:
         query = {"filters": [
             {
                 "op": "eq",
-                "name": "url",
+                "name": "page",
                 "val": url
             }, {
                 "op": "eq",
