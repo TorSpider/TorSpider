@@ -12,10 +12,19 @@ import sys
 import os
 
 
+def gen_api_header():
+    myhead = dict()
+    myhead['Content-Type'] = 'application/json'
+    myhead['Authorization'] = 'Token {}'.format(api_key)
+    myhead['Authorization-Node'] = api_node
+    return myhead
+
+
 def count_field(endpoint, query):
     try:
         r = requests.get(api_url + endpoint + '?results_per_page=1&q=' +
                          urllib.parse.quote_plus(json.dumps(query)),
+                         headers=gen_api_header(),
                          verify=False)
         if r.status_code == 200:
             # If correct then it returns the object data
@@ -41,7 +50,9 @@ if __name__ == '__main__':
     try:
         config = configparser.ConfigParser()
         config.read('spider.cfg')
-        api_url = config['API'].get('api_url')
+        api_url = config['API'].get('API_URL')
+        api_node = config['API'].get('API_NODE')
+        api_key = config['API'].get('API_KEY')
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
         sys.exit(0)
