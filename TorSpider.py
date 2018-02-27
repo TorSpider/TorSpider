@@ -21,22 +21,24 @@
 
 """
 
-import os
-import sys
-import json
-import time
-import names
-import random
-import logging
-import requests
 import configparser
-import urllib.parse
-from hashlib import sha1
-from libs.parsers import *
+import json
+import logging
 import multiprocessing as mp
-from urllib.parse import urlsplit, urlunsplit
-from datetime import datetime, date, timedelta
+import os
+import random
+import sys
+import time
+import urllib.parse
+from datetime import date, timedelta
+from hashlib import sha1
 from logging.handlers import TimedRotatingFileHandler
+from urllib.parse import urlsplit, urlunsplit
+
+import names
+import requests
+
+from libs.parsers import *
 
 '''---[ GLOBAL VARIABLES ]---'''
 
@@ -58,8 +60,16 @@ script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
 class Spider:
     def __init__(self):
         self.api_url = api_url
-        self.headers = {"Content-Type": "application/json"}
+        self.headers = self.__gen_api_header()
         self.session = get_tor_session()
+
+    @staticmethod
+    def __gen_api_header():
+        myhead = dict()
+        myhead['Content-Type'] = 'application/json'
+        myhead['Authorization'] = 'Token {}'.format(api_key)
+        myhead['Authorization-Node'] = api_node
+        return myhead
 
     def __add_onion(self, domain):
         log('Adding onion: {}'.format(domain), 'debug')
@@ -76,6 +86,10 @@ class Spider:
             # If created then it returns the object data
             log('Added successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             return {}
 
@@ -94,6 +108,10 @@ class Spider:
             # If created then it returns the object data
             log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             return {}
 
@@ -112,6 +130,10 @@ class Spider:
             # If created then it returns the object data
             log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             return {}
 
@@ -131,6 +153,10 @@ class Spider:
             log('Added successfully: {}->{}'.format(domain_from, domain_to),
                 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             return {}
 
@@ -150,6 +176,10 @@ class Spider:
             log('Added successfully: Field: {}, Url: {}'.format(field, url),
                 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             return {}
 
@@ -172,6 +202,10 @@ class Spider:
             # if updated it returns the object data
             log('Updated successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             log('Update failed: {}'.format(domain), 'debug')
             return {}
@@ -194,6 +228,10 @@ class Spider:
             # if updated it returns the object data
             log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             log('Update failed: {}'.format(url), 'debug')
             return {}
@@ -217,6 +255,10 @@ class Spider:
             # if updated it returns the object data
             log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             log('Update failed: {}'.format(url), 'debug')
             return {}
@@ -245,6 +287,10 @@ class Spider:
             log('Updated successfully: Field: {} Url: {}'.format(field, url),
                 'debug')
             return json.loads(r.text)
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             log('Updated failed: Field: {} Url: {}'.format(field, url),
                 'debug')
@@ -254,12 +300,18 @@ class Spider:
         log("Running GET Query on endpoint: {}".format(endpoint), 'debug')
         r = requests.get(
             self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(
-                json.dumps(query)), verify=False)
+                json.dumps(query)),
+            headers=self.headers,
+            verify=False)
         if r.status_code == 200:
             # If created then it returns the object data
             log('GET Query successful for endpoint: {}'.format(endpoint),
                 'debug')
             return json.loads(r.text).get('objects')
+        elif r.status_code == 401:
+            # Unauthorized
+            log('Receive 401 Unauthorized', 'error')
+            return {}
         else:
             return {}
 
@@ -301,7 +353,7 @@ class Spider:
                         and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
                     log('Found next url: {}'.format(
-                            next_url_info.get('domain')), 'debug')
+                        next_url_info.get('domain')), 'debug')
                     domain = next_url_info['domain']
                     domain_info = next_url_info['domain_info']
                     url = self.fix_url(next_url_info['url'])
@@ -579,7 +631,7 @@ class Spider:
                             # Ignore any non-onion domain.
                             continue
                         self.add_to_queue(action_url, domain)
-                        link_domain = self.get_domain(action_url)
+                        # link_domain = self.get_domain(action_url)
 
                         # Now we'll need to add each input field and its
                         # possible default values.
@@ -659,7 +711,6 @@ class Spider:
 
                             # Retrieve the current list of examples for this
                             # particular form field.
-                            examples = ''
                             example_query = {
                                 "filters": [
                                     {
@@ -841,17 +892,20 @@ class Spider:
         return '.'.join(self.defrag_domain(
             urlsplit(url).netloc).split('.')[-2:])
 
-    def get_forms(self, data):
+    @staticmethod
+    def get_forms(data):
         # Get the data from all forms on the page.
         parse = FormParser()
         parse.feed(data)
         return parse.forms
 
-    def get_hash(self, data):
+    @staticmethod
+    def get_hash(data):
         # Get the sha1 hash of the provided data. Data must be binary-encoded.
         return sha1(data).hexdigest()
 
-    def get_links(self, data, url):
+    @staticmethod
+    def get_links(data, url):
         log("Getting links for url: {}".format(url), 'debug')
         # Given HTML input, return a list of all unique links.
         parse = ParseLinks()
@@ -896,7 +950,8 @@ class Spider:
             len(unique_links), url), 'debug')
         return unique_links
 
-    def get_query(self, url):
+    @staticmethod
+    def get_query(url):
         # Get the query information from the url.
         # Queries look like: /page.php?field=value&field2=value2
         # Splitting along the & we get field=value, field2=value2
@@ -911,32 +966,35 @@ class Spider:
             result.append([field, value])
         return result
 
-    def get_title(self, data):
+    @staticmethod
+    def get_title(data):
         # Given HTML input, return the title of the page.
         parse = ParseTitle()
         parse.feed(data)
         return parse.title.strip()
 
-    def get_type(self, headers):
+    @staticmethod
+    def get_type(headers):
         # What's the content type of the page we're checking?
         try:
             return headers['Content-Type'].split('/')[0]
         except Exception as e:
             return None
 
-    def is_http(self, url):
+    @staticmethod
+    def is_http(url):
         # Determine whether the link is an http/https scheme or not.
         (scheme, netloc, path, query, fragment) = urlsplit(url)
         return True if 'http' in scheme else False
 
-    def merge_action(self, action, url):
+    @staticmethod
+    def merge_action(action, url):
         action = '' if action is None else action
         # Split up the action and url into their component parts.
         (ascheme, anetloc, apath, aquery, afragment) = urlsplit(action)
         (uscheme, unetloc, upath, uquery, ufragment) = urlsplit(url)
         scheme = ascheme if ascheme is not '' else uscheme
         netloc = anetloc if anetloc is not '' else unetloc
-        newpath = ''
         try:
             if apath[0] == '/':
                 # The path starts at root.
@@ -973,7 +1031,8 @@ class Spider:
         link = urlunsplit((scheme, netloc, newpath, query, fragment))
         return link
 
-    def merge_titles(self, title1, title2):
+    @staticmethod
+    def merge_titles(title1, title2):
         log('Merging titles: {} and {}'.format(title1, title2), 'debug')
         title1_parts = title1.split()
         title2_parts = title2.split()
@@ -982,11 +1041,13 @@ class Spider:
         log('New title: {}'.format(new_title), 'debug')
         return new_title
 
-    def merge_lists(self, list1, list2):
+    @staticmethod
+    def merge_lists(list1, list2):
         # Merge two lists together without duplicates.
         return list(set(list1 + list2))
 
-    def merge_urls(self, url1, url2):
+    @staticmethod
+    def merge_urls(url1, url2):
         log('Merging url: {} and url: {}'.format(url1, url2), 'debug')
         # Merge the new url (url1) into the original url (url2).
         (ns, nn, np, nq, nf) = urlsplit(url1)  # Split first url into parts.
@@ -1031,7 +1092,6 @@ class Spider:
                 # Only do this if we have a value to add.
                 if value == '' or value == 'none':
                     continue
-                examples = ''
                 example_query = {
                     "filters": [
                         {
@@ -1105,7 +1165,7 @@ def setup_logger(loglevel):
     os.makedirs(os.path.join(script_dir, 'logs'), exist_ok=True)
     filehandler = TimedRotatingFileHandler(
         os.path.join(script_dir, 'logs', 'TorSpider.log'),
-        when='midnight', interval=1)
+        when='midnight', backupCount=7, interval=1)
     filehandler.setFormatter(formatter)
     my_logger.addHandler(filehandler)
     if log_to_console:
@@ -1180,11 +1240,11 @@ if __name__ == '__main__':
         default_config.optionxform = lambda option: option
         default_config['TorSpider'] = {
             'LogToConsole': 'True',
-            'Daemonize': 'False',
-            'NodeName': 'REPLACE_ME'
         }
         default_config['API'] = {
-            'api_url': 'http://127.0.0.1/api/'
+            'API_URL': 'http://127.0.0.1/api/',
+            'API_KEY': 'Configure_api_key',
+            'API_NODE': 'Configure_api_node'
         }
         default_config['LOGGING'] = {
             'loglevel': 'INFO'
@@ -1200,9 +1260,10 @@ if __name__ == '__main__':
         config = configparser.ConfigParser()
         config.read('spider.cfg')
         log_to_console = config['TorSpider'].getboolean('LogToConsole')
-        daemonize = config['TorSpider'].getboolean('Daemonize')
-        node_name = config['TorSpider'].get('NodeName')
-        api_url = config['API'].get('api_url')
+        node_name = config['API'].get('API_NODE')
+        api_url = config['API'].get('API_URL')
+        api_key = config['API'].get('API_KEY')
+        api_node = config['API'].get('API_NODE')
         log_level = config['LOGGING'].get('loglevel')
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
