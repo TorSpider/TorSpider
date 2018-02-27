@@ -1165,7 +1165,7 @@ def setup_logger(loglevel):
     os.makedirs(os.path.join(script_dir, 'logs'), exist_ok=True)
     filehandler = TimedRotatingFileHandler(
         os.path.join(script_dir, 'logs', 'TorSpider.log'),
-        when='midnight', interval=1)
+        when='midnight', backupCount=7, interval=1)
     filehandler.setFormatter(formatter)
     my_logger.addHandler(filehandler)
     if log_to_console:
