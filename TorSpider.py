@@ -386,15 +386,22 @@ class Spider:
         log("Ready to explore!", 'info')
         time_to_sleep = False
         while not time_to_sleep:
+            # To stop the script, simply create an empty file called 'sleep'
+            # in the directory where TorSpider.py resides.
             if os.path.exists('sleep'):
+                # If the 'sleep' file is detected, TorSpider knows that it
+                # is time to sleep.
                 time_to_sleep = True
             else:
-                next_url_info = self.__get_query('next',
-                                                 {"node_name": node_name})
+                # Ask the API for a url to scan.
+                next_url_info = self.__get_query(
+                        'next', {"node_name": node_name})
                 if not next_url_info:
+                    # There are currently no urls to scan.
                     log('We found no urls to check, sleeping for 5 seconds.',
                         'debug')
-                    time.sleep(5)
+                    # Wait thirty seconds before trying again.
+                    time.sleep(30)
                     continue
                 if 'domain' in next_url_info.keys() \
                         and 'url' in next_url_info.keys() \
