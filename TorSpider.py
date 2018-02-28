@@ -65,6 +65,7 @@ class Spider:
 
     @staticmethod
     def __gen_api_header():
+        # Create a header for the API connection.
         myhead = dict()
         myhead['Content-Type'] = 'application/json'
         myhead['Authorization'] = 'Token {}'.format(api_key)
@@ -72,120 +73,143 @@ class Spider:
         return myhead
 
     def __add_onion(self, domain):
+        # Add an onion to the backend DB.
         log('Adding onion: {}'.format(domain), 'debug')
+        # Add the domain and the name of the node that found it.
         data = {
             "domain": domain,
             "last_node": node_name
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'onions',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_url(self, domain, url):
+        # Add a url to the backend DB.
         log('Adding url: {}'.format(url), 'debug')
+        # Add the url as well as the domain to which it is attached.
         data = {
             "domain": domain,
             "url": url
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'urls',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_page(self, domain, url):
+        # Add a page to the backend DB.
         log('Adding page: {}'.format(url), 'debug')
+        # Add the page as well as the domain to which it belongs.
         data = {
             "domain": domain,
             "url": url
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'pages',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_link(self, domain_from, domain_to):
+        # Add a link to the backend DB.
         log('Adding link: {}->{}'.format(domain_from, domain_to), 'debug')
+        # Add both the origin (domain_from) and destination (domain_to)
+        # of the link.
         data = {
             "domain_from": domain_from,
             "domain_to": domain_to
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'links',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}->{}'.format(domain_from, domain_to),
                 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_form(self, url, field):
+        # Add a form field to the backend DB.
         log('Adding Form Field: {} Url: {}'.format(field, url), 'debug')
+        # Add the field as well as the page ID to which it belongs.
         data = {
             "page": url,
             "field": field
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'forms',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: Field: {}, Url: {}'.format(field, url),
                 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __update_onions(self, domain, data):
+        # Update some information about a domain.
         log("Updating onion: {} data: {}".format(
             domain, json.dumps(data)), 'debug')
+        # Filter which onion to update based on its domain.
         query = {"filters": [
             {
                 "op": "eq",
@@ -193,25 +217,29 @@ class Spider:
                 "val": domain
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'onions',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Update failed: {}'.format(domain), 'debug')
             return {}
 
     def __update_urls(self, url, data):
+        # Update some information about a URL.
         log("Updating url: {} data: {}".format(url, json.dumps(data)), 'debug')
+        # Filter which url to update.
         query = {"filters": [
             {
                 "op": "eq",
@@ -219,26 +247,30 @@ class Spider:
                 "val": url
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'urls',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Update failed: {}'.format(url), 'debug')
             return {}
 
     def __update_pages(self, url, data):
+        # Update some information about a page.
         log("Updating page: {} data: {}".format(url, json.dumps(data)),
             'debug')
+        # Filter which page to update.
         query = {"filters": [
             {
                 "op": "eq",
@@ -246,26 +278,30 @@ class Spider:
                 "val": url
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'pages',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Update failed: {}'.format(url), 'debug')
             return {}
 
     def __update_forms(self, url, field, data):
+        # Update some information about a form field.
         log("Updating form: Field: {} Url: {} data: {}".format(
             field, url, json.dumps(data)), 'debug')
+        # Filter which form field to update.
         query = {"filters": [
             {
                 "op": "eq",
@@ -277,65 +313,76 @@ class Spider:
                 "val": field
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'forms',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: Field: {} Url: {}'.format(field, url),
                 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Updated failed: Field: {} Url: {}'.format(field, url),
                 'debug')
             return {}
 
     def __get_query(self, endpoint, query):
+        # Request data from the backend API.
         log("Running GET Query on endpoint: {}".format(endpoint), 'debug')
+        # Send the request for information from the API.
         r = requests.get(
             self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(
                 json.dumps(query)),
             headers=self.headers,
             verify=False)
         if r.status_code == 200:
-            # If created then it returns the object data
+            # If successful then it returns the object data.
             log('GET Query successful for endpoint: {}'.format(endpoint),
                 'debug')
             return json.loads(r.text).get('objects')
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def add_to_queue(self, link_url, origin_domain):
+        # Add a URL to the database to be scanned.
         log("Attempting to add a onion url to the queue: {}".format(link_url),
             'debug')
-        # Add a URL to be scanned.
+
+        # First, fix any potential issues with the url (fragmentation, etc.).
         link_url = self.fix_url(link_url)
         log("Fixed url is: {}".format(link_url), 'debug')
+
+        # Next, get the url's domain.
         link_domain = self.get_domain(link_url)
         log("Link domain is: {}".format(link_domain), 'debug')
+
+        # Ensure that the domain is a legitimate .onion domain.
         if '.onion' not in link_domain or '.onion.' in link_domain:
-            # We don't want to add a link to a non-onion domain.
             log("Link domain: {} is not an onion site, ignoring.".format(
                 link_domain), 'debug')
             return
-        # Add the new onion
+
+        # Add the url, domain and link to the database.
+        # TODO: Check if onion/url/link already exist before adding them.
         self.__add_onion(link_domain)
         self.__add_url(link_domain, link_url)
-        log('Add link from: {} to: {} into links table.'.format(
-            link_domain, link_domain), 'debug')
         self.__add_link(origin_domain, link_domain)
 
     def crawl(self):
+        # TODO: Optimize to remove redundant updates to API.
         log("Ready to explore!", 'info')
         time_to_sleep = False
         while not time_to_sleep:
