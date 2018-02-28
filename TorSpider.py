@@ -406,17 +406,22 @@ class Spider:
                 if 'domain' in next_url_info.keys() \
                         and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
+                    # We successfully retrieved a url from the API.
                     log('Found next url: {}'.format(
                         next_url_info.get('domain')), 'debug')
                     domain = next_url_info['domain']
                     domain_info = next_url_info['domain_info']
                     url = self.fix_url(next_url_info['url'])
                 else:
-                    # No links to process. This should be rare...
+                    # There are currently no urls to scan.
                     log('We found no urls to check, sleeping for 5 seconds.',
                         'debug')
-                    time.sleep(5)
+                    # Wait thirty seconds before trying again.
+                    time.sleep(30)
                     continue
+
+                # Check if a previous domain has tried unsuccessfully
+                # to connect to this domain before.
                 tries = domain_info.get('tries', 0)
                 last_node = domain_info.get('last_node', 'none')
 
