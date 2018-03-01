@@ -426,97 +426,108 @@ class Spider:
                 last_node = domain_info.get('last_node', 'none')
 
                 if last_node == node_name and tries > 0:
+                    # This node was the last to scan this domain, and the
+                    # domain was reported offline. Let's not re-scan the domain
+                    # with the same node, just in case there's some problem
+                    # with this node's connection.
                     log('I was the last node to scan this url, skipping.',
                         'debug')
-                    # This was scanned by this node last. Let's avoid this.
                     continue
 
-                # Update the scan date for this domain.
+                # Update the scan date for this domain, and set this node as
+                # the last node to scan this domain.
                 update_data = {
                     "scan_date": date.today().strftime('%Y-%m-%d'),
                     "last_node": node_name
                 }
                 self.__update_onions(domain, update_data)
 
-                # Check to see if it's an http/https link.
+                # Do not scan non-http/https links.
                 if not self.is_http(url):
-                    # It's not. Skip it.
                     log('Skipping non-http site.', 'debug')
                     self.set_fault(url, 'non-http')
                     continue
 
+                # The following lists define possible response codes that a
+                # server might send in reply to our request for their url.
+
+                # Redirect codes: These status codes redirect to other pages,
+                # so grab those other pages and scan them instead.
+                redirect_codes = [301, 302, 303, 307, 308]
+
+                # Fault codes: These status codes imply that there was
+                # something wrong with the page being requested, such as being
+                # non-existent. Don't rescan pages with these codes.
+                fault_codes = [400, 401, 403, 404, 405, 406, 410,
+                               413, 414, 444, 451, 495, 496,
+                               500, 501, 502, 505, 508, 511]
+
+                # No-Fault codes: These imply that something temporarily went
+                # wrong, but it's possible that it might work in the future.
+                # Just skip to the next url.
+                no_fault_codes = [408, 421, 423, 429, 503, 504]
+
+                # Good codes: These are the codes we want to see when we are
+                # accessing a web service.
+                good_codes = [200, 201]
+
+                # Now that we've defined the possible response codes, attempt
+                # to scrape the data from the provided url.
                 url_offline = False
                 try:
-                    # Retrieve the page's headers.
+                    # Attempt to retrieve the page's headers.
                     log('Getting head of url: {}'.format(url), 'debug')
                     head = self.session.head(url, timeout=30)
 
-                    # Redirect codes: These status codes redirect to other
-                    # pages, so grab those other pages and scan them
-                    # instead.
-                    redirect_codes = [301, 302, 303, 307, 308]
-
-                    # Fault codes: These status codes imply that there was
-                    # something wrong with the page being requested, such as
-                    # being non-existent. Don't rescan pages with these
-                    # codes.
-                    fault_codes = [400, 401, 403, 404, 405, 406, 410,
-                                   413, 414, 444, 451, 495, 496,
-                                   500, 501, 502, 505, 508, 511]
-
-                    # No-Fault codes: These imply that something temporarily
-                    # went wrong, but it's possible that it might work in
-                    # the future. Just skip to the next url.
-                    no_fault_codes = [408, 421, 423, 429, 503, 504]
-
-                    # Good codes: These are the codes we want to see when we
-                    # are accessing a web service.
-                    good_codes = [200, 201]
-
-                    # Did we get the page successfully?
+                    # Analyze the status code sent by the server.
                     if head.status_code in redirect_codes:
                         # The url results in a redirection.
                         log('Found a redirection url: {} code: {}'.format(
                             url, head.status_code), 'debug')
                         self.set_fault(url, str(head.status_code))
                         try:
-                            # Let's grab the redirected url and add it to
-                            # the database.
+                            # Attempt to add the redirected url to the backend.
                             location = head.headers['location']
                             log('Found redirection url: {}'.format(location),
                                 'debug')
+                            # Combine the provided url with the url we scanned
+                            # in order to fill in any blanks in the redirect.
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
                             self.add_to_queue(new_url, domain)
                             continue
                         except Exception as e:
+                            # The server did not provide a redirect url.
                             log("{}: couldn't find redirect. ({})".format(
                                 str(head.status_code), url), 'error')
                             continue
+
                     elif head.status_code in fault_codes:
-                        # The url results in a fault.
-                        log('Found a fault url: {} code: {}'.format(
+                        # We received a fault code from the server.
+                        log('Found a fault in url: {} code: {}'.format(
                             url, head.status_code), 'debug')
                         self.set_fault(url, str(head.status_code))
                         continue
+
                     elif head.status_code in no_fault_codes:
+                        # The url results in a problem, but not a fault.
                         log('Found a problem url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        # The url results in a problem, but not a fault.
                         continue
+
                     elif head.status_code not in good_codes:
+                        # Unknown status. More status codes will be added as
+                        # they are discovered in the wild.
                         log('Found a unknown status url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        # Unknown status. I'll add more status_code options
-                        # as they arise.
                         self.set_fault(url, str(head.status_code))
                         log("Unknown status code {}: {}".format(
                             head.status_code, url), 'error')
                         continue
 
-                    # Update the database to show that we've scanned this url
-                    # today, to set the last_online date, and to reset the
-                    # offline_scans to zero.
+                    # Update the database to reflect today's scan. Set the last
+                    # scan date for the url and onion to today's date and reset
+                    # the tries and offline scans.
                     data = {
                         "date": date.today().strftime('%Y-%m-%d'),
                     }
@@ -528,27 +539,28 @@ class Spider:
                     }
                     self.__update_onions(domain, data)
 
+                    # We only want to scan plaintext files, not binary data or
+                    # images. Check the content type of the data before making
+                    # an attempt to process it.
                     content_type = self.get_type(head.headers)
-                    # We only want to scan text for links. But if we don't
-                    # know what the content type is, that might result
-                    # from a redirection, so we'll scan it just in case.
                     log("Found content type of url: {} as: {}".format(
                         url, content_type), 'debug')
                     if content_type != 'text' and content_type is not None:
-                        # Otherwise, if we know what it is, and it's not
-                        # text, don't scan it.
+                        # This content is not text-based, so don't scan it.
                         self.set_fault(url, 'type: {0}'.format(content_type))
                         continue
 
                     request = self.session.get(url, timeout=30)
                     if content_type is None:
-                        # We're going to process the request in the same
-                        # way, because we couldn't get a content type from
-                        # the head.
+                        # If we were unable to get the content type from the
+                        # headers, try to get the content type from the full
+                        # request.
                         content_type = self.get_type(request.headers)
                         log("Found content type of url: {} as: {}".format(
                             url, content_type), 'debug')
                         if content_type != 'text' and content_type is not None:
+                            # We got a non-text content type, such as a binary
+                            # or an image file.
                             self.set_fault(url, 'type: {}'.format(
                                 content_type))
                             continue
@@ -580,8 +592,7 @@ class Spider:
                             last_hash = ''
                         log('Last page hash of url: {} is: {}'.format(
                             url, last_hash), 'debug')
-                        # If the hash hasn't changed, don't process the
-                        # page.
+                        # If the hash hasn't changed, don't process the page.
                         if last_hash == page_hash:
                             log('The hashes matched, nothing has changed.',
                                 'debug')
@@ -596,6 +607,8 @@ class Spider:
                         self.__update_urls(url, data)
 
                     except Exception as e:
+                        # We were unable to retrieve the previous hash from the
+                        # backend. Something went wrong.
                         log("Couldn't retrieve previous hash: {0}".format(url),
                             'error')
                         continue
@@ -612,6 +625,7 @@ class Spider:
                     log('Page title for url: {} is: {}'.format(
                         url, page_title), 'debug')
                     # Set the title of the url.
+                    # TODO: Only update the url's title if it has changed.
                     data = {
                         "title": page_title
                     }
@@ -630,16 +644,14 @@ class Spider:
                     if page_info:
                         curr_title = page_info[0].get('title')
                     else:
-                        curr_title = ''
-                    if curr_title == 'Unknown':
-                        curr_title = 'none'
+                        curr_title = 'Unknown'
                     log('Previous page title for url: {} was: {}'.format(
                         url, curr_title), 'debug')
                     # Now, if the title is 'none' then just save
                     # page_title. But if it's something else, we'll need to
                     # make a hybrid title based on the current title and
                     # the title of the newly-scraped page.
-                    if curr_title != 'none' and curr_title:
+                    if curr_title != 'Unknown' and curr_title:
                         page_title = self.merge_titles(curr_title, page_title)
                     page_title = ' '.join(page_title.split())
                     # If the title is now empty, just set it to Unknown.
@@ -1119,6 +1131,7 @@ class Spider:
 
     def process_url(self, link_url, link_domain):
         # When a URL shows up valid, add its information to the database.
+        # TODO: Update this function to reduce redundant data submission.
         log('Processing url: {}'.format(link_url), 'debug')
         link_url = self.fix_url(link_url)
         log('Fixed link url: {}'.format(link_url), 'debug')
