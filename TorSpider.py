@@ -1071,6 +1071,7 @@ class Spider:
 
     @staticmethod
     def merge_action(action, url):
+        # TODO: Remove merge_urls and make merge_action the new merge_urls.
         action = '' if action is None else action
         # Split up the action and url into their component parts.
         (ascheme, anetloc, apath, aquery, afragment) = urlsplit(action)
@@ -1208,8 +1209,8 @@ class Spider:
                 self.__update_forms(link_url, field, data)
 
         except Exception as e:
-            # There was an error saving the link to the database.
-            log("Couldn't add link to database: {0}".format(e), 'error')
+            # There was an error processing the url.
+            log("Couldn't process url: {0}".format(e), 'error')
             raise
 
     def set_fault(self, url, fault):
