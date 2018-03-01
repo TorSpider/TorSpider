@@ -702,7 +702,6 @@ class Spider:
                             # Ignore any non-onion domain.
                             continue
                         self.add_to_queue(action_url, domain)
-                        # link_domain = self.get_domain(action_url)
 
                         # Now we'll need to add each input field and its
                         # possible default values.
@@ -776,6 +775,8 @@ class Spider:
                             if value is None or value == '':
                                 value = 'None'
                             # Add the key to the database if it isn't there.
+                            # TODO: Check that the form field isn't already
+                            # present before adding it to the database.
                             self.__add_form(action_url, key)
                             if value == 'None':
                                 continue
@@ -799,20 +800,28 @@ class Spider:
                                 result_examples = result[0].get('examples')
                             else:
                                 result_examples = None
+                            examples_have_changed = False
                             if not result_examples:
                                 # We have no current values.
                                 examples = value
                             else:
                                 # Merge with the returned examples.
                                 example_list = result_examples.split(',')
+                                old_list = list(example_list)
                                 example_list.append(value)
-                                examples = ','.join(unique(example_list))
+                                example_list = unique(example_list)
+                                example_list.sort()
+                                if(old_list != example_list):
+                                    examples_have_changed = True
+                                examples = ','.join(example_list)
 
-                            # Update the examples in the database.
-                            data = {
-                                "examples": examples
-                            }
-                            self.__update_forms(action_url, key, data)
+                            # Update the examples in the database, but only if
+                            # the values have changed.
+                            if(examples_have_changed):
+                                data = {
+                                    "examples": examples
+                                }
+                                self.__update_forms(action_url, key, data)
 
                 # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
@@ -821,7 +830,8 @@ class Spider:
                     self.set_fault(url, 'invalid url')
 
                 except requests.exceptions.InvalidSchema:
-                    # We got an invalid schema.
+                    # We got an invalid schema. Add the url with both http and
+                    # https schemas to the database to see if those work.
                     (s, n, p, q, f) = urlsplit(url)
                     for scheme in ['http', 'https']:
                         s = scheme
@@ -904,12 +914,10 @@ class Spider:
                         "tries": 0
                     }
                     self.__update_onions(domain, data)
-                    # In order to reduce the frequency of scans for
-                    # offline pages, set the scan date ahead by the
-                    # number of times the page has been scanned
-                    # offline. To do this, first retrieve the
-                    # number of times the page has been scanned
-                    # offline.
+                    # In order to reduce the frequency of scans for offline
+                    # pages, set the scan date ahead by the number of times the
+                    # page has been scanned offline. To do this, first retrieve
+                    # the number of times the page has been scanned offline.
                     offline_query = {
                         "filters": [
                             {
@@ -929,12 +937,15 @@ class Spider:
                     interval = offline_scans
                     new_date = (date.today() +
                                 timedelta(days=interval)).strftime('%Y-%m-%d')
-                    # Save the new value to the database.
+                    # Save the new values to the database.
                     data = {
                         "offline_scans": offline_scans,
                         "scan_date": new_date
                     }
                     self.__update_onions(domain, data)
+
+        # If we reach this point, the main loop is finished and the spiders are
+        # going to sleep.
         log("Going to sleep!", 'info')
 
     def defrag_domain(self, domain):
