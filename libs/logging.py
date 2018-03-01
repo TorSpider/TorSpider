@@ -10,16 +10,15 @@ from logging.handlers import TimedRotatingFileHandler
 class Logger:
     def __init__(self):
         script_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-        loglevel = ''
-        log_to_console = ''
+        loglevel = 'INFO'
+        log_to_console = False
         try:
             config = configparser.ConfigParser()
             config.read('spider.cfg')
             log_to_console = config['TorSpider'].getboolean('LogToConsole')
             loglevel = config['LOGGING'].get('loglevel')
         except Exception as e:
-            print("CONFIG ERROR")
-            sys.exit(0)
+            pass
         self.logger = self.__get_logger(loglevel, script_dir, log_to_console)
 
     @staticmethod
