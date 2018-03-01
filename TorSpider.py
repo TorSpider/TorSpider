@@ -65,6 +65,7 @@ class Spider:
 
     @staticmethod
     def __gen_api_header():
+        # Create a header for the API connection.
         myhead = dict()
         myhead['Content-Type'] = 'application/json'
         myhead['Authorization'] = 'Token {}'.format(api_key)
@@ -72,120 +73,143 @@ class Spider:
         return myhead
 
     def __add_onion(self, domain):
+        # Add an onion to the backend DB.
         log('Adding onion: {}'.format(domain), 'debug')
+        # Add the domain and the name of the node that found it.
         data = {
             "domain": domain,
             "last_node": node_name
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'onions',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_url(self, domain, url):
+        # Add a url to the backend DB.
         log('Adding url: {}'.format(url), 'debug')
+        # Add the url as well as the domain to which it is attached.
         data = {
             "domain": domain,
             "url": url
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'urls',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_page(self, domain, url):
+        # Add a page to the backend DB.
         log('Adding page: {}'.format(url), 'debug')
+        # Add the page as well as the domain to which it belongs.
         data = {
             "domain": domain,
             "url": url
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'pages',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_link(self, domain_from, domain_to):
+        # Add a link to the backend DB.
         log('Adding link: {}->{}'.format(domain_from, domain_to), 'debug')
+        # Add both the origin (domain_from) and destination (domain_to)
+        # of the link.
         data = {
             "domain_from": domain_from,
             "domain_to": domain_to
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'links',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: {}->{}'.format(domain_from, domain_to),
                 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __add_form(self, url, field):
+        # Add a form field to the backend DB.
         log('Adding Form Field: {} Url: {}'.format(field, url), 'debug')
+        # Add the field as well as the page ID to which it belongs.
         data = {
             "page": url,
             "field": field
         }
+        # Send the data to the backend API.
         r = requests.post(
             self.api_url + 'forms',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 201:
-            # If created then it returns the object data
+            # If created then it returns the object data.
             log('Added successfully: Field: {}, Url: {}'.format(field, url),
                 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def __update_onions(self, domain, data):
+        # Update some information about a domain.
         log("Updating onion: {} data: {}".format(
             domain, json.dumps(data)), 'debug')
+        # Filter which onion to update based on its domain.
         query = {"filters": [
             {
                 "op": "eq",
@@ -193,25 +217,29 @@ class Spider:
                 "val": domain
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'onions',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: {}'.format(domain), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Update failed: {}'.format(domain), 'debug')
             return {}
 
     def __update_urls(self, url, data):
+        # Update some information about a URL.
         log("Updating url: {} data: {}".format(url, json.dumps(data)), 'debug')
+        # Filter which url to update.
         query = {"filters": [
             {
                 "op": "eq",
@@ -219,26 +247,30 @@ class Spider:
                 "val": url
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'urls',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Update failed: {}'.format(url), 'debug')
             return {}
 
     def __update_pages(self, url, data):
+        # Update some information about a page.
         log("Updating page: {} data: {}".format(url, json.dumps(data)),
             'debug')
+        # Filter which page to update.
         query = {"filters": [
             {
                 "op": "eq",
@@ -246,26 +278,30 @@ class Spider:
                 "val": url
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'pages',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: {}'.format(url), 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Update failed: {}'.format(url), 'debug')
             return {}
 
     def __update_forms(self, url, field, data):
+        # Update some information about a form field.
         log("Updating form: Field: {} Url: {} data: {}".format(
             field, url, json.dumps(data)), 'debug')
+        # Filter which form field to update.
         query = {"filters": [
             {
                 "op": "eq",
@@ -277,187 +313,221 @@ class Spider:
                 "val": field
             }]}
         data['q'] = query
+        # Send the requested patch to the database API.
         r = requests.patch(
             self.api_url + 'forms',
             headers=self.headers,
             data=json.dumps(data),
             verify=False)
         if r.status_code == 200:
-            # if updated it returns the object data
+            # if updated it returns the object data.
             log('Updated successfully: Field: {} Url: {}'.format(field, url),
                 'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             log('Updated failed: Field: {} Url: {}'.format(field, url),
                 'debug')
             return {}
 
     def __get_query(self, endpoint, query):
+        # Request data from the backend API.
         log("Running GET Query on endpoint: {}".format(endpoint), 'debug')
+        # Send the request for information from the API.
         r = requests.get(
             self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(
                 json.dumps(query)),
             headers=self.headers,
             verify=False)
         if r.status_code == 200:
-            # If created then it returns the object data
+            # If successful then it returns the object data.
             log('GET Query successful for endpoint: {}'.format(endpoint),
                 'debug')
             return json.loads(r.text).get('objects')
         elif r.status_code == 401:
-            # Unauthorized
+            # Unauthorized.
             log('Receive 401 Unauthorized', 'error')
             return {}
         else:
+            # Some other failure.
             return {}
 
     def add_to_queue(self, link_url, origin_domain):
+        # Add a URL to the database to be scanned.
         log("Attempting to add a onion url to the queue: {}".format(link_url),
             'debug')
-        # Add a URL to be scanned.
+
+        # First, fix any potential issues with the url (fragmentation, etc.).
         link_url = self.fix_url(link_url)
         log("Fixed url is: {}".format(link_url), 'debug')
+
+        # Next, get the url's domain.
         link_domain = self.get_domain(link_url)
         log("Link domain is: {}".format(link_domain), 'debug')
+
+        # Ensure that the domain is a legitimate .onion domain.
         if '.onion' not in link_domain or '.onion.' in link_domain:
-            # We don't want to add a link to a non-onion domain.
             log("Link domain: {} is not an onion site, ignoring.".format(
                 link_domain), 'debug')
             return
-        # Add the new onion
+
+        # Add the url, domain and link to the database.
+        # TODO: Check if onion/url/link already exist before adding them.
         self.__add_onion(link_domain)
         self.__add_url(link_domain, link_url)
-        log('Add link from: {} to: {} into links table.'.format(
-            link_domain, link_domain), 'debug')
         self.__add_link(origin_domain, link_domain)
 
     def crawl(self):
+        # TODO: Optimize to remove redundant updates to API.
         log("Ready to explore!", 'info')
         time_to_sleep = False
         while not time_to_sleep:
+            # To stop the script, simply create an empty file called 'sleep'
+            # in the directory where TorSpider.py resides.
             if os.path.exists('sleep'):
+                # If the 'sleep' file is detected, TorSpider knows that it
+                # is time to sleep.
                 time_to_sleep = True
             else:
-                next_url_info = self.__get_query('next',
-                                                 {"node_name": node_name})
+                # Ask the API for a url to scan.
+                next_url_info = self.__get_query(
+                        'next', {"node_name": node_name})
                 if not next_url_info:
+                    # There are currently no urls to scan.
                     log('We found no urls to check, sleeping for 5 seconds.',
                         'debug')
-                    time.sleep(5)
+                    # Wait thirty seconds before trying again.
+                    time.sleep(30)
                     continue
                 if 'domain' in next_url_info.keys() \
                         and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
+                    # We successfully retrieved a url from the API.
                     log('Found next url: {}'.format(
                         next_url_info.get('domain')), 'debug')
                     domain = next_url_info['domain']
                     domain_info = next_url_info['domain_info']
                     url = self.fix_url(next_url_info['url'])
                 else:
-                    # No links to process. This should be rare...
+                    # There are currently no urls to scan.
                     log('We found no urls to check, sleeping for 5 seconds.',
                         'debug')
-                    time.sleep(5)
+                    # Wait thirty seconds before trying again.
+                    time.sleep(30)
                     continue
+
+                # Check if a previous domain has tried unsuccessfully
+                # to connect to this domain before.
                 tries = domain_info.get('tries', 0)
                 last_node = domain_info.get('last_node', 'none')
 
                 if last_node == node_name and tries > 0:
+                    # This node was the last to scan this domain, and the
+                    # domain was reported offline. Let's not re-scan the domain
+                    # with the same node, just in case there's some problem
+                    # with this node's connection.
                     log('I was the last node to scan this url, skipping.',
                         'debug')
-                    # This was scanned by this node last. Let's avoid this.
                     continue
 
-                # Update the scan date for this domain.
+                # Update the scan date for this domain, and set this node as
+                # the last node to scan this domain.
                 update_data = {
                     "scan_date": date.today().strftime('%Y-%m-%d'),
                     "last_node": node_name
                 }
                 self.__update_onions(domain, update_data)
 
-                # Check to see if it's an http/https link.
+                # Do not scan non-http/https links.
                 if not self.is_http(url):
-                    # It's not. Skip it.
                     log('Skipping non-http site.', 'debug')
                     self.set_fault(url, 'non-http')
                     continue
 
+                # The following lists define possible response codes that a
+                # server might send in reply to our request for their url.
+
+                # Redirect codes: These status codes redirect to other pages,
+                # so grab those other pages and scan them instead.
+                redirect_codes = [301, 302, 303, 307, 308]
+
+                # Fault codes: These status codes imply that there was
+                # something wrong with the page being requested, such as being
+                # non-existent. Don't rescan pages with these codes.
+                fault_codes = [400, 401, 403, 404, 405, 406, 410,
+                               413, 414, 444, 451, 495, 496,
+                               500, 501, 502, 505, 508, 511]
+
+                # No-Fault codes: These imply that something temporarily went
+                # wrong, but it's possible that it might work in the future.
+                # Just skip to the next url.
+                no_fault_codes = [408, 421, 423, 429, 503, 504]
+
+                # Good codes: These are the codes we want to see when we are
+                # accessing a web service.
+                good_codes = [200, 201]
+
+                # Now that we've defined the possible response codes, attempt
+                # to scrape the data from the provided url.
                 url_offline = False
                 try:
-                    # Retrieve the page's headers.
+                    # Attempt to retrieve the page's headers.
                     log('Getting head of url: {}'.format(url), 'debug')
                     head = self.session.head(url, timeout=30)
 
-                    # Redirect codes: These status codes redirect to other
-                    # pages, so grab those other pages and scan them
-                    # instead.
-                    redirect_codes = [301, 302, 303, 307, 308]
-
-                    # Fault codes: These status codes imply that there was
-                    # something wrong with the page being requested, such as
-                    # being non-existent. Don't rescan pages with these
-                    # codes.
-                    fault_codes = [400, 401, 403, 404, 405, 406, 410,
-                                   413, 414, 444, 451, 495, 496,
-                                   500, 501, 502, 505, 508, 511]
-
-                    # No-Fault codes: These imply that something temporarily
-                    # went wrong, but it's possible that it might work in
-                    # the future. Just skip to the next url.
-                    no_fault_codes = [408, 421, 423, 429, 503, 504]
-
-                    # Good codes: These are the codes we want to see when we
-                    # are accessing a web service.
-                    good_codes = [200, 201]
-
-                    # Did we get the page successfully?
+                    # Analyze the status code sent by the server.
                     if head.status_code in redirect_codes:
                         # The url results in a redirection.
                         log('Found a redirection url: {} code: {}'.format(
                             url, head.status_code), 'debug')
                         self.set_fault(url, str(head.status_code))
                         try:
-                            # Let's grab the redirected url and add it to
-                            # the database.
+                            # Attempt to add the redirected url to the backend.
                             location = head.headers['location']
                             log('Found redirection url: {}'.format(location),
                                 'debug')
+                            # Combine the provided url with the url we scanned
+                            # in order to fill in any blanks in the redirect.
                             new_url = self.merge_urls(location, url)
                             # Add the new url to the database.
                             self.add_to_queue(new_url, domain)
                             continue
                         except Exception as e:
+                            # The server did not provide a redirect url.
                             log("{}: couldn't find redirect. ({})".format(
                                 str(head.status_code), url), 'error')
                             continue
+
                     elif head.status_code in fault_codes:
-                        # The url results in a fault.
-                        log('Found a fault url: {} code: {}'.format(
+                        # We received a fault code from the server.
+                        log('Found a fault in url: {} code: {}'.format(
                             url, head.status_code), 'debug')
                         self.set_fault(url, str(head.status_code))
                         continue
+
                     elif head.status_code in no_fault_codes:
+                        # The url results in a problem, but not a fault.
                         log('Found a problem url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        # The url results in a problem, but not a fault.
                         continue
+
                     elif head.status_code not in good_codes:
+                        # Unknown status. More status codes will be added as
+                        # they are discovered in the wild.
                         log('Found a unknown status url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        # Unknown status. I'll add more status_code options
-                        # as they arise.
                         self.set_fault(url, str(head.status_code))
                         log("Unknown status code {}: {}".format(
                             head.status_code, url), 'error')
                         continue
 
-                    # Update the database to show that we've scanned this url
-                    # today, to set the last_online date, and to reset the
-                    # offline_scans to zero.
+                    # Update the database to reflect today's scan. Set the last
+                    # scan date for the url and onion to today's date and reset
+                    # the tries and offline scans.
                     data = {
                         "date": date.today().strftime('%Y-%m-%d'),
                     }
@@ -469,27 +539,28 @@ class Spider:
                     }
                     self.__update_onions(domain, data)
 
+                    # We only want to scan plaintext files, not binary data or
+                    # images. Check the content type of the data before making
+                    # an attempt to process it.
                     content_type = self.get_type(head.headers)
-                    # We only want to scan text for links. But if we don't
-                    # know what the content type is, that might result
-                    # from a redirection, so we'll scan it just in case.
                     log("Found content type of url: {} as: {}".format(
                         url, content_type), 'debug')
                     if content_type != 'text' and content_type is not None:
-                        # Otherwise, if we know what it is, and it's not
-                        # text, don't scan it.
+                        # This content is not text-based, so don't scan it.
                         self.set_fault(url, 'type: {0}'.format(content_type))
                         continue
 
                     request = self.session.get(url, timeout=30)
                     if content_type is None:
-                        # We're going to process the request in the same
-                        # way, because we couldn't get a content type from
-                        # the head.
+                        # If we were unable to get the content type from the
+                        # headers, try to get the content type from the full
+                        # request.
                         content_type = self.get_type(request.headers)
                         log("Found content type of url: {} as: {}".format(
                             url, content_type), 'debug')
                         if content_type != 'text' and content_type is not None:
+                            # We got a non-text content type, such as a binary
+                            # or an image file.
                             self.set_fault(url, 'type: {}'.format(
                                 content_type))
                             continue
@@ -521,8 +592,7 @@ class Spider:
                             last_hash = ''
                         log('Last page hash of url: {} is: {}'.format(
                             url, last_hash), 'debug')
-                        # If the hash hasn't changed, don't process the
-                        # page.
+                        # If the hash hasn't changed, don't process the page.
                         if last_hash == page_hash:
                             log('The hashes matched, nothing has changed.',
                                 'debug')
@@ -537,6 +607,8 @@ class Spider:
                         self.__update_urls(url, data)
 
                     except Exception as e:
+                        # We were unable to retrieve the previous hash from the
+                        # backend. Something went wrong.
                         log("Couldn't retrieve previous hash: {0}".format(url),
                             'error')
                         continue
@@ -553,6 +625,7 @@ class Spider:
                     log('Page title for url: {} is: {}'.format(
                         url, page_title), 'debug')
                     # Set the title of the url.
+                    # TODO: Only update the url's title if it has changed.
                     data = {
                         "title": page_title
                     }
@@ -571,16 +644,14 @@ class Spider:
                     if page_info:
                         curr_title = page_info[0].get('title')
                     else:
-                        curr_title = ''
-                    if curr_title == 'Unknown':
-                        curr_title = 'none'
+                        curr_title = 'Unknown'
                     log('Previous page title for url: {} was: {}'.format(
                         url, curr_title), 'debug')
                     # Now, if the title is 'none' then just save
                     # page_title. But if it's something else, we'll need to
                     # make a hybrid title based on the current title and
                     # the title of the newly-scraped page.
-                    if curr_title != 'none' and curr_title:
+                    if curr_title != 'Unknown' and curr_title:
                         page_title = self.merge_titles(curr_title, page_title)
                     page_title = ' '.join(page_title.split())
                     # If the title is now empty, just set it to Unknown.
@@ -631,7 +702,6 @@ class Spider:
                             # Ignore any non-onion domain.
                             continue
                         self.add_to_queue(action_url, domain)
-                        # link_domain = self.get_domain(action_url)
 
                         # Now we'll need to add each input field and its
                         # possible default values.
@@ -705,6 +775,8 @@ class Spider:
                             if value is None or value == '':
                                 value = 'None'
                             # Add the key to the database if it isn't there.
+                            # TODO: Check that the form field isn't already
+                            # present before adding it to the database.
                             self.__add_form(action_url, key)
                             if value == 'None':
                                 continue
@@ -728,20 +800,28 @@ class Spider:
                                 result_examples = result[0].get('examples')
                             else:
                                 result_examples = None
+                            examples_have_changed = False
                             if not result_examples:
                                 # We have no current values.
                                 examples = value
                             else:
                                 # Merge with the returned examples.
                                 example_list = result_examples.split(',')
+                                old_list = list(example_list)
                                 example_list.append(value)
-                                examples = ','.join(unique(example_list))
+                                example_list = unique(example_list)
+                                example_list.sort()
+                                if(old_list != example_list):
+                                    examples_have_changed = True
+                                examples = ','.join(example_list)
 
-                            # Update the examples in the database.
-                            data = {
-                                "examples": examples
-                            }
-                            self.__update_forms(action_url, key, data)
+                            # Update the examples in the database, but only if
+                            # the values have changed.
+                            if(examples_have_changed):
+                                data = {
+                                    "examples": examples
+                                }
+                                self.__update_forms(action_url, key, data)
 
                 # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
@@ -750,7 +830,8 @@ class Spider:
                     self.set_fault(url, 'invalid url')
 
                 except requests.exceptions.InvalidSchema:
-                    # We got an invalid schema.
+                    # We got an invalid schema. Add the url with both http and
+                    # https schemas to the database to see if those work.
                     (s, n, p, q, f) = urlsplit(url)
                     for scheme in ['http', 'https']:
                         s = scheme
@@ -833,12 +914,10 @@ class Spider:
                         "tries": 0
                     }
                     self.__update_onions(domain, data)
-                    # In order to reduce the frequency of scans for
-                    # offline pages, set the scan date ahead by the
-                    # number of times the page has been scanned
-                    # offline. To do this, first retrieve the
-                    # number of times the page has been scanned
-                    # offline.
+                    # In order to reduce the frequency of scans for offline
+                    # pages, set the scan date ahead by the number of times the
+                    # page has been scanned offline. To do this, first retrieve
+                    # the number of times the page has been scanned offline.
                     offline_query = {
                         "filters": [
                             {
@@ -858,12 +937,15 @@ class Spider:
                     interval = offline_scans
                     new_date = (date.today() +
                                 timedelta(days=interval)).strftime('%Y-%m-%d')
-                    # Save the new value to the database.
+                    # Save the new values to the database.
                     data = {
                         "offline_scans": offline_scans,
                         "scan_date": new_date
                     }
                     self.__update_onions(domain, data)
+
+        # If we reach this point, the main loop is finished and the spiders are
+        # going to sleep.
         log("Going to sleep!", 'info')
 
     def defrag_domain(self, domain):
@@ -989,6 +1071,7 @@ class Spider:
 
     @staticmethod
     def merge_action(action, url):
+        # TODO: Remove merge_urls and make merge_action the new merge_urls.
         action = '' if action is None else action
         # Split up the action and url into their component parts.
         (ascheme, anetloc, apath, aquery, afragment) = urlsplit(action)
@@ -1060,6 +1143,7 @@ class Spider:
 
     def process_url(self, link_url, link_domain):
         # When a URL shows up valid, add its information to the database.
+        # TODO: Update this function to reduce redundant data submission.
         log('Processing url: {}'.format(link_url), 'debug')
         link_url = self.fix_url(link_url)
         log('Fixed link url: {}'.format(link_url), 'debug')
@@ -1125,8 +1209,8 @@ class Spider:
                 self.__update_forms(link_url, field, data)
 
         except Exception as e:
-            # There was an error saving the link to the database.
-            log("Couldn't add link to database: {0}".format(e), 'error')
+            # There was an error processing the url.
+            log("Couldn't process url: {0}".format(e), 'error')
             raise
 
     def set_fault(self, url, fault):
