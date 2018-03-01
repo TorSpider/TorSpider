@@ -1,4 +1,11 @@
+# HTML parsing functions and classes.
+
+from libs.functions import *
+from libs.logging import logger
 from html.parser import HTMLParser
+from urllib.parse import urlsplit, urlunsplit
+
+'''---[ CLASSES ]---'''
 
 
 class ParseLinks(HTMLParser):
@@ -192,3 +199,66 @@ class FormParser(HTMLParser):
         self.ranges = []
         self.times = []
         self.weeks = []
+
+
+'''---[ FUNCTIONS ]---'''
+
+
+def get_forms(data):
+    # Get the data from all forms on the page.
+    parse = FormParser()
+    parse.feed(data)
+    return parse.forms
+
+
+def get_links(data, url):
+    logger.log("Getting links for url: {}".format(url), 'debug')
+    # Given HTML input, return a list of all unique links.
+    parse = ParseLinks()
+    parse.feed(data)
+    links = []
+    domain = urlsplit(url)[1]
+    for link in parse.output_list:
+        try:
+            if link is None:
+                # Skip empty links.
+                continue
+            # Remove any references to the current directory. ('./')
+            while './' in link:
+                link = link.replace('./', '')
+            # Split the link into its component parts.
+            (scheme, netloc, path, query, fragment) = urlsplit(link)
+            # Fill in empty schemes.
+            scheme = 'http' if scheme is '' else scheme
+            # Fill in empty paths.
+            path = '/' if path is '' else path
+            if netloc is '' and '.onion' in path.split('/')[0]:
+                # The urlparser mistook the domain as part of the path.
+                netloc = path.split('/')[0]
+                try:
+                    path = '/'.join(path.split('/')[1:])
+                except Exception as e:
+                    path = '/'
+            # Fill in empty domains.
+            netloc = domain if netloc is '' else netloc
+            fragment = ''
+            if '.onion' not in netloc or '.onion.' in netloc:
+                # We are only interested in links to other .onion domains,
+                # and we don't want to include links to onion redirectors.
+                continue
+            links.append(urlunsplit(
+                (scheme, netloc, path, query, fragment)))
+        except Exception as e:
+            logger.log('Link exception: {} -- {}'.format(e, link), 'error')
+    # Make sure we don't return any duplicates!
+    unique_links = unique(links)
+    logger.log("Found {} links in url: {}".format(
+            len(unique_links), url), 'debug')
+    return unique_links
+
+
+def get_title(data):
+    # Given HTML input, return the title of the page.
+    parse = ParseTitle()
+    parse.feed(data)
+    return parse.title.strip()
