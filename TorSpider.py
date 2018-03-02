@@ -1031,7 +1031,7 @@ if __name__ == '__main__':
             'LogToConsole': 'True',
         }
         default_config['API'] = {
-            'API_URL': 'http://127.0.0.1/api/',
+            'API_URL': 'https://127.0.0.1/api/',
             'API_KEY': 'Configure_api_key',
             'API_NODE': 'Configure_api_node'
         }
