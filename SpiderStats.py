@@ -53,7 +53,7 @@ if __name__ == '__main__':
         api_url = config['API'].get('API_URL')
         api_node = config['API'].get('API_NODE')
         api_key = config['API'].get('API_KEY')
-        ssl_verify = config['API'].get('VERIFY_SSL')
+        ssl_verify = config['API'].getboolean('VERIFY_SSL')
         if not ssl_verify:
             # if we disable ssl verification, we'll also disable warning messages.
             from requests.packages.urllib3.exceptions import InsecureRequestWarning
