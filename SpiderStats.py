@@ -25,7 +25,7 @@ def count_field(endpoint, query):
         r = requests.get(api_url + endpoint + '?results_per_page=1&q=' +
                          urllib.parse.quote_plus(json.dumps(query)),
                          headers=gen_api_header(),
-                         verify=False)
+                         verify=ssl_verify)
         if r.status_code == 200:
             # If correct then it returns the object data
             return json.loads(r.text).get('num_results')
@@ -53,6 +53,11 @@ if __name__ == '__main__':
         api_url = config['API'].get('API_URL')
         api_node = config['API'].get('API_NODE')
         api_key = config['API'].get('API_KEY')
+        ssl_verify = config['API'].get('VERIFY_SSL')
+        if not ssl_verify:
+            # if we disable ssl verification, we'll also disable warning messages.
+            from requests.packages.urllib3.exceptions import InsecureRequestWarning
+            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
         sys.exit(0)

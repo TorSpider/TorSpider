@@ -26,7 +26,6 @@ import sys
 import time
 import json
 import names
-import requests
 import configparser
 import urllib.parse
 from libs.functions import *
@@ -73,7 +72,7 @@ class Spider:
             self.api_url + 'onions',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 201:
             # If created then it returns the object data.
             logger.log('Added successfully: {}'.format(domain), 'debug')
@@ -99,7 +98,7 @@ class Spider:
             self.api_url + 'urls',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 201:
             # If created then it returns the object data.
             logger.log('Added successfully: {}'.format(url), 'debug')
@@ -125,7 +124,7 @@ class Spider:
             self.api_url + 'pages',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 201:
             # If created then it returns the object data.
             logger.log('Added successfully: {}'.format(url), 'debug')
@@ -152,7 +151,7 @@ class Spider:
             self.api_url + 'links',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 201:
             # If created then it returns the object data.
             logger.log('Added successfully: {}->{}'.format(domain_from, domain_to),
@@ -179,7 +178,7 @@ class Spider:
             self.api_url + 'forms',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 201:
             # If created then it returns the object data.
             logger.log('Added successfully: Field: {}, Url: {}'.format(field, url),
@@ -210,7 +209,7 @@ class Spider:
             self.api_url + 'onions',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 200:
             # if updated it returns the object data.
             logger.log('Updated successfully: {}'.format(domain), 'debug')
@@ -240,7 +239,7 @@ class Spider:
             self.api_url + 'urls',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 200:
             # if updated it returns the object data.
             logger.log('Updated successfully: {}'.format(url), 'debug')
@@ -271,7 +270,7 @@ class Spider:
             self.api_url + 'pages',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 200:
             # if updated it returns the object data.
             logger.log('Updated successfully: {}'.format(url), 'debug')
@@ -306,7 +305,7 @@ class Spider:
             self.api_url + 'forms',
             headers=self.headers,
             data=json.dumps(data),
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 200:
             # if updated it returns the object data.
             logger.log('Updated successfully: Field: {} Url: {}'.format(field, url),
@@ -330,7 +329,7 @@ class Spider:
             self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(
                 json.dumps(query)),
             headers=self.headers,
-            verify=False)
+            verify=ssl_verify)
         if r.status_code == 200:
             # If successful then it returns the object data.
             logger.log('GET Query successful for endpoint: {}'.format(endpoint),
@@ -1031,9 +1030,10 @@ if __name__ == '__main__':
             'LogToConsole': 'True',
         }
         default_config['API'] = {
-            'API_URL': 'https://127.0.0.1/api/',
+            'API_URL': 'https://torspider.pro/api/',
             'API_KEY': 'Configure_api_key',
-            'API_NODE': 'Configure_api_node'
+            'API_NODE': 'Configure_api_node',
+            'VERIFY_SSL': True
         }
         default_config['LOGGING'] = {
             'loglevel': 'INFO'
@@ -1052,6 +1052,11 @@ if __name__ == '__main__':
         api_url = config['API'].get('API_URL')
         api_key = config['API'].get('API_KEY')
         api_node = config['API'].get('API_NODE')
+        ssl_verify = config['API'].get('VERIFY_SSL')
+        if not ssl_verify:
+            # if we disable ssl verification, we'll also disable warning messages.
+            from requests.packages.urllib3.exceptions import InsecureRequestWarning
+            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
         sys.exit(0)
