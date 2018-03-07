@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-''' SpiderStats – Quickly check some basic metrics to see how the spiders are
-    doing.
-'''
+# SpiderStats – Quickly check some basic metrics to see how the spiders are doing.
+
 
 import requests
 import json
@@ -31,7 +30,7 @@ def count_field(endpoint, query):
             return json.loads(r.text).get('num_results')
         else:
             print("Expected code 200, received {}. Bailing!".format(
-                    r.status_code))
+                r.status_code))
             sys.exit(0)
     except requests.exceptions.ConnectionError:
         print('Connection error.  Bailing!')
@@ -57,6 +56,7 @@ if __name__ == '__main__':
         if not ssl_verify:
             # if we disable ssl verification, we'll also disable warning messages.
             from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
             requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
     except Exception as e:
         print('Could not parse spider.cfg. Please verify its syntax.')
@@ -76,7 +76,7 @@ if __name__ == '__main__':
             }
         ]}
     date_query = {"filters": [
-            {"op": "ne", "name": "date", "val": "1900-01-01"}]}
+        {"op": "ne", "name": "date", "val": "1900-01-01"}]}
     url_count_scanned = count_field('urls', date_query)
     url_count_percentage = (url_count_scanned / url_count)
 
@@ -96,9 +96,51 @@ if __name__ == '__main__':
         ]}
     onion_count = count_field('onions', onion_query)
 
+    # Onions that need to be checked
+    remaining_onion_query = {
+        "filters": [
+            {
+                "op": "eq",
+                "name": "last_online",
+                "val": "1900-01-01"
+            },
+            {
+                "op": "eq",
+                "name": "online",
+                "val": "true"
+            }
+        ]}
+    remaining_onions = count_field('onions', remaining_onion_query)
     # Get the totals
     total_onions = count_field('onions', empty_query)
     total_urls = count_field('urls', empty_query)
+    live_urls_query = {
+        "filters": [
+            {
+                "and": [
+                    {
+                        "op": "has",
+                        "name": "domain_info",
+                        "val": {
+                            "name": "last_online",
+                            "val": "1900-01-01",
+                            "op": "ne"
+                        }
+                    },
+                    {
+                        "op": "has",
+                        "name": "domain_info",
+                        "val": {
+                            "name": "online",
+                            "val": "true",
+                            "op": "eq"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+    live_urls = count_field('urls', live_urls_query)
     total_pages = count_field('pages', empty_query)
     total_forms = count_field('forms', empty_query)
     total_links = count_field('links', empty_query)
@@ -107,20 +149,22 @@ if __name__ == '__main__':
     print('Results:')
     messages = [
         'So far, TorSpider has scanned {:,} ({:.2%}) of the {:,} urls it has',
-        'discovered. Of the scanned sites, {:,} are known to be active.' +
+        'discovered. Of the scanned urls, it found {:,} live urls on {:,} active onions.  ',
+        'There are {:,} onions that are pending an initial scan.' +
         os.linesep,
         'Table Stats:' + os.linesep,
-        'Total Onions: {:}' + os.linesep,
-        'Total Urls: {:}' + os.linesep,
-        'Total Pages: {:}' + os.linesep,
-        'Total Forms: {:}' + os.linesep,
-        'Total Links: {:}'
+        'Total Onions: {:,}' + os.linesep,
+        'Total Urls: {:,}' + os.linesep,
+        'Total Urls (live): {:,}' + os.linesep,
+        'Total Pages: {:,}' + os.linesep,
+        'Total Forms: {:,}' + os.linesep,
+        'Total Links: {:,}'
     ]
 
     message = ' '.join(messages)
     message = message.format(url_count_scanned, url_count_percentage,
-                             url_count, onion_count, total_onions,
-                             total_urls, total_pages, total_forms,
+                             url_count, live_urls, onion_count, remaining_onions, total_onions,
+                             total_urls, live_urls, total_pages, total_forms,
                              total_links)
 
     print(message)
