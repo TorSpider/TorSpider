@@ -1030,7 +1030,7 @@ if __name__ == '__main__':
             'LogToConsole': 'True',
         }
         default_config['API'] = {
-            'API_URL': 'https://torspider.pro/api/',
+            'API_URL': 'https://api.torspider.pro/api/',
             'API_KEY': 'Configure_api_key',
             'API_NODE': 'Configure_api_node',
             'VERIFY_SSL': True
