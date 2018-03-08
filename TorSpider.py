@@ -1052,6 +1052,9 @@ if __name__ == '__main__':
         api_url = config['API'].get('API_URL')
         api_key = config['API'].get('API_KEY')
         api_node = config['API'].get('API_NODE')
+        if api_key == 'Configure_api_key' or api_node == 'Configure_api_node':
+            print('You have not configured your API Key and Node.  Please update your spider.cfg file.')
+            sys.exit(0)
         ssl_verify = config['API'].getboolean('VERIFY_SSL')
         if not ssl_verify:
             # if we disable ssl verification, we'll also disable warning messages.
