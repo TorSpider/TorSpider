@@ -15,8 +15,12 @@ class Logger:
         try:
             config = configparser.ConfigParser()
             config.read('spider.cfg')
-            log_to_console = config['TorSpider'].getboolean('LogToConsole')
-            loglevel = config['LOGGING'].get('loglevel')
+            log_to_console = os.environ.get('LogToConsole', None)
+            if not log_to_console:
+                log_to_console = config['TorSpider'].getboolean('LogToConsole')
+            loglevel = os.environ.get('LogLevel', None)
+            if not loglevel:
+                loglevel = config['LOGGING'].get('loglevel')
         except Exception as e:
             pass
         self.logger = self.__get_logger(loglevel, script_dir, log_to_console)

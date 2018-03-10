@@ -1048,14 +1048,24 @@ if __name__ == '__main__':
     try:
         config = configparser.ConfigParser()
         config.read('spider.cfg')
-        node_name = config['API'].get('API_NODE')
-        api_url = config['API'].get('API_URL')
-        api_key = config['API'].get('API_KEY')
-        api_node = config['API'].get('API_NODE')
+        node_name = os.environ.get('API_NODE', None)
+        if not node_name:
+            node_name = config['API'].get('API_NODE')
+        api_url = os.environ.get('API_URL', None)
+        if not api_url:
+            api_url = config['API'].get('API_URL')
+        api_key = os.environ.get('API_KEY', None)
+        if not api_key:
+            api_key = config['API'].get('API_KEY')
+        api_node = os.environ.get('API_NODE', None)
+        if not api_node:
+            api_node = config['API'].get('API_NODE')
         if api_key == 'Configure_api_key' or api_node == 'Configure_api_node':
             print('You have not configured your API Key and Node.  Please update your spider.cfg file.')
             sys.exit(0)
-        ssl_verify = config['API'].getboolean('VERIFY_SSL')
+        ssl_verify = os.environ.get('VERIFY_SSL', None)
+        if not ssl_verify:
+            ssl_verify = config['API'].getboolean('VERIFY_SSL')
         if not ssl_verify:
             # if we disable ssl verification, we'll also disable warning messages.
             from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -1069,25 +1079,23 @@ if __name__ == '__main__':
     # Create a Tor session and check if it's working.
     logger.log("Establishing Tor connection...", 'info')
     session = get_tor_session()
-    try:
-        local_ip = get_my_ip(None)
-        if not local_ip:
-            logger.log("Cannot determine local IP address.", 'error')
-            sys.exit(0)
-        tor_ip = get_my_ip(session)
-        if not tor_ip:
-            logger.log("Cannot determine tor IP address.", 'error')
-            sys.exit(0)
-        if local_ip == tor_ip:
-            logger.log("Tor connection failed: IPs match.", 'error')
-            logger.log('-' * 40, 'info')
-            sys.exit(0)
-        else:
-            logger.log("Tor connection established.", 'info')
-    except Exception as e:
-        logger.log("Tor connection failed: {}".format(e), 'error')
-        logger.log('-' * 40, 'info')
-        sys.exit(0)
+    while True:
+        try:
+            logger.log("Verifying Tor connection...", 'info')
+            local_ip = get_my_ip(None)
+            if not local_ip:
+                logger.log("Cannot determine local IP address.", 'error')
+            tor_ip = get_my_ip(session)
+            if not tor_ip:
+                logger.log("Cannot determine tor IP address.", 'error')
+            if local_ip == tor_ip:
+                logger.log("Tor connection failed: IPs match.", 'error')
+            else:
+                logger.log("Tor connection established.", 'info')
+                break
+        except Exception as e:
+            logger.log("Tor connection failed: {}".format(e), 'error')
+            time.sleep(5)
 
     # Awaken the spiders!
     Spiders = []

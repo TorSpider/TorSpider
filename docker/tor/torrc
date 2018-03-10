@@ -1,0 +1,5 @@
+SocksPort 9050 
+
+SocksPolicy accept *
+
+SocksListenAddress 127.0.0.1
