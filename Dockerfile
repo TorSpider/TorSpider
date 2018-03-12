@@ -6,11 +6,6 @@ RUN apt-get update \
     && apt-get -y install tor supervisor git \
     && mkdir -p /opt/supervisor/conf.d /opt/privoxy /opt/tor
     
-# Clone TorSpider
-RUN git clone -b add-docker-support https://github.com/TorSpider/TorSpider.git
-
-WORKDIR /usr/src/app/TorSpider
-    
 # Add custom supervisor config
 COPY ./docker/supervisord/supervisord.conf /opt/supervisor/supervisord.conf
 COPY ./docker/supervisord/tor-supervisor.conf /opt/supervisor/conf.d/tor-supervisor.conf
