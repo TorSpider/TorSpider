@@ -369,7 +369,6 @@ class Spider:
         self.__add_link(origin_domain, link_domain)
 
     def crawl(self):
-        # TODO: Optimize to remove redundant updates to API.
         logger.log("Ready to explore!", 'info')
         time_to_sleep = False
         while not time_to_sleep:
@@ -380,6 +379,11 @@ class Spider:
                 # is time to sleep.
                 time_to_sleep = True
             else:
+                # Initialize the scan_result dictionary.
+                scan_result = {}
+                scan_result['new_urls'] = []
+                scan_result['online'] = False
+
                 # Ask the API for a url to scan.
                 next_url_info = self.__get_query(
                         'next', {"node_name": node_name})
@@ -390,6 +394,7 @@ class Spider:
                     # Wait thirty seconds before trying again.
                     time.sleep(30)
                     continue
+
                 if 'domain' in next_url_info.keys() \
                         and 'url' in next_url_info.keys() \
                         and 'domain_info' in next_url_info.keys():
@@ -407,6 +412,9 @@ class Spider:
                     time.sleep(30)
                     continue
 
+                # Set the url for the scan_result.
+                scan_result['url'] = url
+
                 # Check if a previous domain has tried unsuccessfully
                 # to connect to this domain before.
                 tries = domain_info.get('tries', 0)
@@ -423,16 +431,25 @@ class Spider:
 
                 # Update the scan date for this domain, and set this node as
                 # the last node to scan this domain.
+                # TODO: Eliminate this update.
                 update_data = {
                     "scan_date": date.today().strftime('%Y-%m-%d'),
                     "last_node": node_name
                 }
                 self.__update_onions(domain, update_data)
 
+                # Set the scan date and last node information in scan_result.
+                scan_result['scan_date'] = date.today().strftime('%Y-%m-%d')
+                scan_result['last_node'] = node_name
+
                 # Do not scan non-http/https links.
+                # TODO: If the backend no longer sends non-http links, remove
+                # this test. Backend will need to update non-http urls with the
+                # 'non-http' fault.
                 if not is_http(url):
                     logger.log('Skipping non-http site.', 'debug')
-                    self.set_fault(url, 'non-http')
+                    scan_result['fault'] = 'non-http'
+                    # TODO: Send off the scan_result.
                     continue
 
                 # The following lists define possible response codes that a
@@ -471,7 +488,7 @@ class Spider:
                         # The url results in a redirection.
                         logger.log('Found a redirection url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        self.set_fault(url, str(head.status_code))
+                        scan_result['fault'] = str(head.status_code)
                         try:
                             # Attempt to add the redirected url to the backend.
                             location = head.headers['location']
@@ -480,20 +497,20 @@ class Spider:
                             # Combine the provided url with the url we scanned
                             # in order to fill in any blanks in the redirect.
                             new_url = merge_urls(location, url)
-                            # Add the new url to the database.
-                            self.add_to_queue(new_url, domain)
-                            continue
+                            scan_result['new_urls'].append(new_url)
                         except Exception as e:
                             # The server did not provide a redirect url.
                             logger.log("{}: couldn't find redirect. ({})".format(
                                 str(head.status_code), url), 'error')
-                            continue
+                        # TODO: Send off the scan_result.
+                        continue
 
                     elif head.status_code in fault_codes:
                         # We received a fault code from the server.
                         logger.log('Found a fault in url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        self.set_fault(url, str(head.status_code))
+                        scan_result['fault'] = str(head.status_code)
+                        # TODO: Send off the scan_result.
                         continue
 
                     elif head.status_code in no_fault_codes:
@@ -507,14 +524,16 @@ class Spider:
                         # they are discovered in the wild.
                         logger.log('Found a unknown status url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        self.set_fault(url, str(head.status_code))
                         logger.log("Unknown status code {}: {}".format(
                             head.status_code, url), 'error')
+                        scan_result['fault'] = str(head.status_code)
+                        # TODO: Send off the scan_result.
                         continue
 
                     # Update the database to reflect today's scan. Set the last
                     # scan date for the url and onion to today's date and reset
                     # the tries and offline scans.
+                    # TODO: Remove this section.
                     data = {
                         "date": date.today().strftime('%Y-%m-%d'),
                     }
@@ -526,6 +545,8 @@ class Spider:
                     }
                     self.__update_onions(domain, data)
 
+                    scan_result['online'] = True
+
                     # We only want to scan plaintext files, not binary data or
                     # images. Check the content type of the data before making
                     # an attempt to process it.
@@ -534,7 +555,8 @@ class Spider:
                         url, content_type), 'debug')
                     if content_type != 'text' and content_type is not None:
                         # This content is not text-based, so don't scan it.
-                        self.set_fault(url, 'type: {0}'.format(content_type))
+                        scan_result['fault'] = 'type: {0}'.format(content_type)
+                        # TODO: Send off the scan_result.
                         continue
 
                     request = self.session.get(url, timeout=30)
@@ -548,22 +570,27 @@ class Spider:
                         if content_type != 'text' and content_type is not None:
                             # We got a non-text content type, such as a binary
                             # or an image file.
-                            self.set_fault(url, 'type: {}'.format(
-                                content_type))
+                            scan_result['fault'] = 'type: {}'.format(
+                                content_type)
+                            # TODO: Send off the scan_result.
                             continue
 
                     # We've got the site's data. This page is live, so let's
                     # process the url's data.
+                    # TODO: Rather than processing and sending queries, set all
+                    # this data in the scan_result.
                     self.process_url(url, domain)
 
                     # Let's see if the page has changed...
                     try:
                         # Get the page's sha1 hash.
+                        # TODO: Get the old hash when we first get the url.
                         page_hash = get_hash(request.content)
                         logger.log('Page hash of url: {} is: {}'.format(
                             url, page_hash), 'debug')
 
                         # Retrieve the page's last hash.
+                        # TODO: Eliminate this query.
                         hash_query = {
                             "filters": [
                                 {
@@ -577,12 +604,13 @@ class Spider:
                             last_hash = url_info[0].get('hash')
                         else:
                             last_hash = ''
+
                         logger.log('Last page hash of url: {} is: {}'.format(
                             url, last_hash), 'debug')
                         # If the hash hasn't changed, don't process the page.
                         if last_hash == page_hash:
-                            logger.log('The hashes matched, nothing has changed.',
-                                'debug')
+                            logger.log('The hashes matched, nothing has changed.', 'debug')
+                            # TODO: Send off the scan_result.
                             continue
 
                         # Update the page's hash in the database.
@@ -596,6 +624,8 @@ class Spider:
                     except Exception as e:
                         # We were unable to retrieve the previous hash from the
                         # backend. Something went wrong.
+                        # TODO: We won't need this exception once we start
+                        # retrieving the hash along with the new url.
                         logger.log("Couldn't retrieve previous hash: {0}".format(url),
                             'error')
                         continue
@@ -612,13 +642,19 @@ class Spider:
                     logger.log('Page title for url: {} is: {}'.format(
                         url, page_title), 'debug')
                     # Set the title of the url.
-                    # TODO: Only update the url's title if it has changed.
+                    # TODO: Eliminate this section. Also, only update the
+                    # title if it has changed.
                     data = {
                         "title": page_title
                     }
                     self.__update_urls(url, data)
 
+                    scan_result['title'] = page_title
+
                     # Update the page's title. First, get the old title.
+                    # TODO: Remove this query. Let the backend determine the
+                    # new page title.
+                    # ---[BEGINNING OF REMOVED SECTION]---
                     title_query = {
                         "filters": [
                             {
@@ -652,24 +688,38 @@ class Spider:
                             "title": page_title
                         }
                         self.__update_pages(url, data)
+                    # ---[END OF REMOVED SECTION]---
 
                     # Get the page's links.
                     page_links = get_links(page_text, url)
 
                     # Add the links to the database.
                     for link_url in page_links:
-                        # Get the link domain.
+                        # TODO: Remove the add_to_queue reference.
                         self.add_to_queue(link_url, domain)
+
+                        if '.onion' not in link_url \
+                                or '.onion.' in link_url:
+                            # Ignore any non-onion domain.
+                            continue
+                        scan_result['new_urls'].append(link_url)
 
                     # Parse any forms on the page.
                     logger.log('Parsing forms on url: {}'.format(url), 'debug')
                     page_forms = get_forms(page_text)
 
+                    scan_result['form_dicts'] = []
+
                     # Add the forms to the database.
                     for form in page_forms:
                         # Process the form's information.
                         form_dict = dict(form)
+                        # TODO: Let the backend parse the form dict.
+                        scan_result['form_dicts'].append(form_dict)
 
+                        # TODO: Remove this section and let the backend handle
+                        # all this processing.
+                        # ---[BEGINNING OF REMOVED SECTION]---
                         # Make sure the necessary fields exist.
                         # TODO: Validate that this makes sense.
                         # A lot of forms can use JavaScript and don't
@@ -809,12 +859,14 @@ class Spider:
                                     "examples": examples
                                 }
                                 self.__update_forms(action_url, key, data)
+                        # ---[END OF REMOVED SECTION]---
 
                 # Parsing is complete for this page!
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
                     logger.log("Invalid url: {}".format(url), 'error')
-                    self.set_fault(url, 'invalid url')
+                    scan_result['fault'] = 'invalid url'
+                    # TODO: Send off the scan_result.
 
                 except requests.exceptions.InvalidSchema:
                     # We got an invalid schema. Add the url with both http and
@@ -823,13 +875,17 @@ class Spider:
                     for scheme in ['http', 'https']:
                         s = scheme
                         new_url = urlunsplit((s, n, p, q, f))
+                        # TODO: Remove add_to_queue.
                         self.add_to_queue(new_url, domain)
-                    self.set_fault(url, 'invalid schema')
+                        scan_result['new_urls'].append(new_url)
+                    scan_result['fault'] = 'invalid schema'
+                    # TODO: Send off the scan_result.
 
                 except requests.exceptions.SSLError as e:
                     # There was a problem with the site's SSL certificate.
                     logger.log("SSL Error at {}: {}".format(url, e), 'error')
-                    self.set_fault(url, 'Bad SSL')
+                    scan_result['fault'] = 'Bad SSL'
+                    # TODO: Send off the scan_result.
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.
@@ -839,6 +895,10 @@ class Spider:
                         tor_ip = get_my_ip(self.session)
                         if tor_ip:
                             # If we've reached this point, Tor is working.
+                            # Return the scan_result, which will show that
+                            # the url is offline.
+                            # TODO: Send off the scan_result.
+                            # TODO: Remove the rest of this section.
                             tries += 1
                             if tries == 3:
                                 # We've failed three times. Time to quit.
@@ -860,6 +920,8 @@ class Spider:
                 except requests.exceptions.Timeout:
                     # It took too long to load this page.
                     logger.log('Request timed out: {}'.format(url), 'debug')
+                    # TODO: Send off the scan_result.
+                    # TODO: Remove the rest of this section.
                     tries += 1
                     if tries == 3:
                         # We've failed three times. Time to quit.
@@ -873,7 +935,8 @@ class Spider:
 
                 except requests.exceptions.TooManyRedirects as e:
                     # Redirected too many times. Let's not keep trying.
-                    self.set_fault(url, 'redirect')
+                    scan_result['fault'] = 'redirect'
+                    # TODO: Send off the scan_result.
 
                 except requests.exceptions.ChunkedEncodingError as e:
                     # Server gave bad chunk. This might not be a permanent
@@ -883,7 +946,8 @@ class Spider:
                 except MemoryError as e:
                     # Whatever it is, it's way too big.
                     logger.log('Ran out of memory: {}'.format(url), 'error')
-                    self.set_fault(url, 'memory error')
+                    scan_result['fault'] = 'memory error'
+                    # TODO: Send off the scan_result.
 
                 except NotImplementedError as e:
                     logger.log("I don't know what this means: {} - {}".format(e, url),
@@ -893,6 +957,8 @@ class Spider:
                     logger.log('Unknown exception: {}'.format(e), 'error')
                     raise
 
+                # TODO: Remove this entire section. This won't be necessary
+                # when the backend handles this processing.
                 if url_offline:
                     # Set the domain to offline.
                     logger.log('Setting url as offline: {}'.format(url), 'debug')
@@ -937,6 +1003,8 @@ class Spider:
 
     def process_url(self, link_url, link_domain):
         # When a URL shows up valid, add its information to the database.
+        # TODO: Let the backend handle all of this, and remove this part from
+        # the spider.
         # TODO: Update this function to reduce redundant data submission.
         logger.log('Processing url: {}'.format(link_url), 'debug')
         link_url = fix_url(link_url)
@@ -1006,16 +1074,6 @@ class Spider:
             # There was an error processing the url.
             logger.log("Couldn't process url: {0}".format(e), 'error')
             raise
-
-    def set_fault(self, url, fault):
-        logger.log('Setting fault status for url: {} fault: {}'.format(url, fault),
-            'debug')
-        # Update the url and page faults.
-        data = {
-            "fault": fault
-        }
-        self.__update_urls(url, data)
-        self.__update_pages(url, data)
 
 
 '''---[ SCRIPT ]---'''
