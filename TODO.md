@@ -16,7 +16,8 @@ The data is as follows:
   'online': whether the url was online (if True, tries = 0;
       if False, tries += 1. Let the backend determine offline_scans.),
   'title': the title of the url,
-  'form_dicts': a [list] of dictionaries representing the forms on the page.
+  'form_dicts': a [list] of dictionaries representing the forms on the page,
+  'hash': the updated page hash for the url.
 }
 
 Set_Fault will need to be updated to add the fault to the scan_result and send off the query.

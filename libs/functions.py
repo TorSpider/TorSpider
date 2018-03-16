@@ -96,6 +96,7 @@ def merge_urls(url1, url2):
     return link
 
 
+# TODO: Remove this function. It's been moved to the backend.
 def get_domain(url):
     # Get the defragmented domain of the given url.
     # Omit subdomains. Rather than having separate records for urls
@@ -104,6 +105,7 @@ def get_domain(url):
     return '.'.join(defrag_domain(urlsplit(url).netloc).split('.')[-2:])
 
 
+# TODO: Remove this function. It's been moved to the backend.
 def fix_url(url):
     # Fix obfuscated urls.
     (scheme, netloc, path, query, fragment) = urlsplit(url)
@@ -166,6 +168,7 @@ def extract_exact(list1, list2):
     return [item for item in list1 if any(scan == item for scan in list2)]
 
 
+# TODO: Remove this function. It's been moved to the backend.
 def is_http(url):
     # Determine whether the link is an http/https scheme or not.
     (scheme, netloc, path, query, fragment) = urlsplit(url)

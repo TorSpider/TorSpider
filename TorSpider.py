@@ -4,7 +4,7 @@
 """
     ______________________________________________________________________
    |                         |                  |                         |
-   |                   +-----^--TorSpider-v0.7--^-----+                   |
+   |                   +-----^--TorSpider-v0.8--^-----+                   |
    |                   |  Crawling the Invisible Web  |                   |
    |                   +------------------------------+                   |
    |                                                                      |
@@ -39,7 +39,7 @@ from libs.parsers import get_forms, get_links, get_title
 '''---[ GLOBAL VARIABLES ]---'''
 
 # The current release version.
-version = '0.7'
+version = '0.8'
 
 '''---[ CLASS DEFINITIONS ]---'''
 
@@ -59,6 +59,7 @@ class Spider:
         myhead['Authorization-Node'] = api_node
         return myhead
 
+    # TODO: Remove this function. It's handled by the backend.
     def __add_onion(self, domain):
         # Add an onion to the backend DB.
         logger.log('Adding onion: {}'.format(domain), 'debug')
@@ -85,6 +86,7 @@ class Spider:
             # Some other failure.
             return {}
 
+    # TODO: Remove this function. It's handled by the backend.
     def __add_url(self, domain, url):
         # Add a url to the backend DB.
         logger.log('Adding url: {}'.format(url), 'debug')
@@ -137,6 +139,7 @@ class Spider:
             # Some other failure.
             return {}
 
+    # TODO: Remove this function. It's handled by the backend.
     def __add_link(self, domain_from, domain_to):
         # Add a link to the backend DB.
         logger.log('Adding link: {}->{}'.format(domain_from, domain_to), 'debug')
@@ -344,32 +347,6 @@ class Spider:
             # Some other failure.
             return {}
 
-    def add_to_queue(self, link_url, origin_domain):
-        # TODO: Remove this after adding this processing to the backend.
-        # Add a URL to the database to be scanned.
-        logger.log("Attempting to add a onion url to the queue: {}".format(
-                link_url), 'debug')
-
-        # First, fix any potential issues with the url (fragmentation, etc.).
-        link_url = fix_url(link_url)
-        logger.log("Fixed url is: {}".format(link_url), 'debug')
-
-        # Next, get the url's domain.
-        link_domain = get_domain(link_url)
-        logger.log("Link domain is: {}".format(link_domain), 'debug')
-
-        # Ensure that the domain is a legitimate .onion domain.
-        if '.onion' not in link_domain or '.onion.' in link_domain:
-            logger.log("Link domain: {} not an onion site, ignoring.".format(
-                    link_domain), 'debug')
-            return
-
-        # Add the url, domain and link to the database.
-        # TODO: Check if onion/url/link already exist before adding them.
-        self.__add_onion(link_domain)
-        self.__add_url(link_domain, link_url)
-        self.__add_link(origin_domain, link_domain)
-
     def crawl(self):
         logger.log("Ready to explore!", 'info')
         time_to_sleep = False
@@ -382,9 +359,17 @@ class Spider:
                 time_to_sleep = True
             else:
                 # Initialize the scan_result dictionary.
-                scan_result = {}
-                scan_result['new_urls'] = []
-                scan_result['online'] = False
+                scan_result = {
+                        'new_urls' = [],
+                        'online' = False,
+                        'url' = '',
+                        'scan_date' = '',
+                        'last_node' = '',
+                        'fault' = None,
+                        'title' = '',
+                        'form_dicts' = [],
+                        'hash' = ''
+                }
 
                 # Ask the API for a url to scan.
                 next_url_info = self.__get_query(
@@ -405,7 +390,10 @@ class Spider:
                         next_url_info.get('domain')), 'debug')
                     domain = next_url_info['domain']
                     domain_info = next_url_info['domain_info']
-                    url = fix_url(next_url_info['url'])
+                    url = next_url_info['url']
+                    last_hash = next_url_info['hash']
+                    if(last_hash == None):
+                        last_hash = ''
                 else:
                     # There are currently no urls to scan.
                     logger.log('We found no urls to check, sleeping for 30 seconds.',
@@ -417,33 +405,9 @@ class Spider:
                 # Set the url for the scan_result.
                 scan_result['url'] = url
 
-                # Check if a previous domain has tried unsuccessfully
-                # to connect to this domain before.
-                tries = domain_info.get('tries', 0)
-                last_node = domain_info.get('last_node', 'none')
-
-                # Update the scan date for this domain, and set this node as
-                # the last node to scan this domain.
-                # TODO: Eliminate this update.
-                update_data = {
-                    "scan_date": date.today().strftime('%Y-%m-%d'),
-                    "last_node": node_name
-                }
-                self.__update_onions(domain, update_data)
-
                 # Set the scan date and last node information in scan_result.
                 scan_result['scan_date'] = date.today().strftime('%Y-%m-%d')
                 scan_result['last_node'] = node_name
-
-                # Do not scan non-http/https links.
-                # TODO: If the backend no longer sends non-http links, remove
-                # this test. Backend will need to update non-http urls with the
-                # 'non-http' fault.
-                if not is_http(url):
-                    logger.log('Skipping non-http site.', 'debug')
-                    scan_result['fault'] = 'non-http'
-                    # TODO: Send off the scan_result.
-                    continue
 
                 # The following lists define possible response codes that a
                 # server might send in reply to our request for their url.
@@ -490,7 +454,10 @@ class Spider:
                             # Combine the provided url with the url we scanned
                             # in order to fill in any blanks in the redirect.
                             new_url = merge_urls(location, url)
-                            scan_result['new_urls'].append(new_url)
+                            if '.onion' in new_url \
+                                    and '.onion.' not in new_url:
+                                # Ignore any non-onion domain.
+                                scan_result['new_urls'].append(new_url)
                         except Exception as e:
                             # The server did not provide a redirect url.
                             logger.log("{}: couldn't find redirect. ({})".format(
@@ -510,6 +477,7 @@ class Spider:
                         # The url results in a problem, but not a fault.
                         logger.log('Found a problem url: {} code: {}'.format(
                             url, head.status_code), 'debug')
+                        # TODO: Send off the scan_result.
                         continue
 
                     elif head.status_code not in good_codes:
@@ -523,21 +491,7 @@ class Spider:
                         # TODO: Send off the scan_result.
                         continue
 
-                    # Update the database to reflect today's scan. Set the last
-                    # scan date for the url and onion to today's date and reset
-                    # the tries and offline scans.
-                    # TODO: Remove this section.
-                    data = {
-                        "date": date.today().strftime('%Y-%m-%d'),
-                    }
-                    self.__update_urls(url, data)
-                    data = {
-                        "last_online": date.today().strftime('%Y-%m-%d'),
-                        "tries": 0,
-                        "offline_scans": 0
-                    }
-                    self.__update_onions(domain, data)
-
+                    # If we reach this point, we know the domain is online.
                     scan_result['online'] = True
 
                     # We only want to scan plaintext files, not binary data or
@@ -568,51 +522,24 @@ class Spider:
                             # TODO: Send off the scan_result.
                             continue
 
-                    # We've got the site's data. This page is live, so let's
-                    # process the url's data.
-                    # TODO: Rather than processing and sending queries, set all
-                    # this data in the scan_result.
-                    self.process_url(url, domain)
-
                     # Let's see if the page has changed...
                     try:
                         # Get the page's sha1 hash.
                         # TODO: Get the old hash when we first get the url.
                         page_hash = get_hash(request.content)
+
                         logger.log('Page hash of url: {} is: {}'.format(
                             url, page_hash), 'debug')
-
-                        # Retrieve the page's last hash.
-                        # TODO: Eliminate this query.
-                        hash_query = {
-                            "filters": [
-                                {
-                                    "op": "eq",
-                                    "name": "url",
-                                    "val": url
-                                }
-                            ]}
-                        url_info = self.__get_query('urls', hash_query)
-                        if url_info:
-                            last_hash = url_info[0].get('hash')
-                        else:
-                            last_hash = ''
-
                         logger.log('Last page hash of url: {} is: {}'.format(
                             url, last_hash), 'debug')
+
                         # If the hash hasn't changed, don't process the page.
                         if last_hash == page_hash:
                             logger.log('The hashes matched, nothing has changed.', 'debug')
                             # TODO: Send off the scan_result.
                             continue
 
-                        # Update the page's hash in the database.
-                        data = {
-                            "hash": page_hash
-                        }
-                        logger.log('Update hash for url: {} to: {}'.format(
-                            url, page_hash), 'debug')
-                        self.__update_urls(url, data)
+                        scan_result['hash'] = page_hash
 
                     except Exception as e:
                         # We were unable to retrieve the previous hash from the
@@ -621,6 +548,7 @@ class Spider:
                         # retrieving the hash along with the new url.
                         logger.log("Couldn't retrieve previous hash: {0}".format(url),
                             'error')
+                        # TODO: Send off the scan_result.
                         continue
 
                     # The page's HTML changed since our last scan; let's
@@ -634,18 +562,12 @@ class Spider:
                         page_title = 'Unknown'
                     logger.log('Page title for url: {} is: {}'.format(
                         url, page_title), 'debug')
-                    # Set the title of the url.
-                    # TODO: Eliminate this section. Also, only update the
-                    # title if it has changed.
-                    data = {
-                        "title": page_title
-                    }
-                    self.__update_urls(url, data)
 
+                    # Set the title of the url.
                     scan_result['title'] = page_title
 
-                    # Update the page's title. First, get the old title.
-                    # TODO: Remove this query. Let the backend determine the
+                    # Update the page's title.
+                    # TODO: Remove this section. Let the backend determine the
                     # new page title.
                     # ---[BEGINNING OF REMOVED SECTION]---
                     title_query = {
@@ -688,11 +610,10 @@ class Spider:
 
                     # Add the links to the database.
                     for link_url in page_links:
-                        if '.onion' not in link_url \
-                                or '.onion.' in link_url:
+                        if '.onion' in link_url \
+                                and '.onion.' not in link_url:
                             # Ignore any non-onion domain.
-                            continue
-                        scan_result['new_urls'].append(link_url)
+                            scan_result['new_urls'].append(link_url)
 
                     # Parse any forms on the page.
                     logger.log('Parsing forms on url: {}'.format(url), 'debug')
@@ -722,13 +643,11 @@ class Spider:
                             form_dict['target'] = ''
 
                         # Get the form's action, and add it to the database.
-                        action_url = merge_urls(
-                            form_dict['action'], url)
-                        if '.onion' not in action_url \
-                                or '.onion.' in action_url:
+                        action_url = merge_urls(form_dict['action'], url)
+                        if '.onion' in action_url \
+                                and '.onion.' not in action_url:
                             # Ignore any non-onion domain.
-                            continue
-                        scan_result['new_urls'].append(action_url)
+                            scan_result['new_urls'].append(action_url)
 
                         # Now we'll need to add each input field and its
                         # possible default values.
@@ -867,11 +786,10 @@ class Spider:
                     for scheme in ['http', 'https']:
                         s = scheme
                         new_url = urlunsplit((s, n, p, q, f))
-                        if '.onion' not in new_url \
-                                or '.onion.' in new_url:
+                        if '.onion' in new_url \
+                                and '.onion.' not in new_url:
                             # Ignore any non-onion domain.
-                            continue
-                        scan_result['new_urls'].append(new_url)
+                            scan_result['new_urls'].append(new_url)
                     scan_result['fault'] = 'invalid schema'
                     # TODO: Send off the scan_result.
 
@@ -892,40 +810,17 @@ class Spider:
                             # Return the scan_result, which will show that
                             # the url is offline.
                             # TODO: Send off the scan_result.
-                            # TODO: Remove the rest of this section.
-                            tries += 1
-                            if tries == 3:
-                                # We've failed three times. Time to quit.
-                                logger.log('Url is offline: {}'.format(url), 'debug')
-                                url_offline = True
-                            else:
-                                data = {
-                                    "tries": tries
-                                }
-                                self.__update_onions(domain, data)
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
                         # It might be a temporary outage, so let's wait
                         # for a little while and see if it fixes itself.
-                        logger.log('We seem to not be connected to Tor', 'debug')
+                        logger.log('We seem to not be connected to Tor.', 'debug')
                         time.sleep(5)
-                        continue
 
                 except requests.exceptions.Timeout:
                     # It took too long to load this page.
                     logger.log('Request timed out: {}'.format(url), 'debug')
                     # TODO: Send off the scan_result.
-                    # TODO: Remove the rest of this section.
-                    tries += 1
-                    if tries == 3:
-                        # We've failed three times. Time to quit.
-                        logger.log('Url is offline: {}'.format(url), 'debug')
-                        url_offline = True
-                    else:
-                        data = {
-                            "tries": tries
-                        }
-                        self.__update_onions(domain, data)
 
                 except requests.exceptions.TooManyRedirects as e:
                     # Redirected too many times. Let's not keep trying.
@@ -934,7 +829,8 @@ class Spider:
 
                 except requests.exceptions.ChunkedEncodingError as e:
                     # Server gave bad chunk. This might not be a permanent
-                    # problem, so let's just roll with it.
+                    # problem, so let's just roll with it. Don't report back,
+                    # just move on.
                     continue
 
                 except MemoryError as e:
@@ -946,50 +842,12 @@ class Spider:
                 except NotImplementedError as e:
                     logger.log("I don't know what this means: {} - {}".format(e, url),
                         'error')
+                    # Don't report back, just move on.
 
                 except Exception as e:
                     logger.log('Unknown exception: {}'.format(e), 'error')
                     raise
-
-                # TODO: Remove this entire section. This won't be necessary
-                # when the backend handles this processing.
-                if url_offline:
-                    # Set the domain to offline.
-                    logger.log('Setting url as offline: {}'.format(url), 'debug')
-                    data = {
-                        "online": False,
-                        "tries": 0
-                    }
-                    self.__update_onions(domain, data)
-                    # In order to reduce the frequency of scans for offline
-                    # pages, set the scan date ahead by the number of times the
-                    # page has been scanned offline. To do this, first retrieve
-                    # the number of times the page has been scanned offline.
-                    offline_query = {
-                        "filters": [
-                            {
-                                "op": "eq",
-                                "name": "domain",
-                                "val": domain
-                            }
-                        ]}
-                    result = self.__get_query('onions', offline_query)
-                    if result:
-                        offline_scans = result[0].get('offline_scans', 0)
-                    else:
-                        offline_scans = 0
-                    # Next, increment the scans by one.
-                    offline_scans += 1
-                    # Now, set the interval we'll be using for the date.
-                    interval = offline_scans
-                    new_date = (date.today() +
-                                timedelta(days=interval)).strftime('%Y-%m-%d')
-                    # Save the new values to the database.
-                    data = {
-                        "offline_scans": offline_scans,
-                        "scan_date": new_date
-                    }
-                    self.__update_onions(domain, data)
+                    # Don't report back, just move on.
 
         # If we reach this point, the main loop is finished and the spiders are
         # going to sleep.
