@@ -24,22 +24,6 @@ def merge_titles(title1, title2):
     return new_title
 
 
-def get_query(url):
-    # Get the query information from the url.
-    # Queries look like: /page.php?field=value&field2=value2
-    # Splitting along the & we get field=value, field2=value2
-    query = urlsplit(url).query.split('&')
-    result = []
-    for item in query:
-        # Splitting each query along the '=' we get
-        # [[field1, value], [field2, value2]]
-        item_parts = item.split('=')
-        field = item_parts[0]
-        value = '='.join(item_parts[1:])
-        result.append([field, value])
-    return result
-
-
 def merge_urls(url1, url2):
     url1 = '' if url1 is None else url1
     # Split up url1 and url into their component parts.

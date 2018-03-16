@@ -59,60 +59,6 @@ class Spider:
         myhead['Authorization-Node'] = api_node
         return myhead
 
-    # TODO: Remove this function. It's handled by the backend.
-    def __add_onion(self, domain):
-        # Add an onion to the backend DB.
-        logger.log('Adding onion: {}'.format(domain), 'debug')
-        # Add the domain and the name of the node that found it.
-        data = {
-            "domain": domain,
-            "last_node": node_name
-        }
-        # Send the data to the backend API.
-        r = requests.post(
-            self.api_url + 'onions',
-            headers=self.headers,
-            data=json.dumps(data),
-            verify=ssl_verify)
-        if r.status_code == 201:
-            # If created then it returns the object data.
-            logger.log('Added successfully: {}'.format(domain), 'debug')
-            return json.loads(r.text)
-        elif r.status_code == 401:
-            # Unauthorized.
-            logger.log('Receive 401 Unauthorized', 'error')
-            return {}
-        else:
-            # Some other failure.
-            return {}
-
-    # TODO: Remove this function. It's handled by the backend.
-    def __add_url(self, domain, url):
-        # Add a url to the backend DB.
-        logger.log('Adding url: {}'.format(url), 'debug')
-        # Add the url as well as the domain to which it is attached.
-        data = {
-            "domain": domain,
-            "url": url
-        }
-        # Send the data to the backend API.
-        r = requests.post(
-            self.api_url + 'urls',
-            headers=self.headers,
-            data=json.dumps(data),
-            verify=ssl_verify)
-        if r.status_code == 201:
-            # If created then it returns the object data.
-            logger.log('Added successfully: {}'.format(url), 'debug')
-            return json.loads(r.text)
-        elif r.status_code == 401:
-            # Unauthorized.
-            logger.log('Receive 401 Unauthorized', 'error')
-            return {}
-        else:
-            # Some other failure.
-            return {}
-
     def __add_page(self, domain, url):
         # Add a page to the backend DB.
         logger.log('Adding page: {}'.format(url), 'debug')
@@ -130,35 +76,6 @@ class Spider:
         if r.status_code == 201:
             # If created then it returns the object data.
             logger.log('Added successfully: {}'.format(url), 'debug')
-            return json.loads(r.text)
-        elif r.status_code == 401:
-            # Unauthorized.
-            logger.log('Receive 401 Unauthorized', 'error')
-            return {}
-        else:
-            # Some other failure.
-            return {}
-
-    # TODO: Remove this function. It's handled by the backend.
-    def __add_link(self, domain_from, domain_to):
-        # Add a link to the backend DB.
-        logger.log('Adding link: {}->{}'.format(domain_from, domain_to), 'debug')
-        # Add both the origin (domain_from) and destination (domain_to)
-        # of the link.
-        data = {
-            "domain_from": domain_from,
-            "domain_to": domain_to
-        }
-        # Send the data to the backend API.
-        r = requests.post(
-            self.api_url + 'links',
-            headers=self.headers,
-            data=json.dumps(data),
-            verify=ssl_verify)
-        if r.status_code == 201:
-            # If created then it returns the object data.
-            logger.log('Added successfully: {}->{}'.format(domain_from, domain_to),
-                'debug')
             return json.loads(r.text)
         elif r.status_code == 401:
             # Unauthorized.
@@ -324,10 +241,10 @@ class Spider:
                 'debug')
             return {}
 
-    # TODO: Add a __put_query() function for sending off the scan_result.
     def __get_query(self, endpoint, query):
         # Request data from the backend API.
-        logger.log("Running GET Query on endpoint: {}".format(endpoint), 'debug')
+        logger.log("Running GET Query on endpoint: {}".format(endpoint),
+                   'debug')
         # Send the request for information from the API.
         r = requests.get(
             self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(
@@ -337,7 +254,7 @@ class Spider:
         if r.status_code == 200:
             # If successful then it returns the object data.
             logger.log('GET Query successful for endpoint: {}'.format(endpoint),
-                'debug')
+                       'debug')
             return json.loads(r.text).get('objects')
         elif r.status_code == 401:
             # Unauthorized.
@@ -346,6 +263,36 @@ class Spider:
         else:
             # Some other failure.
             return {}
+
+
+    def __put_query(self, endpoint, query):
+        # Send data to the backend API.
+        logger.log("Running PUT Query on endpoint: {}".format(endpoint),
+                   'debug')
+        # Send the information to the API.
+        r = requests.put(
+            self.api_url + endpoint + '?q=' + urllib.parse.quote_plus(
+                json.dumps(query)
+            ),
+            headers=self.headers,
+            verify=ssl_verify
+        )
+        # Check the result.
+        if r.status_code == 200:
+            # We were successful.
+            logger.log('PUT Query successful for endpoint: {}'.format(endpoint),
+                       debug)
+        elif r.status_code == 401:
+            # Unauthorized.
+            logger.log('Receive 401 Unauthorized', 'error')
+        elif r.status_code == 400:
+            # Bad request.
+            logger.log('Receive 400 Bad Request', 'error')
+        else:
+            # Some other failure.
+            pass
+        return {}
+
 
     def crawl(self):
         logger.log("Ready to explore!", 'info')
@@ -360,15 +307,15 @@ class Spider:
             else:
                 # Initialize the scan_result dictionary.
                 scan_result = {
-                        'new_urls' = [],
-                        'online' = False,
-                        'url' = '',
-                        'scan_date' = '',
-                        'last_node' = '',
-                        'fault' = None,
-                        'title' = '',
-                        'form_dicts' = [],
-                        'hash' = ''
+                    'new_urls' = [],
+                    'online' = False,
+                    'url' = '',
+                    'scan_date' = '',
+                    'last_node' = '',
+                    'fault' = None,
+                    'title' = '',
+                    'form_dicts' = [],
+                    'hash' = ''
                 }
 
                 # Ask the API for a url to scan.
@@ -462,7 +409,8 @@ class Spider:
                             # The server did not provide a redirect url.
                             logger.log("{}: couldn't find redirect. ({})".format(
                                 str(head.status_code), url), 'error')
-                        # TODO: Send off the scan_result.
+                        # Send off the scan_result.
+                        self.__put_query('parse_scan', scan_result)
                         continue
 
                     elif head.status_code in fault_codes:
@@ -470,14 +418,16 @@ class Spider:
                         logger.log('Found a fault in url: {} code: {}'.format(
                             url, head.status_code), 'debug')
                         scan_result['fault'] = str(head.status_code)
-                        # TODO: Send off the scan_result.
+                        # Send off the scan_result.
+                        self.__put_query('parse_scan', scan_result)
                         continue
 
                     elif head.status_code in no_fault_codes:
                         # The url results in a problem, but not a fault.
                         logger.log('Found a problem url: {} code: {}'.format(
                             url, head.status_code), 'debug')
-                        # TODO: Send off the scan_result.
+                        # Send off the scan_result.
+                        self.__put_query('parse_scan', scan_result)
                         continue
 
                     elif head.status_code not in good_codes:
@@ -488,7 +438,8 @@ class Spider:
                         logger.log("Unknown status code {}: {}".format(
                             head.status_code, url), 'error')
                         scan_result['fault'] = str(head.status_code)
-                        # TODO: Send off the scan_result.
+                        # Send off the scan_result.
+                        self.__put_query('parse_scan', scan_result)
                         continue
 
                     # If we reach this point, we know the domain is online.
@@ -503,7 +454,8 @@ class Spider:
                     if content_type != 'text' and content_type is not None:
                         # This content is not text-based, so don't scan it.
                         scan_result['fault'] = 'type: {0}'.format(content_type)
-                        # TODO: Send off the scan_result.
+                        # Send off the scan_result.
+                        self.__put_query('parse_scan', scan_result)
                         continue
 
                     request = self.session.get(url, timeout=30)
@@ -519,7 +471,8 @@ class Spider:
                             # or an image file.
                             scan_result['fault'] = 'type: {}'.format(
                                 content_type)
-                            # TODO: Send off the scan_result.
+                            # Send off the scan_result.
+                            self.__put_query('parse_scan', scan_result)
                             continue
 
                     # Let's see if the page has changed...
@@ -536,7 +489,8 @@ class Spider:
                         # If the hash hasn't changed, don't process the page.
                         if last_hash == page_hash:
                             logger.log('The hashes matched, nothing has changed.', 'debug')
-                            # TODO: Send off the scan_result.
+                            # Send off the scan_result.
+                            self.__put_query('parse_scan', scan_result)
                             continue
 
                         scan_result['hash'] = page_hash
@@ -548,7 +502,8 @@ class Spider:
                         # retrieving the hash along with the new url.
                         logger.log("Couldn't retrieve previous hash: {0}".format(url),
                             'error')
-                        # TODO: Send off the scan_result.
+                        # Send off the scan_result.
+                        self.__put_query('parse_scan', scan_result)
                         continue
 
                     # The page's HTML changed since our last scan; let's
@@ -771,13 +726,15 @@ class Spider:
                         # ---[END OF REMOVED SECTION]---
 
                 # Parsing is complete for this page!
-                # TODO: Send off the scan_result.
+                # Send off the scan_result.
+                self.__put_query('parse_scan', scan_result)
 
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
                     logger.log("Invalid url: {}".format(url), 'error')
                     scan_result['fault'] = 'invalid url'
-                    # TODO: Send off the scan_result.
+                    # Send off the scan_result.
+                    self.__put_query('parse_scan', scan_result)
 
                 except requests.exceptions.InvalidSchema:
                     # We got an invalid schema. Add the url with both http and
@@ -791,13 +748,15 @@ class Spider:
                             # Ignore any non-onion domain.
                             scan_result['new_urls'].append(new_url)
                     scan_result['fault'] = 'invalid schema'
-                    # TODO: Send off the scan_result.
+                    # Send off the scan_result.
+                    self.__put_query('parse_scan', scan_result)
 
                 except requests.exceptions.SSLError as e:
                     # There was a problem with the site's SSL certificate.
                     logger.log("SSL Error at {}: {}".format(url, e), 'error')
                     scan_result['fault'] = 'Bad SSL'
-                    # TODO: Send off the scan_result.
+                    # Send off the scan_result.
+                    self.__put_query('parse_scan', scan_result)
 
                 except requests.exceptions.ConnectionError:
                     # We had trouble connecting to the url.
@@ -809,7 +768,8 @@ class Spider:
                             # If we've reached this point, Tor is working.
                             # Return the scan_result, which will show that
                             # the url is offline.
-                            # TODO: Send off the scan_result.
+                            # Send off the scan_result.
+                            self.__put_query('parse_scan', scan_result)
                     except Exception as e:
                         # We aren't connected to Tor for some reason.
                         # It might be a temporary outage, so let's wait
@@ -820,12 +780,14 @@ class Spider:
                 except requests.exceptions.Timeout:
                     # It took too long to load this page.
                     logger.log('Request timed out: {}'.format(url), 'debug')
-                    # TODO: Send off the scan_result.
+                    # Send off the scan_result.
+                    self.__put_query('parse_scan', scan_result)
 
                 except requests.exceptions.TooManyRedirects as e:
                     # Redirected too many times. Let's not keep trying.
                     scan_result['fault'] = 'redirect'
-                    # TODO: Send off the scan_result.
+                    # Send off the scan_result.
+                    self.__put_query('parse_scan', scan_result)
 
                 except requests.exceptions.ChunkedEncodingError as e:
                     # Server gave bad chunk. This might not be a permanent
@@ -837,7 +799,8 @@ class Spider:
                     # Whatever it is, it's way too big.
                     logger.log('Ran out of memory: {}'.format(url), 'error')
                     scan_result['fault'] = 'memory error'
-                    # TODO: Send off the scan_result.
+                    # Send off the scan_result.
+                    self.__put_query('parse_scan', scan_result)
 
                 except NotImplementedError as e:
                     logger.log("I don't know what this means: {} - {}".format(e, url),
