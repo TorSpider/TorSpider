@@ -862,6 +862,8 @@ class Spider:
                         # ---[END OF REMOVED SECTION]---
 
                 # Parsing is complete for this page!
+                # TODO: Send off the scan_result.
+
                 except requests.exceptions.InvalidURL:
                     # The url provided was invalid.
                     logger.log("Invalid url: {}".format(url), 'error')
