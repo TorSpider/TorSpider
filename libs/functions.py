@@ -14,18 +14,6 @@ requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += \
     ':ECDHE-ECDSA-AES128-GCM-SHA256'
 
 
-def defrag_domain(domain):
-    # Defragment the given domain.
-    domain_parts = domain.split('.')
-    # Onion domains don't have strange symbols or numbers in them, so be
-    # sure to remove any of those just in case someone's obfuscating
-    # domains for whatever reason.
-    domain_parts[-2] = ''.join(
-        ch for ch in domain_parts[-2] if ch.isalnum())
-    domain = '.'.join(domain_parts)
-    return domain
-
-
 def merge_titles(title1, title2):
     logger.log('Merging titles: {} and {}'.format(title1, title2), 'debug')
     title1_parts = title1.split()
@@ -96,24 +84,6 @@ def merge_urls(url1, url2):
     return link
 
 
-# TODO: Remove this function. It's been moved to the backend.
-def get_domain(url):
-    # Get the defragmented domain of the given url.
-    # Omit subdomains. Rather than having separate records for urls
-    # like sub1.onionpage.onion and sub2.onionpage.onion, just keep them
-    # all under onionpage.onion.
-    return '.'.join(defrag_domain(urlsplit(url).netloc).split('.')[-2:])
-
-
-# TODO: Remove this function. It's been moved to the backend.
-def fix_url(url):
-    # Fix obfuscated urls.
-    (scheme, netloc, path, query, fragment) = urlsplit(url)
-    netloc = defrag_domain(netloc)
-    url = urlunsplit((scheme, netloc, path, query, fragment))
-    return url.replace('\x00', '')
-
-
 def get_hash(data):
     # Get the sha1 hash of the provided data. Data must be binary-encoded.
     return sha1(data).hexdigest()
@@ -166,13 +136,6 @@ def get_my_ip(sess, max_tries=5):
 def extract_exact(list1, list2):
     # Return the common items from both lists.
     return [item for item in list1 if any(scan == item for scan in list2)]
-
-
-# TODO: Remove this function. It's been moved to the backend.
-def is_http(url):
-    # Determine whether the link is an http/https scheme or not.
-    (scheme, netloc, path, query, fragment) = urlsplit(url)
-    return True if 'http' in scheme else False
 
 
 def prune_exact(items, scan_list):
