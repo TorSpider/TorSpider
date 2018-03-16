@@ -321,6 +321,7 @@ class Spider:
                 'debug')
             return {}
 
+    # TODO: Add a __put_query() function for sending off the scan_result.
     def __get_query(self, endpoint, query):
         # Request data from the backend API.
         logger.log("Running GET Query on endpoint: {}".format(endpoint), 'debug')
@@ -344,6 +345,7 @@ class Spider:
             return {}
 
     def add_to_queue(self, link_url, origin_domain):
+        # TODO: Remove this after adding this processing to the backend.
         # Add a URL to the database to be scanned.
         logger.log("Attempting to add a onion url to the queue: {}".format(
                 link_url), 'debug')
@@ -419,15 +421,6 @@ class Spider:
                 # to connect to this domain before.
                 tries = domain_info.get('tries', 0)
                 last_node = domain_info.get('last_node', 'none')
-
-                if last_node == node_name and tries > 0:
-                    # This node was the last to scan this domain, and the
-                    # domain was reported offline. Let's not re-scan the domain
-                    # with the same node, just in case there's some problem
-                    # with this node's connection.
-                    logger.log('I was the last node to scan this url, skipping.',
-                        'debug')
-                    continue
 
                 # Update the scan date for this domain, and set this node as
                 # the last node to scan this domain.
@@ -695,9 +688,6 @@ class Spider:
 
                     # Add the links to the database.
                     for link_url in page_links:
-                        # TODO: Remove the add_to_queue reference.
-                        self.add_to_queue(link_url, domain)
-
                         if '.onion' not in link_url \
                                 or '.onion.' in link_url:
                             # Ignore any non-onion domain.
@@ -738,7 +728,7 @@ class Spider:
                                 or '.onion.' in action_url:
                             # Ignore any non-onion domain.
                             continue
-                        self.add_to_queue(action_url, domain)
+                        scan_result['new_urls'].append(action_url)
 
                         # Now we'll need to add each input field and its
                         # possible default values.
@@ -877,8 +867,10 @@ class Spider:
                     for scheme in ['http', 'https']:
                         s = scheme
                         new_url = urlunsplit((s, n, p, q, f))
-                        # TODO: Remove add_to_queue.
-                        self.add_to_queue(new_url, domain)
+                        if '.onion' not in new_url \
+                                or '.onion.' in new_url:
+                            # Ignore any non-onion domain.
+                            continue
                         scan_result['new_urls'].append(new_url)
                     scan_result['fault'] = 'invalid schema'
                     # TODO: Send off the scan_result.
