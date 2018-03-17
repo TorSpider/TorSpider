@@ -264,7 +264,6 @@ class Spider:
             # Some other failure.
             return {}
 
-
     def __put_query(self, endpoint, query):
         # Send data to the backend API.
         logger.log("Running PUT Query on endpoint: {}".format(endpoint),
@@ -293,7 +292,6 @@ class Spider:
             pass
         return {}
 
-
     def crawl(self):
         logger.log("Ready to explore!", 'info')
         time_to_sleep = False
@@ -309,13 +307,13 @@ class Spider:
                 scan_result = {
                     'new_urls' = [],
                     'online' = False,
-                    'url' = '',
-                    'scan_date' = '',
-                    'last_node' = '',
+                    'url' = None,
+                    'scan_date' = None,
+                    'last_node' = None,
                     'fault' = None,
-                    'title' = '',
+                    'title' = None,
                     'form_dicts' = [],
-                    'hash' = ''
+                    'hash' = None
                 }
 
                 # Ask the API for a url to scan.
