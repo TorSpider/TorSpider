@@ -474,35 +474,22 @@ class Spider:
                             continue
 
                     # Let's see if the page has changed...
-                    try:
-                        # Get the page's sha1 hash.
-                        # TODO: Get the old hash when we first get the url.
-                        page_hash = get_hash(request.content)
+                    # Get the page's sha1 hash.
+                    page_hash = get_hash(request.content)
 
-                        logger.log('Page hash of url: {} is: {}'.format(
-                            url, page_hash), 'debug')
-                        logger.log('Last page hash of url: {} is: {}'.format(
-                            url, last_hash), 'debug')
+                    logger.log('Page hash of url: {} is: {}'.format(
+                        url, page_hash), 'debug')
+                    logger.log('Last page hash of url: {} is: {}'.format(
+                        url, last_hash), 'debug')
 
-                        # If the hash hasn't changed, don't process the page.
-                        if last_hash == page_hash:
-                            logger.log('The hashes matched, nothing has changed.', 'debug')
-                            # Send off the scan_result.
-                            self.__put_query('parse_scan', scan_result)
-                            continue
-
-                        scan_result['hash'] = page_hash
-
-                    except Exception as e:
-                        # We were unable to retrieve the previous hash from the
-                        # backend. Something went wrong.
-                        # TODO: We won't need this exception once we start
-                        # retrieving the hash along with the new url.
-                        logger.log("Couldn't retrieve previous hash: {0}".format(url),
-                            'error')
+                    # If the hash hasn't changed, don't process the page.
+                    if last_hash == page_hash:
+                        logger.log('The hashes matched, nothing has changed.', 'debug')
                         # Send off the scan_result.
                         self.__put_query('parse_scan', scan_result)
                         continue
+
+                    scan_result['hash'] = page_hash
 
                     # The page's HTML changed since our last scan; let's
                     # process it.
@@ -518,45 +505,6 @@ class Spider:
 
                     # Set the title of the url.
                     scan_result['title'] = page_title
-
-                    # Update the page's title.
-                    # TODO: Remove this section. Let the backend determine the
-                    # new page title.
-                    # ---[BEGINNING OF REMOVED SECTION]---
-                    title_query = {
-                        "filters": [
-                            {
-                                "op": "eq",
-                                "name": "url",
-                                "val": url
-                            }
-                        ]}
-                    page_info = self.__get_query('pages', title_query)
-                    if page_info:
-                        curr_title = page_info[0].get('title')
-                    else:
-                        curr_title = 'Unknown'
-                    logger.log('Previous page title for url: {} was: {}'.format(
-                        url, curr_title), 'debug')
-                    # Now, if the title is 'none' then just save
-                    # page_title. But if it's something else, we'll need to
-                    # make a hybrid title based on the current title and
-                    # the title of the newly-scraped page.
-                    if curr_title != 'Unknown' and curr_title:
-                        page_title = merge_titles(curr_title, page_title)
-                    page_title = ' '.join(page_title.split())
-                    # If the title is now empty, just set it to Unknown.
-                    page_title = 'Unknown' if page_title == '' else page_title
-                    # Now, save the new title to the database, but only if
-                    # the title has changed.
-                    if page_title != curr_title:
-                        logger.log('Page title has changed to: {}'.format(
-                            page_title), 'debug')
-                        data = {
-                            "title": page_title
-                        }
-                        self.__update_pages(url, data)
-                    # ---[END OF REMOVED SECTION]---
 
                     # Get the page's links.
                     page_links = get_links(page_text, url)

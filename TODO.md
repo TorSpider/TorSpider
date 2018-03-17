@@ -27,3 +27,16 @@ Set_Fault will need to be updated to add the fault to the scan_result and send o
 The backend will unpack the JSON data it receives, parsing the data and adding it to the database as necessary.
 
 For "on conflict do nothing," see: http://docs.sqlalchemy.org/en/latest/dialects/postgresql.html
+
+
+
+# TODO: Sanity check - Does this work?
+try:
+    db.session.update().where(
+        # condition
+    ).values(
+        # values
+    )
+    db.session.commit()
+except:
+    db.session.rollback()
