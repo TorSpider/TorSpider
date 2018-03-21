@@ -313,8 +313,6 @@ class Spider:
 
                         # TODO: Remove this section and let the backend handle
                         # all this processing.
-                        # ---[BEGINNING OF REMOVED SECTION]---
-                        # Make sure the necessary fields exist.
 
                     # Parsing is complete for this page!
                     # Send off the scan_result.
