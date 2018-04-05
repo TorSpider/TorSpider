@@ -145,6 +145,9 @@ class Spider:
                 # Set the last node information in scan_result.
                 scan_result.last_node = node_name
 
+                # Store an empty redirect, just in case.
+                scan_result.redirect = None
+
                 # The following lists define possible response codes that a
                 # server might send in reply to our request for their url.
 
@@ -191,6 +194,8 @@ class Spider:
                             if '.onion' in new_url and '.onion.' not in new_url:
                                 # Ignore any non-onion domain.
                                 scan_result.new_urls.append(new_url)
+                            # Store information about where this url redirects.
+                            scan_result.redirect = new_url
                         except Exception as e:
                             # The server did not provide a redirect url.
                             logger.log("{}: couldn't find redirect. ({})".format(
