@@ -271,13 +271,13 @@ class Spider:
 
                     logger.log('Page hash of url: {} is: {}'.format(url, page_hash), 'debug')
                     logger.log('Last page hash of url: {} is: {}'.format(url, last_hash), 'debug')
-
+                    # TODO: Does it matter that the hash matched, or should be continue anyways?
                     # If the hash hasn't changed, don't process the page.
-                    if last_hash == page_hash:
-                        logger.log('The hashes matched, nothing has changed.', 'debug')
-                        # We are done here, Send off the scan_result and go to next url.
-                        self.__post_parse(scan_result.to_json())
-                        continue
+                    #if last_hash == page_hash:
+                    #    logger.log('The hashes matched, nothing has changed.', 'debug')
+                    #    # We are done here, Send off the scan_result and go to next url.
+                    #    self.__post_parse(scan_result.to_json())
+                    #    continue
 
                     scan_result.hash = page_hash
 
