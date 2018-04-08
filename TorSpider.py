@@ -265,6 +265,20 @@ class Spider:
                             self.__post_parse(scan_result.to_json())
                             continue
 
+                    # Get the title of the page.
+                    try:
+                        page_title = get_title(page_text)
+                    except Exception as e:
+                        page_title = 'Unknown'
+                    logger.log('Page title for url: {} is: {}'.format(
+                        url, page_title), 'debug')
+
+                    # Set the title of the url.
+                    scan_result.title = page_title
+
+                    # (We set the title before we check the hash, just in case
+                    # the title wasn't set during the last scan.)
+
                     # Let's see if the page has changed...
                     # Get the page's sha1 hash.
                     page_hash = get_hash(request.content)
@@ -286,17 +300,6 @@ class Spider:
                     # The page's HTML changed since our last scan; let's
                     # process it.
                     page_text = request.text
-
-                    # Get the title of the page.
-                    try:
-                        page_title = get_title(page_text)
-                    except Exception as e:
-                        page_title = 'Unknown'
-                    logger.log('Page title for url: {} is: {}'.format(
-                        url, page_title), 'debug')
-
-                    # Set the title of the url.
-                    scan_result.title = page_title
 
                     # Get the page's links.
                     page_links = get_links(page_text, url)
