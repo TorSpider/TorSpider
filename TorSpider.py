@@ -265,6 +265,9 @@ class Spider:
                             self.__post_parse(scan_result.to_json())
                             continue
 
+                    # Grab the page text
+                    page_text = request.text
+
                     # Get the title of the page.
                     try:
                         page_title = get_title(page_text)
