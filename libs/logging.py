@@ -58,7 +58,7 @@ class Logger:
             self.logger.warning(message)
         elif level.lower() == 'error':
             self.logger.error(message)
-        elif level.lower() == 'critical`':
+        elif level.lower() == 'critical':
             self.logger.critical(message)
 
 logger = Logger()
