@@ -265,24 +265,7 @@ class Spider:
                             self.__post_parse(scan_result.to_json())
                             continue
 
-                    # Let's see if the page has changed...
-                    # Get the page's sha1 hash.
-                    page_hash = get_hash(request.content)
-
-                    logger.log('Page hash of url: {} is: {}'.format(url, page_hash), 'debug')
-                    logger.log('Last page hash of url: {} is: {}'.format(url, last_hash), 'debug')
-
-                    # If the hash hasn't changed, don't process the page.
-                    if last_hash == page_hash:
-                        logger.log('The hashes matched, nothing has changed.', 'debug')
-                        # We are done here, Send off the scan_result and go to next url.
-                        self.__post_parse(scan_result.to_json())
-                        continue
-
-                    scan_result.hash = page_hash
-
-                    # The page's HTML changed since our last scan; let's
-                    # process it.
+                    # Grab the page text
                     page_text = request.text
 
                     # Get the title of the page.
@@ -295,6 +278,31 @@ class Spider:
 
                     # Set the title of the url.
                     scan_result.title = page_title
+
+                    # (We set the title before we check the hash, just in case
+                    # the title wasn't set during the last scan.)
+
+                    # Let's see if the page has changed...
+                    # Get the page's sha1 hash.
+                    page_hash = get_hash(request.content)
+
+                    logger.log('Page hash of url: {} is: {}'.format(url, page_hash), 'debug')
+                    logger.log('Last page hash of url: {} is: {}'.format(url, last_hash), 'debug')
+
+                    # If the hash hasn't changed, don't process the page.
+                    if last_hash == page_hash:
+                        logger.log('The hashes matched, nothing has changed.',
+                                'debug')
+                        # We are done here, Send off the scan_result and go to
+                        # next url.
+                        self.__post_parse(scan_result.to_json())
+                        continue
+
+                    scan_result.hash = page_hash
+
+                    # The page's HTML changed since our last scan; let's
+                    # process it.
+                    page_text = request.text
 
                     # Get the page's links.
                     page_links = get_links(page_text, url)
